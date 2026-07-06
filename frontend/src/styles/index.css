@@ -1,0 +1,24 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne:wght@700;800&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0D0F14; color: #F0F2F8; font-family: 'Space Grotesk', sans-serif; }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: #0D0F14; }
+  ::-webkit-scrollbar-thumb { background: #2A2F3E; border-radius: 3px; }
+}
+
+@layer components {
+  .btn-primary   { @apply bg-aviro-orange text-white font-bold rounded-full px-6 py-2.5 transition-all hover:opacity-90 hover:-translate-y-0.5 hover:shadow-lg active:scale-95; }
+  .btn-secondary { @apply bg-transparent text-white border border-aviro-border font-semibold rounded-full px-6 py-2.5 transition-all hover:border-aviro-orange hover:text-aviro-orange; }
+  .card          { @apply bg-aviro-card border border-aviro-border rounded-2xl; }
+  .input-field   { @apply w-full bg-aviro-card2 border border-aviro-border rounded-xl px-4 py-3 text-sm text-white placeholder-aviro-muted focus:outline-none focus:border-aviro-orange transition-colors; }
+  .section-tag   { @apply inline-block bg-aviro-orange/10 text-aviro-orange px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider; }
+  .gender-male   { @apply bg-blue-500/10 text-blue-400 text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1; }
+  .gender-female { @apply bg-pink-500/10 text-pink-400 text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1; }
+  .sidebar-link  { @apply flex items-center gap-3 px-4 py-3 rounded-xl text-aviro-muted hover:text-white hover:bg-aviro-card2 transition-all font-medium text-sm; }
+  .sidebar-link.active { @apply bg-aviro-orange/10 text-aviro-orange; }
+}
