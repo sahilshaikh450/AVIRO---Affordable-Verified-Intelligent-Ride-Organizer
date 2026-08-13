@@ -1,0 +1,16 @@
+package com.aviro.service;
+
+import com.aviro.dto.request.BookingRequest;
+import com.aviro.dto.response.ApiResponse;
+import com.aviro.dto.response.BookingResponse;
+import java.util.List;
+
+public interface BookingService {
+    ApiResponse<BookingResponse> createBooking(String email, BookingRequest.Create request);
+    ApiResponse<List<BookingResponse>> getMyBookings(String email);
+    ApiResponse<BookingResponse> getBookingById(Long bookingId);
+    ApiResponse<BookingResponse> updateBookingStatus(String email, Long bookingId, String status);
+    ApiResponse<String> cancelBooking(String email, Long bookingId);
+    ApiResponse<List<BookingResponse>> getRideBookings(String email, Long rideId);
+    ApiResponse<String> markAsPaid(String email, Long bookingId, String paymentReference); // <-- ADDED
+}

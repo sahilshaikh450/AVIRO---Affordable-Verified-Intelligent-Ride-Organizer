@@ -1,74 +1,77 @@
 package com.aviro.controller;
 
-import com.aviro.model.Ride;
-import com.aviro.repository.RideRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.aviro.dto.request.RideRequest;
+import com.aviro.dto.response.ApiResponse;
+import com.aviro.dto.response.RideResponse;
+import com.aviro.service.RideService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/rides")
-@CrossOrigin("*")
+@RequestMapping("/rides")
+@RequiredArgsConstructor
 public class RideController {
 
-    @Autowired
-    private RideRepository repo;
+    private final RideService rideService;
 
     @PostMapping
-    public Ride create(@RequestBody Ride ride) {
-        return repo.save(ride);
+    public ResponseEntity<ApiResponse<RideResponse>> createRide(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @Valid @RequestBody RideRequest.Create request) {
+        return ResponseEntity.ok(rideService.createRide(userDetails.getUsername(), request));
     }
 
-    @GetMapping("/my-rides")
-    public List<Ride> getAll() {
-        return repo.findAll();
+    @PostMapping("/search")
+    public ResponseEntity<ApiResponse<List<RideResponse>>> searchRides(
+            @RequestBody RideRequest.Search request) {
+        return ResponseEntity.ok(rideService.searchRides(request));
     }
 
-    @DeleteMapping("/{id}")
-    public void delete(@PathVariable Long id) {
-        repo.deleteById(id);
+    @GetMapping("/{rideId}")
+    public ResponseEntity<ApiResponse<RideResponse>> getRide(@PathVariable Long rideId) {
+        return ResponseEntity.ok(rideService.getRideById(rideId));
     }
 
-    @GetMapping("/{id}")
-    public Ride getById(@PathVariable Long id) {
-        return repo.findById(id).orElse(null);
+    @GetMapping("/my")
+    public ResponseEntity<ApiResponse<List<RideResponse>>> getMyRides(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(rideService.getMyRides(userDetails.getUsername()));
     }
 
-    @GetMapping("/search")
-    public List<Ride> search(
-            @RequestParam String origin,
-            @RequestParam String destination,
-            @RequestParam String date) {
-
-        return repo.findAll(); // basic
+    @GetMapping("/nearby")
+    public ResponseEntity<ApiResponse<List<RideResponse>>> getNearbyRides(
+            @RequestParam Double lat,
+            @RequestParam Double lng,
+            @RequestParam(defaultValue = "1") Integer seats) {
+        return ResponseEntity.ok(rideService.getNearbyRides(lat, lng, seats));
     }
 
-    @PutMapping("/{id}/cancel")
-    public String cancel(@PathVariable Long id) {
-        Ride ride = repo.findById(id).orElse(null);
-        if (ride != null) {
-            ride.setAvailableSeats(0);
-            repo.save(ride);
-        }
-        return "Cancelled";
+    @PatchMapping("/{rideId}/status")
+    public ResponseEntity<ApiResponse<RideResponse>> updateStatus(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Long rideId,
+            @RequestBody RideRequest.UpdateStatus request) {
+        return ResponseEntity.ok(rideService.updateRideStatus(userDetails.getUsername(), rideId, request.getStatus()));
     }
-    @PutMapping("/{id}/book")
-    public String bookRide(@PathVariable Long id) {
 
-        Ride ride = repo.findById(id).orElse(null);
-
-        if (ride == null) return "Ride not found";
-
-        if (ride.getAvailableSeats() <= 0) {
-            return "No seats available";
-        }
-
-        ride.setAvailableSeats(ride.getAvailableSeats() - 1);
-        repo.save(ride);
-
-        return "Ride booked successfully";
+    @DeleteMapping("/{rideId}")
+    public ResponseEntity<ApiResponse<String>> cancelRide(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Long rideId) {
+        return ResponseEntity.ok(rideService.cancelRide(userDetails.getUsername(), rideId));
     }
-    
-    
+
+    @GetMapping("/fare-estimate")
+    public ResponseEntity<ApiResponse<Double>> estimateFare(
+            @RequestParam String from,
+            @RequestParam String to,
+            @RequestParam(defaultValue = "1") Integer seats) {
+        return ResponseEntity.ok(rideService.estimateFare(from, to, seats));
+    }
 }
