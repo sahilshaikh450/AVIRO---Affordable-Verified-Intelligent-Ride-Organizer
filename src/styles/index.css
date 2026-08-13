@@ -1,0 +1,104 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne:wght@700;800&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0D0F14; color: #F0F2F8; font-family: 'Space Grotesk', sans-serif; }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: #0D0F14; }
+  ::-webkit-scrollbar-thumb { background: #2A2F3E; border-radius: 3px; }
+}
+
+@layer components {
+  .btn-primary   { @apply bg-aviro-orange text-white font-bold rounded-full px-6 py-2.5 transition-all hover:opacity-90 hover:-translate-y-0.5 hover:shadow-lg active:scale-95; }
+  .btn-secondary { @apply bg-transparent text-white border border-aviro-border font-semibold rounded-full px-6 py-2.5 transition-all hover:border-aviro-orange hover:text-aviro-orange; }
+  .card          { @apply bg-aviro-card border border-aviro-border rounded-2xl; }
+  .input-field   { @apply w-full bg-aviro-card2 border border-aviro-border rounded-xl px-4 py-3 text-sm text-white placeholder-aviro-muted focus:outline-none focus:border-aviro-orange transition-colors; }
+  .section-tag   { @apply inline-block bg-aviro-orange/10 text-aviro-orange px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider; }
+  .gender-male   { @apply bg-blue-500/10 text-blue-400 text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1; }
+  .gender-female { @apply bg-pink-500/10 text-pink-400 text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1; }
+  .sidebar-link  { @apply flex items-center gap-3 px-4 py-3 rounded-xl text-aviro-muted hover:text-white hover:bg-aviro-card2 transition-all font-medium text-sm; }
+  .sidebar-link.active { @apply bg-aviro-orange/10 text-aviro-orange; }
+}
+/* ── ADD THIS TO YOUR index.css or tailwind.css ── */
+
+/* Safe area for iPhone notch/home bar */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 8px);
+}
+
+/* Touch-friendly tap targets */
+@media (max-width: 768px) {
+  /* Bigger touch targets */
+  button, a {
+    min-height: 44px;
+  }
+
+  /* Cards full width on mobile */
+  .card {
+    border-radius: 12px;
+  }
+
+  /* Input fields bigger on mobile */
+  .input-field {
+    font-size: 16px !important; /* Prevents iOS zoom on focus */
+    padding: 12px 16px;
+  }
+
+  /* Modals full screen on mobile */
+  .modal-mobile {
+    position: fixed;
+    inset: 0;
+    border-radius: 0;
+  }
+
+  /* Tables scroll horizontally */
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}
+
+/* Smooth scrolling */
+* {
+  -webkit-tap-highlight-color: transparent;
+  scroll-behavior: smooth;
+}
+
+/* Hide scrollbar but keep functionality */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 4px;
+}
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.1);
+  border-radius: 2px;
+}
+
+/* Bottom nav active indicator */
+.mobile-nav-active {
+  position: relative;
+}
+.mobile-nav-active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 2px;
+  background: #f97316;
+  border-radius: 1px;
+}
+
+/* Prevent layout shift on mobile keyboard open */
+@supports (height: 100dvh) {
+  .min-h-screen {
+    min-height: 100dvh;
+  }
+}
