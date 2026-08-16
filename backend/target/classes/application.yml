@@ -6,13 +6,11 @@ server:
 spring:
   application:
     name: aviro-backend
-
   datasource:
-    url: jdbc:mysql://localhost:3306/aviro_db?useSSL=false&serverTimezone=Asia/Kolkata&allowPublicKeyRetrieval=true
-    username: root
-    password: Sahil890majbu
+    url: jdbc:mysql://${DB_HOST}:${DB_PORT:3306}/${DB_NAME}?useSSL=true&serverTimezone=Asia/Kolkata&allowPublicKeyRetrieval=true
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
-
   jpa:
     hibernate:
       ddl-auto: update
@@ -20,23 +18,20 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
-
   redis:
-    host: localhost
-    port: 6379
-
+    host: ${REDIS_HOST}
+    port: ${REDIS_PORT:6379}
   mail:
     host: smtp.gmail.com
     port: 587
-    username: sahilshaikh34088@gmail.com
-    password: zupmqvwukuevguln
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
     properties:
       mail:
         smtp:
           auth: true
           starttls:
             enable: true
-
   servlet:
     multipart:
       max-file-size: 10MB
@@ -44,7 +39,7 @@ spring:
 
 aviro:
   jwt:
-    secret: aVir0SuperSecretKeyForPuneCollegeRideSharing2025
+    secret: ${JWT_SECRET}
     expiration: 86400000
     refresh-expiration: 604800000
   otp:
@@ -54,4 +49,4 @@ aviro:
     max-search-radius-km: 5.0
     route-match-threshold: 0.7
   claude:
-    api-key: 
+    api-key: ${CLAUDE_API_KEY:}
