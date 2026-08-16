@@ -13,6 +13,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -36,7 +38,16 @@ public class SafetyController {
         User user = userRepository.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        String contacts = body.get("contacts").toString();
+        Object contactsObj = body.get("contacts");
+        List<String> contacts;
+        if (contactsObj instanceof List) {
+            contacts = new ArrayList<>();
+            for (Object c : (List<?>) contactsObj) {
+                contacts.add(c.toString());
+            }
+        } else {
+            contacts = Arrays.asList(contactsObj.toString().split(","));
+        }
         user.setEmergencyContacts(contacts);
         userRepository.save(user);
 
@@ -90,7 +101,7 @@ public class SafetyController {
         // Email emergency contacts
         if (user.getEmergencyContacts() != null && !user.getEmergencyContacts().isEmpty()) {
             try {
-                String[] contacts = user.getEmergencyContacts().split(",");
+                List<String> contacts = user.getEmergencyContacts();
                 for (String contact : contacts) {
                     String email = contact.trim();
                     if (email.contains("@")) {
