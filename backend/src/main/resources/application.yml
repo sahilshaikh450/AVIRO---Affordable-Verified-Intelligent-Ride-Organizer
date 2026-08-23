@@ -8,9 +8,9 @@ spring:
     name: aviro-backend
 
   datasource:
-    url: jdbc:mysql://localhost:3306/aviro_db?useSSL=false&serverTimezone=Asia/Kolkata&allowPublicKeyRetrieval=true
-    username: root
-    password: Sahil890majbu
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
@@ -22,14 +22,14 @@ spring:
         dialect: org.hibernate.dialect.MySQLDialect
 
   redis:
-    host: localhost
-    port: 6379
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
 
   mail:
     host: smtp.gmail.com
     port: 587
-    username: sahilshaikh34088@gmail.com
-    password: zupmqvwukuevguln
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
     properties:
       mail:
         smtp:
@@ -44,14 +44,17 @@ spring:
 
 aviro:
   jwt:
-    secret: aVir0SuperSecretKeyForPuneCollegeRideSharing2025
+    secret: ${JWT_SECRET}
     expiration: 86400000
     refresh-expiration: 604800000
+
   otp:
     expiry-minutes: 10
     length: 6
+
   ride:
     max-search-radius-km: 5.0
     route-match-threshold: 0.7
+
   claude:
-    api-key: 
+    api-key: ${CLAUDE_API_KEY}
