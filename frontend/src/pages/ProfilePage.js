@@ -1,57 +1,50 @@
 import React, { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
 import { useDispatch, useSelector } from 'react-redux';
+import { useForm } from 'react-hook-form';
 import { fetchProfile } from '../store/authSlice';
-import { GenderBadge, StatCard, Spinner } from '../components/common/UIComponents';
-import api from '../services/api';
-import toast from 'react-hot-toast';
+import { GenderBadge } from '../components/common/UIComponents';
 import ReviewsSection from '../components/common/ReviewsSection';
 import CollegeIdUpload from '../components/common/CollegeIdUpload';
-import CollegeEmailVerify from '../components/common/CollegeEmailVerify';
+import api from '../services/api';
+import toast from 'react-hot-toast';
 
-// ─────────────────────────────────────────────────────────────
-// ANALYTICS TAB CONTENT (merged from AnalyticsPage)
-// ─────────────────────────────────────────────────────────────
+function StatCard({ icon, label, value, color }) {
+  const colors = {
+    green:  'bg-aviro-green/10  border-aviro-green/20  text-aviro-green',
+    orange: 'bg-aviro-orange/10 border-aviro-orange/20 text-aviro-orange',
+    yellow: 'bg-yellow-500/10   border-yellow-500/20   text-yellow-400',
+    blue:   'bg-aviro-blue/10   border-aviro-blue/20   text-aviro-blue',
+  };
+  return (
+    <div className={`rounded-2xl border p-4 text-center ${colors[color] || colors.orange}`}>
+      <div className="text-2xl mb-1">{icon}</div>
+      <div className="font-bold text-lg">{value}</div>
+      <div className="text-xs opacity-70 mt-0.5">{label}</div>
+    </div>
+  );
+}
+
 function AnalyticsTab() {
   const { user } = useSelector(s => s.auth);
   const [bookings, setBookings] = useState([]);
-  const [myRides, setMyRides] = useState([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([
-      api.get('/bookings/my').catch(() => ({ data: { data: [] } })),
-      api.get('/rides/my').catch(() => ({ data: { data: [] } })),
-    ]).then(([bRes, rRes]) => {
-      setBookings(bRes.data.data || []);
-      setMyRides(rRes.data.data || []);
-      setLoading(false);
-    });
+    api.get('/bookings/my').then(r => setBookings(r.data.data || [])).catch(() => {});
   }, []);
 
-  if (loading) return <div className="flex justify-center py-12"><Spinner size="lg" /></div>;
-
   const completedBookings = bookings.filter(b => b.status === 'COMPLETED');
-  const totalSpent = completedBookings.reduce((sum, b) => sum + (b.totalAmount || 0), 0);
-  const estimatedSoloCost = totalSpent * 2.2;
-  const totalSaved = Math.max(0, estimatedSoloCost - totalSpent);
-
-  const avgKmPerRide = 6;
-  const co2PerRideKg = (avgKmPerRide * 0.12);
-  const totalCo2Saved = completedBookings.length * co2PerRideKg;
-
-  const totalRidesAsRider  = completedBookings.length;
-  const totalRidesAsDriver = myRides.filter(r => r.status === 'COMPLETED' || r.availableSeats < r.totalSeats).length;
-  const totalRides = totalRidesAsRider + totalRidesAsDriver;
+  const totalRides  = completedBookings.length;
+  const totalSpent  = completedBookings.reduce((s, b) => s + (b.totalAmount || 0), 0);
+  const totalSaved  = totalSpent * 0.4;
+  const totalCo2    = totalRides * 1.5;
 
   const monthlyData = {};
   completedBookings.forEach(b => {
     if (!b.departureTime) return;
-    const d = new Date(b.departureTime);
-    const key = d.toLocaleDateString('en-IN', { month: 'short' });
+    const key = new Date(b.departureTime).toLocaleDateString('en-IN', { month: 'short' });
     monthlyData[key] = (monthlyData[key] || 0) + (b.totalAmount || 0);
   });
-  const months = Object.keys(monthlyData).slice(-6);
+  const months   = Object.keys(monthlyData).slice(-6);
   const maxSpend = Math.max(...Object.values(monthlyData), 1);
 
   const routeCounts = {};
@@ -64,22 +57,19 @@ function AnalyticsTab() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon="💰" label="Total Saved" value={`₹${totalSaved.toFixed(0)}`} color="green"
-          trend={totalSaved > 0 ? `vs solo travel` : ''} />
-        <StatCard icon="🌱" label="CO₂ Saved" value={`${totalCo2Saved.toFixed(1)} kg`} color="green"
-          trend={totalCo2Saved > 0 ? `🌳 ${Math.ceil(totalCo2Saved/21)} trees/yr` : ''} />
-        <StatCard icon="🏍️" label="Total Rides" value={totalRides} color="orange" />
-        <StatCard icon="⭐" label="Your Rating" value={`${user?.rating?.toFixed(1) || '5.0'}★`} color="yellow" />
+        <StatCard icon="💰" label="Total Saved"  value={`₹${totalSaved.toFixed(0)}`}   color="green"  />
+        <StatCard icon="🌱" label="CO₂ Saved"    value={`${totalCo2.toFixed(1)} kg`}    color="green"  />
+        <StatCard icon="🏍️" label="Total Rides"  value={totalRides}                     color="orange" />
+        <StatCard icon="⭐" label="Your Rating"  value={`${user?.rating?.toFixed(1) || '5.0'}★`} color="yellow" />
       </div>
 
+      {/* Spending chart */}
       <div className="card p-5">
         <h3 className="font-semibold text-sm text-aviro-muted uppercase tracking-wider mb-4">
           💸 Spending Trend (Last 6 Months)
         </h3>
         {months.length === 0 ? (
-          <div className="text-center py-8 text-aviro-muted text-sm">
-            No completed rides yet. Start booking to see your trends!
-          </div>
+          <div className="text-center py-8 text-aviro-muted text-sm">No completed rides yet.</div>
         ) : (
           <div className="flex items-end gap-3 h-40">
             {months.map((m, i) => {
@@ -89,10 +79,8 @@ function AnalyticsTab() {
                 <div key={i} className="flex-1 flex flex-col items-center gap-2">
                   <span className="text-xs text-aviro-green font-semibold">₹{value.toFixed(0)}</span>
                   <div className="w-full bg-aviro-card2 rounded-t-lg relative" style={{ height: '100px' }}>
-                    <div
-                      className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-aviro-orange to-aviro-orange/60 rounded-t-lg transition-all"
-                      style={{ height: `${heightPct}%` }}
-                    />
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-aviro-orange to-aviro-orange/60 rounded-t-lg transition-all"
+                      style={{ height: `${heightPct}%` }} />
                   </div>
                   <span className="text-xs text-aviro-muted">{m}</span>
                 </div>
@@ -102,96 +90,47 @@ function AnalyticsTab() {
         )}
       </div>
 
-      <div className="grid md:grid-cols-2 gap-4">
+      {/* Top routes */}
+      {topRoutes.length > 0 && (
         <div className="card p-5">
           <h3 className="font-semibold text-sm text-aviro-muted uppercase tracking-wider mb-4">
-            💵 Cost Comparison
+            🗺️ Favourite Routes
           </h3>
-          <div className="space-y-4">
-            <div>
-              <div className="flex justify-between text-sm mb-1.5">
-                <span className="text-aviro-muted">Solo travel (estimated)</span>
-                <span className="font-semibold">₹{estimatedSoloCost.toFixed(0)}</span>
+          <div className="space-y-3">
+            {topRoutes.map(([route, count], i) => (
+              <div key={i} className="flex items-center justify-between bg-aviro-card2 rounded-xl p-3">
+                <span className="text-sm truncate">{route}</span>
+                <span className="text-xs text-aviro-orange font-bold ml-2">{count}x</span>
               </div>
-              <div className="h-2 bg-aviro-card2 rounded-full overflow-hidden">
-                <div className="h-full bg-red-400/60 rounded-full" style={{ width: '100%' }} />
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between text-sm mb-1.5">
-                <span className="text-aviro-muted">AVIRO ride-sharing</span>
-                <span className="font-semibold text-aviro-green">₹{totalSpent.toFixed(0)}</span>
-              </div>
-              <div className="h-2 bg-aviro-card2 rounded-full overflow-hidden">
-                <div className="h-full bg-aviro-green rounded-full"
-                  style={{ width: `${estimatedSoloCost > 0 ? (totalSpent/estimatedSoloCost)*100 : 0}%` }} />
-              </div>
-            </div>
-            <div className="bg-aviro-green/10 border border-aviro-green/20 rounded-xl p-3 text-center">
-              <p className="text-aviro-green font-bold text-lg">₹{totalSaved.toFixed(0)} saved!</p>
-              <p className="text-xs text-aviro-muted">
-                {estimatedSoloCost > 0 ? Math.round((totalSaved/estimatedSoloCost)*100) : 0}% cheaper than solo travel
-              </p>
-            </div>
+            ))}
           </div>
         </div>
-
-        <div className="card p-5">
-          <h3 className="font-semibold text-sm text-aviro-muted uppercase tracking-wider mb-4">
-            🗺️ Your Favorite Routes
-          </h3>
-          {topRoutes.length === 0 ? (
-            <div className="text-center py-8 text-aviro-muted text-sm">No ride history yet</div>
-          ) : (
-            <div className="space-y-3">
-              {topRoutes.map(([route, count], i) => (
-                <div key={i} className="flex items-center justify-between">
-                  <span className="text-sm text-white truncate flex-1">{route}</span>
-                  <span className="text-xs bg-aviro-card2 text-aviro-orange font-semibold px-2.5 py-1 rounded-full ml-2">
-                    {count}x
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="card p-5 bg-gradient-to-br from-aviro-green/10 to-transparent border-aviro-green/20">
-        <div className="flex items-center gap-4">
-          <div className="text-5xl">🌍</div>
-          <div className="flex-1">
-            <h3 className="font-bold text-base mb-1">Environmental Impact</h3>
-            <p className="text-sm text-aviro-muted">
-              You've saved <span className="text-aviro-green font-bold">{totalCo2Saved.toFixed(1)} kg</span> of CO₂ emissions
-              by sharing rides instead of traveling solo — equivalent to planting{' '}
-              <span className="text-aviro-green font-bold">{Math.ceil(totalCo2Saved / 21)}</span> trees! 🌳
-            </p>
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
 
-// ─────────────────────────────────────────────────────────────
-// MAIN PROFILE PAGE
-// ─────────────────────────────────────────────────────────────
 export default function ProfilePage() {
   const dispatch = useDispatch();
   const { user } = useSelector(s => s.auth);
   const { register, handleSubmit, reset } = useForm();
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving]           = useState(false);
   const [addingVehicle, setAddingVehicle] = useState(false);
   const { register: vReg, handleSubmit: vSubmit } = useForm();
-  const [activeTab, setActiveTab] = useState('profile'); // 'profile' | 'analytics'
+  const [activeTab, setActiveTab]     = useState('profile');
 
-  useEffect(() => {
-    dispatch(fetchProfile());
-  }, [dispatch]);
+  // ── Hide/Show toggles ──
+  const [showPersonalInfo, setShowPersonalInfo]   = useState(false);
+  const [showVehicleInfo, setShowVehicleInfo]     = useState(false);
+  const [editPersonalInfo, setEditPersonalInfo]   = useState(false);
 
+  useEffect(() => { dispatch(fetchProfile()); }, [dispatch]);
   useEffect(() => {
-    if (user) reset({ fullName: user.fullName, phone: user.phone, locality: user.locality, department: user.department, yearOfStudy: user.yearOfStudy, womenOnlyMode: user.womenOnlyMode });
+    if (user) reset({
+      fullName: user.fullName, phone: user.phone,
+      locality: user.locality, department: user.department,
+      yearOfStudy: user.yearOfStudy, womenOnlyMode: user.womenOnlyMode
+    });
   }, [user, reset]);
 
   const onSave = async (data) => {
@@ -200,6 +139,8 @@ export default function ProfilePage() {
       await api.put('/users/profile', data);
       toast.success('Profile updated!');
       dispatch(fetchProfile());
+      setEditPersonalInfo(false);
+      setShowPersonalInfo(false);
     } catch { toast.error('Update failed'); }
     setSaving(false);
   };
@@ -240,139 +181,199 @@ export default function ProfilePage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 bg-aviro-card2 p-1.5 rounded-xl border border-aviro-border">
-        <button
-          onClick={() => setActiveTab('profile')}
-          className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all
-            ${activeTab === 'profile' ? 'bg-aviro-orange text-white' : 'text-aviro-muted hover:text-white'}`}
-        >
-          👤 Profile
-        </button>
-        <button
-          onClick={() => setActiveTab('analytics')}
-          className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all
-            ${activeTab === 'analytics' ? 'bg-aviro-orange text-white' : 'text-aviro-muted hover:text-white'}`}
-        >
-          📊 Analytics
-        </button>
+      <div className="flex bg-aviro-card2 p-1.5 rounded-2xl border border-aviro-border gap-1">
+        {['profile', 'analytics'].map(t => (
+          <button key={t} onClick={() => setActiveTab(t)}
+            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all capitalize
+              ${activeTab === t ? 'bg-aviro-orange text-white' : 'text-aviro-muted hover:text-white'}`}>
+            {t === 'profile' ? '👤 Profile' : '📊 Analytics'}
+          </button>
+        ))}
       </div>
 
       {/* ── PROFILE TAB ── */}
       {activeTab === 'profile' && (
         <>
-          {/* Edit Profile */}
+          {/* ── Personal Info — hide/show toggle ── */}
           <div className="card p-5">
-            <h3 className="font-semibold mb-4">Edit Profile</h3>
-            <form onSubmit={handleSubmit(onSave)} className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-aviro-muted font-medium block mb-1.5">Full Name</label>
-                  <input {...register('fullName')} className="input-field" />
-                </div>
-                <div>
-                  <label className="text-xs text-aviro-muted font-medium block mb-1.5">Phone</label>
-                  <input {...register('phone')} className="input-field" />
-                </div>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold">📋 Personal Information</h3>
+              <div className="flex items-center gap-2">
+                {!editPersonalInfo && (
+                  <button onClick={() => setShowPersonalInfo(!showPersonalInfo)}
+                    className="text-xs text-aviro-orange border border-aviro-orange/30 px-3 py-1.5 rounded-lg hover:bg-aviro-orange/10 transition-colors">
+                    {showPersonalInfo ? '🙈 Hide' : '👁️ View info'}
+                  </button>
+                )}
+                {showPersonalInfo && !editPersonalInfo && (
+                  <button onClick={() => { setEditPersonalInfo(true); setShowPersonalInfo(false); }}
+                    className="text-xs text-aviro-blue border border-aviro-blue/30 px-3 py-1.5 rounded-lg hover:bg-aviro-blue/10 transition-colors">
+                    ✏️ Edit
+                  </button>
+                )}
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-aviro-muted font-medium block mb-1.5">Locality</label>
-                  <input {...register('locality')} className="input-field" />
-                </div>
-                <div>
-                  <label className="text-xs text-aviro-muted font-medium block mb-1.5">Year of Study</label>
-                  <select {...register('yearOfStudy')} className="input-field">
-                    {['1st Year','2nd Year','3rd Year','4th Year','PG'].map(y => <option key={y}>{y}</option>)}
-                  </select>
-                </div>
-              </div>
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input {...register('womenOnlyMode')} type="checkbox" className="w-4 h-4 accent-pink-500" />
-                <span className="text-sm text-pink-400 font-medium">🚺 Women-only mode (only see female drivers)</span>
-              </label>
-              <button type="submit" disabled={saving} className="btn-primary w-full">
-                {saving ? 'Saving...' : 'Save Changes ✓'}
-              </button>
-            </form>
-          </div>
-
-          {/* College ID Upload */}
-          <CollegeIdUpload user={user} onUploaded={() => dispatch(fetchProfile())} />
-
-          {/* College Email Verification via .edu.in OTP */}
-          <CollegeEmailVerify user={user} onVerified={() => dispatch(fetchProfile())} />
-
-          {/* Vehicle Section */}
-          <div className="card p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold">🏍️ My Vehicle</h3>
-              {!user?.vehicle && <button onClick={() => setAddingVehicle(!addingVehicle)} className="btn-primary text-xs">+ Add Vehicle</button>}
             </div>
-            {user?.vehicle ? (
-              <div className="bg-aviro-card2 rounded-xl p-4">
-                <div className="flex items-center gap-3">
-                  <span className="text-3xl">{user.vehicle.vehicleType === 'BIKE' ? '🏍️' : user.vehicle.vehicleType === 'CAR' ? '🚗' : '🛵'}</span>
+
+            {/* View mode */}
+            {showPersonalInfo && !editPersonalInfo && (
+              <div className="space-y-2 bg-aviro-card2 rounded-xl p-4">
+                {[
+                  { label: 'Full Name',    value: user?.fullName },
+                  { label: 'Email',        value: user?.email },
+                  { label: 'Phone',        value: user?.phone || '—' },
+                  { label: 'Locality',     value: user?.locality || '—' },
+                  { label: 'Department',   value: user?.department || '—' },
+                  { label: 'Year',         value: user?.yearOfStudy ? `Year ${user.yearOfStudy}` : '—' },
+                ].map((item, i) => (
+                  <div key={i} className="flex items-center justify-between py-1 border-b border-aviro-border last:border-0">
+                    <span className="text-xs text-aviro-muted">{item.label}</span>
+                    <span className="text-sm font-medium">{item.value}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Edit mode */}
+            {editPersonalInfo && (
+              <form onSubmit={handleSubmit(onSave)} className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <p className="font-semibold">{user.vehicle.make} {user.vehicle.model} · {user.vehicle.color}</p>
-                    <p className="text-xs text-aviro-muted">{user.vehicle.registrationNumber} · {user.vehicle.totalSeats} seats</p>
-                    {user.vehicle.isVerified
-                      ? <span className="text-xs text-green-400 font-semibold">✓ Verified</span>
-                      : <span className="text-xs text-yellow-400">⏳ Pending verification</span>}
+                    <label className="text-xs text-aviro-muted font-medium block mb-1">Full Name</label>
+                    <input {...register('fullName')} className="input-field" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-aviro-muted font-medium block mb-1">Phone</label>
+                    <input {...register('phone')} className="input-field" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-aviro-muted font-medium block mb-1">Locality</label>
+                    <input {...register('locality')} className="input-field" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-aviro-muted font-medium block mb-1">Department</label>
+                    <input {...register('department')} className="input-field" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-aviro-muted font-medium block mb-1">Year of Study</label>
+                    <select {...register('yearOfStudy')} className="input-field">
+                      {[1,2,3,4,5].map(y => <option key={y} value={y}>Year {y}</option>)}
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-2 mt-4">
+                    <input type="checkbox" {...register('womenOnlyMode')} id="womenOnly" />
+                    <label htmlFor="womenOnly" className="text-xs text-aviro-muted">Women-only mode</label>
                   </div>
                 </div>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => setEditPersonalInfo(false)}
+                    className="flex-1 bg-aviro-card2 border border-aviro-border text-aviro-muted py-2.5 rounded-xl text-sm">
+                    Cancel
+                  </button>
+                  <button type="submit" disabled={saving}
+                    className="flex-1 btn-primary disabled:opacity-50 flex items-center justify-center gap-2">
+                    {saving ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>Saving...</> : '✅ Save Changes'}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Hidden state message */}
+            {!showPersonalInfo && !editPersonalInfo && (
+              <p className="text-xs text-aviro-muted">Click "View info" to see your personal details</p>
+            )}
+          </div>
+
+          {/* College ID */}
+          <CollegeIdUpload user={user} onUploaded={() => dispatch(fetchProfile())} />
+
+          {/* ── Vehicle — hide/show ── */}
+          <div className="card p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold">🏍️ My Vehicle</h3>
+              {user?.vehicle && !addingVehicle && (
+                <button onClick={() => setShowVehicleInfo(!showVehicleInfo)}
+                  className="text-xs text-aviro-orange border border-aviro-orange/30 px-3 py-1.5 rounded-lg hover:bg-aviro-orange/10 transition-colors">
+                  {showVehicleInfo ? '🙈 Hide' : '👁️ View vehicle'}
+                </button>
+              )}
+            </div>
+
+            {user?.vehicle && showVehicleInfo && !addingVehicle && (
+              <div className="bg-aviro-card2 rounded-xl p-4 flex items-center gap-4 mb-3">
+                <div className="text-3xl">
+                  {user.vehicle.vehicleType === 'CAR' ? '🚗' :
+                   user.vehicle.vehicleType === 'BIKE' ? '🏍️' :
+                   user.vehicle.vehicleType === 'SCOOTY' ? '🛵' :
+                   user.vehicle.vehicleType === 'AUTO' ? '🛺' : '🚐'}
+                </div>
+                <div>
+                  <p className="font-semibold">{user.vehicle.make} {user.vehicle.model} · {user.vehicle.color}</p>
+                  <p className="text-xs text-aviro-muted">{user.vehicle.registrationNumber} · {user.vehicle.totalSeats} seats</p>
+                  {user.vehicle.isVerified
+                    ? <span className="text-xs text-green-400 font-semibold">✓ Verified</span>
+                    : <span className="text-xs text-yellow-400">⏳ Pending verification</span>}
+                </div>
               </div>
-            ) : addingVehicle ? (
+            )}
+
+            {!user?.vehicle && !addingVehicle && (
+              <p className="text-aviro-muted text-sm mb-3">No vehicle added. Add one to start offering rides!</p>
+            )}
+
+            {!showVehicleInfo && user?.vehicle && !addingVehicle && (
+              <p className="text-xs text-aviro-muted mb-3">Click "View vehicle" to see vehicle details</p>
+            )}
+
+            {addingVehicle ? (
               <form onSubmit={vSubmit(onAddVehicle)} className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs text-aviro-muted font-medium block mb-1.5">Vehicle Type</label>
+                    <label className="text-xs text-aviro-muted font-medium block mb-1">Vehicle Type</label>
                     <select {...vReg('vehicleType', { required: true })} className="input-field">
                       {['BIKE','SCOOTY','CAR','AUTO','VAN'].map(t => <option key={t}>{t}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="text-xs text-aviro-muted font-medium block mb-1.5">Registration No.</label>
+                    <label className="text-xs text-aviro-muted font-medium block mb-1">Registration No.</label>
                     <input {...vReg('registrationNumber', { required: true })} placeholder="MH12AB1234" className="input-field" />
                   </div>
                   <div>
-                    <label className="text-xs text-aviro-muted font-medium block mb-1.5">Make</label>
+                    <label className="text-xs text-aviro-muted font-medium block mb-1">Make</label>
                     <input {...vReg('make')} placeholder="Honda, Bajaj..." className="input-field" />
                   </div>
                   <div>
-                    <label className="text-xs text-aviro-muted font-medium block mb-1.5">Model</label>
+                    <label className="text-xs text-aviro-muted font-medium block mb-1">Model</label>
                     <input {...vReg('model')} placeholder="Activa, Pulsar..." className="input-field" />
                   </div>
                   <div>
-                    <label className="text-xs text-aviro-muted font-medium block mb-1.5">Color</label>
+                    <label className="text-xs text-aviro-muted font-medium block mb-1">Color</label>
                     <input {...vReg('color')} placeholder="Black, Red..." className="input-field" />
                   </div>
                   <div>
-                    <label className="text-xs text-aviro-muted font-medium block mb-1.5">Total Seats</label>
+                    <label className="text-xs text-aviro-muted font-medium block mb-1">Total Seats</label>
                     <select {...vReg('totalSeats', { required: true })} className="input-field">
                       {[1,2,3,4,5,6].map(n => <option key={n} value={n}>{n}</option>)}
                     </select>
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button type="button" onClick={() => setAddingVehicle(false)} className="btn-secondary flex-1">Cancel</button>
-                  <button type="submit" className="btn-primary flex-1">Add Vehicle</button>
+                  <button type="button" onClick={() => setAddingVehicle(false)}
+                    className="flex-1 bg-aviro-card2 border border-aviro-border text-aviro-muted py-2.5 rounded-xl text-sm">
+                    Cancel
+                  </button>
+                  <button type="submit" className="flex-1 btn-primary">Add Vehicle</button>
                 </div>
               </form>
             ) : (
-              <p className="text-aviro-muted text-sm">No vehicle added. Add one to start offering rides!</p>
+              <button onClick={() => setAddingVehicle(true)}
+                className="w-full bg-aviro-card2 border border-dashed border-aviro-border text-aviro-muted py-2.5 rounded-xl text-sm hover:border-aviro-orange/50 hover:text-white transition-all">
+                {user?.vehicle ? '+ Update Vehicle' : '+ Add Vehicle'}
+              </button>
             )}
           </div>
 
-          {/* Reviews Section */}
+          {/* Reviews */}
           <ReviewsSection userId={user?.id} />
-
-          {/* Emergency Contacts */}
-          <div className="card p-5">
-            <h3 className="font-semibold mb-2">🆘 Emergency Contacts</h3>
-            <p className="text-aviro-muted text-sm mb-3">These contacts get notified when you trigger SOS</p>
-            <input className="input-field" placeholder="Add phone numbers (comma separated)" />
-            <button className="btn-secondary text-sm mt-2">Save Contacts</button>
-          </div>
         </>
       )}
 

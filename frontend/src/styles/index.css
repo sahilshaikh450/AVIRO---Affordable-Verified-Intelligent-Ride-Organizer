@@ -22,3 +22,83 @@
   .sidebar-link  { @apply flex items-center gap-3 px-4 py-3 rounded-xl text-aviro-muted hover:text-white hover:bg-aviro-card2 transition-all font-medium text-sm; }
   .sidebar-link.active { @apply bg-aviro-orange/10 text-aviro-orange; }
 }
+/* ── ADD THIS TO YOUR index.css or tailwind.css ── */
+
+/* Safe area for iPhone notch/home bar */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 8px);
+}
+
+/* Touch-friendly tap targets */
+@media (max-width: 768px) {
+  /* Bigger touch targets */
+  button, a {
+    min-height: 44px;
+  }
+
+  /* Cards full width on mobile */
+  .card {
+    border-radius: 12px;
+  }
+
+  /* Input fields bigger on mobile */
+  .input-field {
+    font-size: 16px !important; /* Prevents iOS zoom on focus */
+    padding: 12px 16px;
+  }
+
+  /* Modals full screen on mobile */
+  .modal-mobile {
+    position: fixed;
+    inset: 0;
+    border-radius: 0;
+  }
+
+  /* Tables scroll horizontally */
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}
+
+/* Smooth scrolling */
+* {
+  -webkit-tap-highlight-color: transparent;
+  scroll-behavior: smooth;
+}
+
+/* Hide scrollbar but keep functionality */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 4px;
+}
+.overflow-y-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+.overflow-y-auto::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.1);
+  border-radius: 2px;
+}
+
+/* Bottom nav active indicator */
+.mobile-nav-active {
+  position: relative;
+}
+.mobile-nav-active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 2px;
+  background: #f97316;
+  border-radius: 1px;
+}
+
+/* Prevent layout shift on mobile keyboard open */
+@supports (height: 100dvh) {
+  .min-h-screen {
+    min-height: 100dvh;
+  }
+}
