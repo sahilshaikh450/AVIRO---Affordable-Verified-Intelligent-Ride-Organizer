@@ -21,10 +21,13 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
 
-  redis:
-    host: ${REDIS_HOST:localhost}
-    port: ${REDIS_PORT:6379}
-    password: ${REDIS_PASSWORD:}
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD}
+      ssl:
+        enabled: true
 
   mail:
     host: smtp.gmail.com
