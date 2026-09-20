@@ -3,13 +3,16 @@ import api from '../services/api';
 import { Spinner, GenderBadge } from '../components/common/UIComponents';
 import toast from 'react-hot-toast';
 
+const BASE_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:8080';
+
 export default function AdminPage() {
-  const [pending, setPending]         = useState([]);
+  const [pending, setPending]               = useState([]);
   const [pendingVehicles, setPendingVehicles] = useState([]);
-  const [stats, setStats]             = useState(null);
-  const [loading, setLoading]         = useState(true);
-  const [processingId, setProcessingId] = useState(null);
-  const [tab, setTab]                 = useState('college'); // 'college' | 'vehicle'
+  const [stats, setStats]                   = useState(null);
+  const [loading, setLoading]               = useState(true);
+  const [processingId, setProcessingId]     = useState(null);
+  const [tab, setTab]                       = useState('college');
+  const [expandedImg, setExpandedImg]       = useState(null); // fullscreen image
 
   useEffect(() => { loadData(); }, []);
 
@@ -74,6 +77,25 @@ export default function AdminPage() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 animate-fade-up">
+
+      {/* Fullscreen image modal */}
+      {expandedImg && (
+        <div
+          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+          onClick={() => setExpandedImg(null)}
+        >
+          <div className="relative max-w-2xl w-full">
+            <img src={expandedImg} alt="College ID Full"
+              className="w-full rounded-2xl object-contain max-h-[80vh]"/>
+            <button onClick={() => setExpandedImg(null)}
+              className="absolute top-2 right-2 bg-black/50 text-white rounded-full w-8 h-8 flex items-center justify-center text-lg">
+              ✕
+            </button>
+            <p className="text-center text-xs text-gray-400 mt-2">Tap anywhere to close</p>
+          </div>
+        </div>
+      )}
+
       <div>
         <h1 className="font-display font-bold text-2xl mb-1">Admin Panel 🛡️</h1>
         <p className="text-aviro-muted text-sm">Review and verify college ID & vehicle submissions</p>
@@ -142,10 +164,42 @@ export default function AdminPage() {
                     </div>
                     <GenderBadge gender={u.gender} />
                   </div>
-                  {u.collegeIdPicUrl && (
-                    <img src={`http://localhost:8080${u.collegeIdPicUrl}`} alt="College ID"
-                      className="w-full max-h-64 object-contain rounded-xl border border-aviro-border bg-aviro-card2 mb-4" />
+
+                  {/* ✅ College ID Image — uses BASE_URL */}
+                  {u.collegeIdPicUrl ? (
+                    <div className="mb-4">
+                      <p className="text-xs text-aviro-muted mb-2">📷 Uploaded College ID:</p>
+                      <img
+                        src={`${BASE_URL}${u.collegeIdPicUrl}`}
+                        alt="College ID"
+                        className="w-full max-h-64 object-contain rounded-xl border border-aviro-border bg-aviro-card2 cursor-zoom-in hover:opacity-90 transition-opacity"
+                        onClick={() => setExpandedImg(`${BASE_URL}${u.collegeIdPicUrl}`)}
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'flex';
+                        }}
+                      />
+                      <div className="hidden bg-aviro-card2 rounded-xl border border-aviro-border p-4 items-center justify-center gap-2">
+                        <span className="text-2xl">🖼️</span>
+                        <div>
+                          <p className="text-xs text-aviro-muted">Image not loading</p>
+                          <a href={`${BASE_URL}${u.collegeIdPicUrl}`} target="_blank" rel="noreferrer"
+                            className="text-xs text-aviro-orange hover:underline">
+                            Open image link →
+                          </a>
+                        </div>
+                      </div>
+                      <p className="text-xs text-aviro-muted mt-1 text-center">
+                        Tap image to view full size
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="mb-4 bg-aviro-card2 rounded-xl p-4 text-center text-aviro-muted text-sm">
+                      <span className="text-2xl block mb-1">📷</span>
+                      No image uploaded yet
+                    </div>
                   )}
+
                   <div className="flex gap-3">
                     <button onClick={() => handleApprove(u.id)} disabled={processingId === u.id}
                       className="flex-1 bg-aviro-green text-white font-bold py-2.5 rounded-xl text-sm hover:opacity-90 disabled:opacity-50">
@@ -178,7 +232,10 @@ export default function AdminPage() {
                   <div className="flex items-start justify-between gap-4 mb-4">
                     <div className="flex items-center gap-3">
                       <div className="text-4xl">
-                        {v.vehicleType === 'CAR' ? '🚗' : v.vehicleType === 'BIKE' ? '🏍️' : v.vehicleType === 'SCOOTY' ? '🛵' : v.vehicleType === 'AUTO' ? '🛺' : '🚐'}
+                        {v.vehicleType === 'CAR'    ? '🚗' :
+                         v.vehicleType === 'BIKE'   ? '🏍️' :
+                         v.vehicleType === 'SCOOTY' ? '🛵' :
+                         v.vehicleType === 'AUTO'   ? '🛺' : '🚐'}
                       </div>
                       <div>
                         <p className="font-bold text-sm">{v.make} {v.model} · {v.color}</p>
@@ -191,9 +248,8 @@ export default function AdminPage() {
                     </div>
                   </div>
 
-                  {/* Owner info */}
                   <div className="bg-aviro-card2 rounded-xl p-3 mb-4">
-                    <p className="text-xs text-aviro-muted">Owner</p>
+                    <p className="text-xs text-aviro-muted mb-1">Owner</p>
                     <p className="text-sm font-semibold">{v.ownerName}</p>
                     <p className="text-xs text-aviro-muted">{v.ownerEmail} · {v.collegeName}</p>
                   </div>

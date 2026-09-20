@@ -1,24 +1,26 @@
+
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
+
 import SafetyPage from './pages/SafetyPage';
 
 // Pages
 import SettingsPage from './pages/SettingsPage';
-import LandingPage      from './pages/LandingPage';
-import LoginPage        from './pages/LoginPage';
-import RegisterPage     from './pages/RegisterPage';
-import VerifyOtpPage    from './pages/VerifyOtpPage';
-import DashboardPage    from './pages/DashboardPage';
-import SearchRidePage   from './pages/SearchRidePage';
-import OfferRidePage    from './pages/OfferRidePage';
-import MyRidesPage      from './pages/MyRidesPage';
-import BookingsPage     from './pages/BookingsPage';
-import ChatPage         from './pages/ChatPage';
-import ProfilePage      from './pages/ProfilePage';
-import RideDetailPage   from './pages/RideDetailPage';
-import AdminPage        from './pages/AdminPage';
-import NotFoundPage     from './pages/NotFoundPage';
+import LandingPage from './pages/LandingPage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import VerifyOtpPage from './pages/VerifyOtpPage';
+import DashboardPage from './pages/DashboardPage';
+import SearchRidePage from './pages/SearchRidePage';
+import OfferRidePage from './pages/OfferRidePage';
+import MyRidesPage from './pages/MyRidesPage';
+import BookingsPage from './pages/BookingsPage';
+import ChatPage from './pages/ChatPage';
+import ProfilePage from './pages/ProfilePage';
+import RideDetailPage from './pages/RideDetailPage';
+import AdminPage from './pages/AdminPage';
+import NotFoundPage from './pages/NotFoundPage';
 import LiveTrackingPage from './pages/LiveTrackingPage';
 
 // Layout
@@ -26,47 +28,243 @@ import AppLayout from './components/common/AppLayout';
 
 const isAuthenticated = (token) => {
   if (token) return true;
+
   const stored = localStorage.getItem('aviro_token');
-  return !!stored && stored !== 'undefined' && stored !== 'null';
+
+  return (
+    !!stored &&
+    stored !== 'undefined' &&
+    stored !== 'null'
+  );
 };
 
 const PrivateRoute = ({ children }) => {
-  const { token } = useSelector(s => s.auth);
-  return isAuthenticated(token) ? children : <Navigate to="/login" replace />;
+  const { token } = useSelector((state) => state.auth);
+
+  return isAuthenticated(token)
+    ? children
+    : <Navigate to="/login" replace />;
 };
 
 const PublicRoute = ({ children }) => {
-  const { token } = useSelector(s => s.auth);
-  return isAuthenticated(token) ? <Navigate to="/dashboard" replace /> : children;
+  const { token } = useSelector((state) => state.auth);
+
+  return isAuthenticated(token)
+    ? <Navigate to="/dashboard" replace />
+    : children;
 };
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public */}
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/login"      element={<PublicRoute><LoginPage /></PublicRoute>} />
-        <Route path="/register"   element={<PublicRoute><RegisterPage /></PublicRoute>} />
-        <Route path="/verify-otp" element={<VerifyOtpPage />} />
-<Route path="safety" element={<SafetyPage />} />
-        {/* Protected */}
-        <Route path="/" element={<PrivateRoute><AppLayout /></PrivateRoute>}>
-          <Route path="dashboard"              element={<DashboardPage />} />
-          <Route path="search"                 element={<SearchRidePage />} />
-          <Route path="offer-ride"             element={<OfferRidePage />} />
-          <Route path="my-rides"               element={<MyRidesPage />} />
-          <Route path="bookings"               element={<BookingsPage />} />
-          <Route path="chat"                   element={<ChatPage />} />
-          <Route path="profile"                element={<ProfilePage />} />
-          <Route path="rides/:id"              element={<RideDetailPage />} />
-          <Route path="admin"                  element={<AdminPage />} />
-          <Route path="tracking/:bookingId"    element={<LiveTrackingPage />} />
-          <Route path="settings" element={<SettingsPage />} />
+
+        {/* =========================
+            LANDING PAGE
+        ========================= */}
+        <Route
+          path="/"
+          element={<LandingPage />}
+        />
+
+        {/* =========================
+            PUBLIC ROUTES
+        ========================= */}
+        <Route
+          path="/login"
+          element={
+            <PublicRoute>
+              <LoginPage />
+            </PublicRoute>
+          }
+        />
+
+        <Route
+          path="/register"
+          element={
+            <PublicRoute>
+              <RegisterPage />
+            </PublicRoute>
+          }
+        />
+
+        <Route
+          path="/verify-otp"
+          element={<VerifyOtpPage />}
+        />
+
+        <Route
+          path="/safety"
+          element={<SafetyPage />}
+        />
+
+        {/* =========================
+            PROTECTED ROUTES
+        ========================= */}
+        <Route
+          path="/dashboard"
+          element={
+            <PrivateRoute>
+              <AppLayout />
+            </PrivateRoute>
+          }
+        >
+          <Route
+            index
+            element={<DashboardPage />}
+          />
         </Route>
 
-        <Route path="*" element={<NotFoundPage />} />
+        <Route
+          path="/search"
+          element={
+            <PrivateRoute>
+              <AppLayout />
+            </PrivateRoute>
+          }
+        >
+          <Route
+            index
+            element={<SearchRidePage />}
+          />
+        </Route>
+
+        <Route
+          path="/offer-ride"
+          element={
+            <PrivateRoute>
+              <AppLayout />
+            </PrivateRoute>
+          }
+        >
+          <Route
+            index
+            element={<OfferRidePage />}
+          />
+        </Route>
+
+        <Route
+          path="/my-rides"
+          element={
+            <PrivateRoute>
+              <AppLayout />
+            </PrivateRoute>
+          }
+        >
+          <Route
+            index
+            element={<MyRidesPage />}
+          />
+        </Route>
+
+        <Route
+          path="/bookings"
+          element={
+            <PrivateRoute>
+              <AppLayout />
+            </PrivateRoute>
+          }
+        >
+          <Route
+            index
+            element={<BookingsPage />}
+          />
+        </Route>
+
+        <Route
+          path="/chat"
+          element={
+            <PrivateRoute>
+              <AppLayout />
+            </PrivateRoute>
+          }
+        >
+          <Route
+            index
+            element={<ChatPage />}
+          />
+        </Route>
+
+        <Route
+          path="/profile"
+          element={
+            <PrivateRoute>
+              <AppLayout />
+            </PrivateRoute>
+          }
+        >
+          <Route
+            index
+            element={<ProfilePage />}
+          />
+        </Route>
+
+        <Route
+          path="/rides/:id"
+          element={
+            <PrivateRoute>
+              <AppLayout />
+            </PrivateRoute>
+          }
+        >
+          <Route
+            index
+            element={<RideDetailPage />}
+          />
+        </Route>
+
+        <Route
+          path="/admin"
+          element={
+            <PrivateRoute>
+              <AppLayout />
+            </PrivateRoute>
+          }
+        >
+          <Route
+            index
+            element={<AdminPage />}
+          />
+        </Route>
+
+        <Route
+          path="/tracking/:bookingId"
+          element={
+            <PrivateRoute>
+              <AppLayout />
+            </PrivateRoute>
+          }
+        >
+          <Route
+            index
+            element={<LiveTrackingPage />}
+          />
+        </Route>
+
+        <Route
+          path="/settings"
+          element={
+            <PrivateRoute>
+              <AppLayout />
+            </PrivateRoute>
+          }
+        >
+          <Route
+            index
+            element={<SettingsPage />}
+          />
+        </Route>
+
+        {/* =========================
+            404
+        ========================= */}
+        <Route
+          path="*"
+          element={<NotFoundPage />}
+        />
+
       </Routes>
     </BrowserRouter>
   );
 }
+
