@@ -2,6 +2,7 @@ package com.aviro.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
@@ -15,6 +16,9 @@ import jakarta.mail.internet.MimeMessage;
 public class EmailService {
 
     private final JavaMailSender mailSender;
+
+    @Value("${spring.mail.username}")
+    private String mailUsername;
 
     @Async
     public void sendVerificationEmail(String to, String name, String otp) {
@@ -105,21 +109,27 @@ public class EmailService {
                 + "</div>"
                 + "<p style='color:#666;font-size:12px'>AVIRO Admin Alert System</p>"
                 + "</body></html>";
-        sendEmail("sahilshaikh34088@gmail.com", subject, body);
+        sendEmail(mailUsername, subject, body);
     }
 
     private void sendEmail(String to, String subject, String htmlBody) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(htmlBody, true);
-            helper.setFrom("AVIRO <aviro.noreply@gmail.com>");
+
+            // Use the same authenticated Gmail account as the SMTP username
+            helper.setFrom("AVIRO <" + mailUsername + ">");
+
             mailSender.send(message);
+
             log.info("Email sent to: {}", to);
+
         } catch (Exception e) {
-            log.error("Failed to send email to {}: {}", to, e.getMessage());
+            log.error("Failed to send email to {}: {}", to, e.getMessage(), e);
         }
     }
 
