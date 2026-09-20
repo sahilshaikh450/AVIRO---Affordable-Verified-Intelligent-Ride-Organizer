@@ -45,11 +45,13 @@ public class Booking extends BaseEntity {
 
     private String paymentReference;
 
+    // ✅ NEW: UPI / CASH
+    private String paymentMethod;
+
     private Double riderRating;
     private Double driverRating;
     private String riderReview;
     private String driverReview;
-
     private String pickupPoint;
     private Double pickupLat;
     private Double pickupLng;

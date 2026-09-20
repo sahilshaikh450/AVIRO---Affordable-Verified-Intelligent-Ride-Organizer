@@ -1,3 +1,4 @@
+
 package com.aviro.service.impl;
 
 import com.aviro.dto.request.BookingRequest;
@@ -40,21 +41,26 @@ public class BookingServiceImpl implements BookingService {
     @Transactional
     public ApiResponse<BookingResponse> createBooking(String email, BookingRequest.Create request) {
         User rider = getUser(email);
+
         if (!Boolean.TRUE.equals(rider.getIsCollegeVerified())) {
             throw new AviroException("Please verify your college ID before booking rides. Go to Profile → College ID Verification.");
         }
+
         Ride ride = rideRepository.findById(request.getRideId())
                 .orElseThrow(() -> new AviroException("Ride not found"));
 
         if (ride.getDriver().getId().equals(rider.getId())) {
             throw new AviroException("You cannot book your own ride");
         }
+
         if (ride.getAvailableSeats() < request.getSeatsBooked()) {
             throw new AviroException("Not enough seats available");
         }
+
         if (bookingRepository.findByRideIdAndRiderId(ride.getId(), rider.getId()).isPresent()) {
             throw new AviroException("You have already booked this ride");
         }
+
         if (ride.getWomenOnly() && rider.getGender() != com.aviro.enums.Gender.FEMALE) {
             throw new AviroException("This is a women-only ride");
         }
@@ -84,7 +90,7 @@ public class BookingServiceImpl implements BookingService {
                     rider.getFullName()
             );
         } catch (Exception e) {
-            log.warn("Email notification failed (booking still succeeds): {}", e.getMessage());
+            log.warn("Email notification failed: {}", e.getMessage());
         }
 
         try {
@@ -128,12 +134,13 @@ public class BookingServiceImpl implements BookingService {
         BookingStatus newStatus = BookingStatus.valueOf(status.toUpperCase());
 
         boolean isDriver = booking.getRide().getDriver().getId().equals(actingUser.getId());
-        boolean isRider  = booking.getRider().getId().equals(actingUser.getId());
+        boolean isRider = booking.getRider().getId().equals(actingUser.getId());
 
         if (newStatus == BookingStatus.COMPLETED) {
             if (!isDriver && !isRider) {
                 throw new AviroException("You are not part of this booking");
             }
+
             if (booking.getStatus() != BookingStatus.CONFIRMED) {
                 throw new AviroException("Only confirmed bookings can be marked as completed");
             }
@@ -152,6 +159,7 @@ public class BookingServiceImpl implements BookingService {
             try {
                 Long notifyUserId = isDriver ? rider.getId() : driver.getId();
                 String completedBy = isDriver ? driver.getFullName() : rider.getFullName();
+
                 notificationService.send(
                         notifyUserId,
                         "Ride Completed! 🏁",
@@ -182,7 +190,7 @@ public class BookingServiceImpl implements BookingService {
                         booking.getRide().getFromLocation() + " → " + booking.getRide().getToLocation()
                 );
             } catch (Exception e) {
-                log.warn("Email confirmation failed (booking still succeeds): {}", e.getMessage());
+                log.warn("Email confirmation failed: {}", e.getMessage());
             }
 
             try {
@@ -215,7 +223,7 @@ public class BookingServiceImpl implements BookingService {
         return ApiResponse.success("Booking status updated", toResponse(booking));
     }
 
-    // ── PAYMENT: mark as paid (UPI flow) ──────────────────────────
+    // ── PAYMENT: UPI ya Cash dono handle karta hai ──────────────────
     @Override
     @Transactional
     public ApiResponse<String> markAsPaid(String email, Long bookingId, String paymentReference) {
@@ -224,29 +232,126 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new AviroException("Booking not found"));
 
         boolean isRider = booking.getRider().getId().equals(user.getId());
+        boolean isDriver = booking.getRide().getDriver().getId().equals(user.getId());
+
+        User rider = booking.getRider();
+        User driver = booking.getRide().getDriver();
+
+        // ── CASH: Driver confirms cash received ──
+        if (isDriver) {
+            if (!"CASH".equalsIgnoreCase(booking.getPaymentMethod())) {
+                throw new AviroException("Only cash payment can be confirmed by driver");
+            }
+
+            booking.setPaymentStatus(PaymentStatus.COMPLETED);
+            bookingRepository.save(booking);
+
+            // Notify rider: driver confirmed cash payment
+            try {
+                notificationService.send(
+                        rider.getId(),
+                        "Cash Payment Confirmed! ✅",
+                        driver.getFullName() + " confirmed that cash payment of ₹" +
+                                booking.getTotalAmount() + " has been received. Transaction complete!",
+                        "PAYMENT_RECEIVED",
+                        String.valueOf(booking.getId())
+                );
+            } catch (Exception e) {
+                log.warn("Notification failed: {}", e.getMessage());
+            }
+
+            // Notify driver: confirmation sent
+            try {
+                notificationService.send(
+                        driver.getId(),
+                        "Payment Recorded 💰",
+                        "You confirmed cash payment of ₹" + booking.getTotalAmount() +
+                                " from " + rider.getFullName() + ". Transaction complete!",
+                        "PAYMENT_RECEIVED",
+                        String.valueOf(booking.getId())
+                );
+            } catch (Exception e) {
+                log.warn("Notification failed: {}", e.getMessage());
+            }
+
+            log.info("Cash payment confirmed by driver: booking={}", bookingId);
+            return ApiResponse.success("Cash payment confirmed! Transaction complete.", null);
+        }
+
+        // ── UPI / CASH (rider side): rider marks as paid ──
         if (!isRider) {
-            throw new AviroException("Only the rider can mark payment as completed");
+            throw new AviroException("Only the rider or driver can update payment");
         }
 
-        booking.setPaymentStatus(PaymentStatus.PAID);
+        String method = paymentReference != null && paymentReference.startsWith("CASH") ? "CASH" : "UPI";
+        booking.setPaymentMethod(method);
         booking.setPaymentReference(paymentReference);
-        bookingRepository.save(booking);
 
-        try {
-            notificationService.send(
-                    booking.getRide().getDriver().getId(),
-                    "Payment Received! 💰",
-                    user.getFullName() + " paid ₹" + booking.getTotalAmount() + " for the ride to " +
-                            booking.getRide().getToLocation(),
-                    "PAYMENT_RECEIVED",
-                    String.valueOf(booking.getId())
-            );
-        } catch (Exception e) {
-            log.warn("Notification failed: {}", e.getMessage());
+        if ("CASH".equals(method)) {
+            // Cash: rider says paid → set PENDING, driver needs to confirm
+            booking.setPaymentStatus(PaymentStatus.PENDING);
+            bookingRepository.save(booking);
+
+            // Notify driver: rider claims cash paid, please confirm
+            try {
+                notificationService.send(
+                        driver.getId(),
+                        "Cash Payment Claim 💵",
+                        rider.getFullName() + " says they paid ₹" + booking.getTotalAmount() +
+                                " in cash. Please confirm if you received the cash!",
+                        "PAYMENT_RECEIVED",
+                        String.valueOf(booking.getId())
+                );
+            } catch (Exception e) {
+                log.warn("Notification failed: {}", e.getMessage());
+            }
+
+            log.info("Cash payment claimed by rider: booking={}", bookingId);
+            return ApiResponse.success("Cash payment submitted! Waiting for driver confirmation.", null);
+
+        } else {
+            // UPI: rider confirms → mark as COMPLETED directly
+            booking.setPaymentStatus(PaymentStatus.COMPLETED);
+            bookingRepository.save(booking);
+
+            // Notify driver: UPI payment received
+            try {
+                notificationService.send(
+                        driver.getId(),
+                        "UPI Payment Received! 💰",
+                        rider.getFullName() + " paid ₹" + booking.getTotalAmount() +
+                                " via UPI for the ride to " + booking.getRide().getToLocation() +
+                                ". Transaction ID: " + (paymentReference != null ? paymentReference : "N/A"),
+                        "PAYMENT_RECEIVED",
+                        String.valueOf(booking.getId())
+                );
+            } catch (Exception e) {
+                log.warn("Notification failed: {}", e.getMessage());
+            }
+
+            // Notify rider: UPI payment confirmed
+            try {
+                notificationService.send(
+                        rider.getId(),
+                        "UPI Payment Confirmed! ✅",
+                        "Your UPI payment of ₹" + booking.getTotalAmount() +
+                                " to " + driver.getFullName() + " is complete. Enjoy your ride! 🏍️",
+                        "PAYMENT_RECEIVED",
+                        String.valueOf(booking.getId())
+                );
+            } catch (Exception e) {
+                log.warn("Notification failed: {}", e.getMessage());
+            }
+
+            log.info("UPI payment confirmed: booking={} ref={}", bookingId, paymentReference);
+            return ApiResponse.success("UPI payment confirmed! Transaction complete. ✅", null);
         }
+    }
 
-        log.info("Payment marked: booking={} ref={}", bookingId, paymentReference);
-        return ApiResponse.success("Payment marked as completed!", null);
+    // ── DRIVER CONFIRM CASH (separate endpoint) ──────────────────────
+    @Transactional
+    public ApiResponse<String> confirmCashPayment(String email, Long bookingId) {
+        return markAsPaid(email, bookingId, "CASH-DRIVER-CONFIRMED");
     }
 
     @Override
@@ -273,10 +378,12 @@ public class BookingServiceImpl implements BookingService {
         try {
             Long notifyUserId = isRider ? ride.getDriver().getId() : booking.getRider().getId();
             String cancelledBy = isRider ? user.getFullName() + " (rider)" : user.getFullName() + " (driver)";
+
             notificationService.send(
                     notifyUserId,
                     "Booking Cancelled",
-                    cancelledBy + " cancelled the ride from " + ride.getFromLocation() + " to " + ride.getToLocation(),
+                    cancelledBy + " cancelled the ride from " + ride.getFromLocation() +
+                            " to " + ride.getToLocation(),
                     "BOOKING_CANCELLED",
                     String.valueOf(booking.getId())
             );
@@ -301,16 +408,22 @@ public class BookingServiceImpl implements BookingService {
         return ApiResponse.success(bookings.stream().map(this::toResponse).collect(Collectors.toList()));
     }
 
+    // BookingServiceImpl.java mein toResponse() method:
+
     private BookingResponse toResponse(Booking booking) {
         User driver = booking.getRide().getDriver();
         Vehicle vehicle = driver.getVehicle();
         User rider = booking.getRider();
 
         String genderLabel = switch (driver.getGender()) {
-            case MALE   -> "Male driver";
+            case MALE -> "Male driver";
             case FEMALE -> "Female driver";
-            default     -> "Driver";
+            default -> "Driver";
         };
+
+        // ✅ Phone number sirf CONFIRMED booking mein dikhao
+        boolean showPhone = booking.getStatus() == BookingStatus.CONFIRMED
+                || booking.getStatus() == BookingStatus.COMPLETED;
 
         return BookingResponse.builder()
                 .id(booking.getId())
@@ -322,6 +435,8 @@ public class BookingServiceImpl implements BookingService {
                 .totalAmount(booking.getTotalAmount())
                 .status(booking.getStatus())
                 .paymentStatus(booking.getPaymentStatus())
+                .paymentMethod(booking.getPaymentMethod())
+                .paymentReference(booking.getPaymentReference())
                 .pickupPoint(booking.getPickupPoint())
                 .driver(RideResponse.DriverInfo.builder()
                         .id(driver.getId())
@@ -331,19 +446,29 @@ public class BookingServiceImpl implements BookingService {
                         .rating(driver.getRating())
                         .totalRides(driver.getTotalRides())
                         .collegeName(driver.getCollegeName())
+                        .department(driver.getDepartment())
+                        .yearOfStudy(driver.getYearOfStudy())
+                        .phone(showPhone ? driver.getPhone() : null)
                         .profilePicUrl(driver.getProfilePicUrl())
                         .isCollegeVerified(driver.getIsCollegeVerified())
-                        .vehicleType(vehicle != null ? vehicle.getVehicleType() : null)
+                        .vehicleType(vehicle != null && vehicle.getVehicleType() != null
+                                ? vehicle.getVehicleType().name()
+                                : null)
                         .vehicleModel(vehicle != null ? vehicle.getModel() : null)
                         .vehicleColor(vehicle != null ? vehicle.getColor() : null)
+                        .vehicleRegistrationNumber(vehicle != null ? vehicle.getRegistrationNumber() : null)
                         .build())
                 .rider(BookingResponse.RiderInfo.builder()
                         .id(rider.getId())
                         .fullName(rider.getFullName())
                         .gender(rider.getGender())
                         .collegeName(rider.getCollegeName())
+                        .department(rider.getDepartment())
+                        .yearOfStudy(rider.getYearOfStudy())
+                        .phone(showPhone ? rider.getPhone() : null)
                         .profilePicUrl(rider.getProfilePicUrl())
                         .rating(rider.getRating())
+                        .totalRides(rider.getTotalRides())
                         .build())
                 .createdAt(booking.getCreatedAt())
                 .build();
@@ -354,3 +479,4 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new AviroException("User not found"));
     }
 }
+
