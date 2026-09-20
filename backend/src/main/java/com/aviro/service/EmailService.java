@@ -60,6 +60,54 @@ public class EmailService {
         sendEmail(to, subject, body);
     }
 
+    // ── SOS Alert Email ──────────────────────────────────────────
+    @Async
+    public void sendSosAlert(String toEmail, String senderName, String message) {
+        String subject = "🆘 SOS EMERGENCY ALERT - " + senderName + " needs help!";
+        String body = "<html><body style='font-family:sans-serif;background:#1a1a2e;color:white;padding:30px'>"
+                + "<div style='max-width:500px;margin:0 auto;background:#0f0f1a;border-radius:16px;padding:30px;border:2px solid #ef4444'>"
+                + "<h1 style='color:#ef4444;text-align:center'>🆘 SOS EMERGENCY ALERT</h1>"
+                + "<p style='font-size:18px;color:#fbbf24;text-align:center'><strong>" + senderName + " needs immediate help!</strong></p>"
+                + "<div style='background:#1a1a2e;padding:20px;border-radius:12px;margin:20px 0;border:1px solid #ef4444'>"
+                + "<pre style='color:#f97316;font-size:15px;white-space:pre-wrap'>" + message + "</pre>"
+                + "</div>"
+                + "<p style='color:#ef4444;font-size:22px;font-weight:bold;text-align:center'>Please call 112 if needed!</p>"
+                + "<hr style='border-color:#333;margin:20px 0'/>"
+                + "<p style='color:#666;font-size:12px;text-align:center'>Automated emergency alert from AVIRO - Pune's College Ride Platform</p>"
+                + "</div></body></html>";
+        sendEmail(toEmail, subject, body);
+    }
+
+    // ── Ride Share Email ─────────────────────────────────────────
+    @Async
+    public void sendRideShareAlert(String toEmail, String senderName, String message) {
+        String subject = "📍 " + senderName + " shared their AVIRO ride with you";
+        String body = "<html><body style='font-family:sans-serif;background:#0D0F14;color:#F0F2F8;padding:24px'>"
+                + "<div style='max-width:500px;margin:0 auto;background:#161A22;border-radius:16px;padding:28px;border:1px solid #2A2F3E'>"
+                + "<h1 style='color:#FF6B2B'>AVIRO 🚀</h1>"
+                + "<h2 style='color:#22c55e'>📍 Live Ride Tracking</h2>"
+                + "<p style='color:#8B93A8'>" + senderName + " has shared their ride details with you for safety.</p>"
+                + "<div style='background:#0D0F14;padding:20px;border-radius:12px;margin:20px 0;border:1px solid #2A2F3E'>"
+                + "<pre style='color:#22c55e;font-size:14px;white-space:pre-wrap'>" + message + "</pre>"
+                + "</div>"
+                + "<p style='color:#8B93A8;font-size:12px;text-align:center'>Sent via AVIRO - Pune's College Ride Sharing</p>"
+                + "</div></body></html>";
+        sendEmail(toEmail, subject, body);
+    }
+
+    // ── Admin Alert Email ────────────────────────────────────────
+    @Async
+    public void sendAdminAlert(String subject, String alertBody) {
+        String body = "<html><body style='font-family:sans-serif;padding:24px'>"
+                + "<h2 style='color:#ef4444'>" + subject + "</h2>"
+                + "<div style='background:#f5f5f5;padding:20px;border-radius:8px;margin:16px 0'>"
+                + "<pre style='font-size:14px;white-space:pre-wrap'>" + alertBody + "</pre>"
+                + "</div>"
+                + "<p style='color:#666;font-size:12px'>AVIRO Admin Alert System</p>"
+                + "</body></html>";
+        sendEmail("sahilshaikh34088@gmail.com", subject, body);
+    }
+
     private void sendEmail(String to, String subject, String htmlBody) {
         try {
             MimeMessage message = mailSender.createMimeMessage();

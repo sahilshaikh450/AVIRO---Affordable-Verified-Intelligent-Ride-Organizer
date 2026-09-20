@@ -1,5 +1,6 @@
 package com.aviro.controller;
-import java.util.Map; 
+
+import java.util.Map;
 import com.aviro.dto.request.BookingRequest;
 import com.aviro.dto.response.ApiResponse;
 import com.aviro.dto.response.BookingResponse;
@@ -10,7 +11,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
 @RestController
@@ -20,24 +20,6 @@ public class BookingController {
 
     private final BookingService bookingService;
 
- // ============================================================
- // ADD THIS ONE METHOD to your existing BookingController.java
- // (paste it anywhere inside the class, alongside other @PatchMapping methods)
- // ============================================================
-
- //import java.util.Map; // add this import at top if not already present
-
- @PatchMapping("/{bookingId}/payment")
- public ResponseEntity<ApiResponse<String>> markPayment(
-         @AuthenticationPrincipal UserDetails userDetails,
-         @PathVariable Long bookingId,
-         @RequestBody Map<String, String> body) {
-
-     String reference = body.get("paymentReference");
-     return ResponseEntity.ok(bookingService.markAsPaid(userDetails.getUsername(), bookingId, reference));
- }
-    
-    
     @PostMapping
     public ResponseEntity<ApiResponse<BookingResponse>> book(
             @AuthenticationPrincipal UserDetails userDetails,
@@ -62,6 +44,26 @@ public class BookingController {
             @PathVariable Long bookingId,
             @RequestBody BookingRequest.UpdateStatus request) {
         return ResponseEntity.ok(bookingService.updateBookingStatus(userDetails.getUsername(), bookingId, request.getStatus()));
+    }
+
+    // ── UPI ya Cash rider side payment ──
+    @PatchMapping("/{bookingId}/payment")
+    public ResponseEntity<ApiResponse<String>> markPayment(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Long bookingId,
+            @RequestBody Map<String, String> body) {
+        String reference = body.get("paymentReference");
+        return ResponseEntity.ok(bookingService.markAsPaid(userDetails.getUsername(), bookingId, reference));
+    }
+
+    // ── Driver confirms cash received ──
+    @PostMapping("/{bookingId}/confirm-cash")
+    public ResponseEntity<ApiResponse<String>> confirmCash(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Long bookingId) {
+        return ResponseEntity.ok(
+            bookingService.markAsPaid(userDetails.getUsername(), bookingId, "CASH-DRIVER-CONFIRMED")
+        );
     }
 
     @DeleteMapping("/{bookingId}")
