@@ -29,9 +29,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private final JwtTokenProvider jwtTokenProvider;
     private final UserDetailsService userDetailsService;
 
-    private static final String ALLOWED_ORIGIN =
-            "https://aviro-affordable-verified-intelligent-ride-organizer-fuj8eamw3.vercel.app";
-
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
@@ -40,66 +37,26 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     ) throws ServletException, IOException {
 
         // =========================================================
-        // CORS PREFLIGHT
-        // Browser sends OPTIONS before POST /api/auth/login
+        // IMPORTANT:
+        // Browser sends OPTIONS request before actual POST request.
+        // Do not process JWT for CORS preflight.
         // =========================================================
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
-
-            String origin = request.getHeader("Origin");
-
-            if (ALLOWED_ORIGIN.equals(origin)
-                    || "http://localhost:3000".equals(origin)) {
-
-                response.setHeader(
-                        "Access-Control-Allow-Origin",
-                        origin
-                );
-
-                response.setHeader(
-                        "Access-Control-Allow-Credentials",
-                        "true"
-                );
-
-                response.setHeader(
-                        "Access-Control-Allow-Methods",
-                        "GET, POST, PUT, PATCH, DELETE, OPTIONS"
-                );
-
-                response.setHeader(
-                        "Access-Control-Allow-Headers",
-                        "Authorization, Content-Type, Accept, Origin, X-Requested-With"
-                );
-
-                response.setHeader(
-                        "Access-Control-Max-Age",
-                        "3600"
-                );
-
-                response.setStatus(
-                        HttpServletResponse.SC_OK
-                );
-
-                return;
-            }
-
-            response.setStatus(
-                    HttpServletResponse.SC_FORBIDDEN
-            );
-
+            filterChain.doFilter(request, response);
             return;
         }
 
         try {
 
             // =====================================================
-            // Extract JWT
+            // Extract JWT from Authorization header
             // =====================================================
             String jwt = extractToken(request);
 
             if (StringUtils.hasText(jwt)) {
 
                 // =================================================
-                // Check expired token
+                // Check token expiry
                 // =================================================
                 if (jwtTokenProvider.isTokenExpired(jwt)) {
 
@@ -131,9 +88,15 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     String email =
                             jwtTokenProvider.getEmailFromToken(jwt);
 
+                    // =============================================
+                    // Load user
+                    // =============================================
                     UserDetails userDetails =
                             userDetailsService.loadUserByUsername(email);
 
+                    // =============================================
+                    // Create authentication
+                    // =============================================
                     UsernamePasswordAuthenticationToken auth =
                             new UsernamePasswordAuthenticationToken(
                                     userDetails,
@@ -141,11 +104,17 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                                     userDetails.getAuthorities()
                             );
 
+                    // =============================================
+                    // Add request details
+                    // =============================================
                     auth.setDetails(
                             new WebAuthenticationDetailsSource()
                                     .buildDetails(request)
                     );
 
+                    // =============================================
+                    // Set authentication
+                    // =============================================
                     SecurityContextHolder
                             .getContext()
                             .setAuthentication(auth);
@@ -159,6 +128,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         } catch (Exception ex) {
 
+            // Do not crash request because of JWT error
             log.warn(
                     "JWT auth filter error: {}",
                     ex.getMessage()
@@ -166,7 +136,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         // =========================================================
-        // Continue normal request
+        // Continue request
         // =========================================================
         filterChain.doFilter(request, response);
     }
