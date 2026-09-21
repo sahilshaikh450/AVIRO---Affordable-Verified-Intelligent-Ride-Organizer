@@ -29,15 +29,25 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final AuthenticationManager authenticationManager;
+
+    // Keep these because OTP features are still present
     private final OtpService otpService;
     private final EmailService emailService;
 
     private static final Pattern COLLEGE_DOMAIN_PATTERN =
-            Pattern.compile("^[\\w.+-]+@[\\w-]+(\\.[\\w-]+)*\\.edu\\.in$", Pattern.CASE_INSENSITIVE);
+            Pattern.compile(
+                    "^[\\w.+-]+@[\\w-]+(\\.[\\w-]+)*\\.edu\\.in$",
+                    Pattern.CASE_INSENSITIVE
+            );
+
+    // =========================================================
+    // REGISTER
+    // =========================================================
 
     @Override
     @Transactional
     public ApiResponse<AuthResponse> register(AuthRequest.Register request) {
+
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new AviroException("Email already registered. Please login.");
         }
@@ -55,58 +65,83 @@ public class AuthServiceImpl implements AuthService {
                 .locality(request.getLocality())
                 .homeLat(request.getHomeLat())
                 .homeLng(request.getHomeLng())
-                .isVerified(false)
+
+                // TEMPORARY: registration OTP bypass
+                .isVerified(true)
+
                 .aviroCredits(100)
                 .build();
 
-        // Auto college-verify if .edu.in email
+        // Auto college verify for .edu.in email
         if (isCollegeEmail(request.getEmail())) {
             user.setIsCollegeVerified(true);
         }
 
         userRepository.save(user);
 
-        String otp = otpService.generateAndSaveOtp(request.getEmail());
-        try {
-            emailService.sendVerificationEmail(request.getEmail(), request.getFullName(), otp);
-        } catch (Exception e) {
-            log.warn("Failed to send verification email: {}", e.getMessage());
-        }
+        log.info(
+                "New user registered without OTP verification: {}",
+                request.getEmail()
+        );
 
-        log.info("New user registered: {}", request.getEmail());
-        return ApiResponse.success("Registration successful! Please verify your email.", buildAuthResponse(user));
+        // Directly return JWT
+        return ApiResponse.success(
+                "Registration successful!",
+                buildAuthResponse(user)
+        );
     }
 
-    // ── STEP 1: verify password → send OTP → NO token yet ──
+    // =========================================================
+    // LOGIN
+    // =========================================================
+
     @Override
-    public ApiResponse<String> login(AuthRequest.Login request) {
+    public ApiResponse<AuthResponse> login(AuthRequest.Login request) {
+
+        // Verify email + password
         authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
+                new UsernamePasswordAuthenticationToken(
+                        request.getEmail(),
+                        request.getPassword()
+                )
         );
 
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new AviroException("User not found"));
 
         if (!user.getIsActive()) {
-            throw new AviroException("Account is deactivated. Contact support.");
+            throw new AviroException(
+                    "Account is deactivated. Contact support."
+            );
         }
 
-        // Send OTP to email
-        String otp = otpService.generateAndSaveOtp("login:" + request.getEmail());
-        try {
-            emailService.sendVerificationEmail(request.getEmail(), user.getFullName(), otp);
-        } catch (Exception e) {
-            log.warn("Failed to send login OTP: {}", e.getMessage());
-        }
+        // TEMPORARY: OTP bypass
+        log.info(
+                "Login successful without OTP: {}",
+                request.getEmail()
+        );
 
-        log.info("Login OTP sent: {}", request.getEmail());
-        return ApiResponse.success("OTP sent to your email!", request.getEmail());
+        // Directly generate access + refresh token
+        return ApiResponse.success(
+                "Login successful",
+                buildAuthResponse(user)
+        );
     }
 
-    // ── STEP 2: verify OTP → issue JWT token ──
+    // =========================================================
+    // LOGIN OTP
+    // Keep this method for later OTP restoration
+    // =========================================================
+
     @Override
-    public ApiResponse<AuthResponse> verifyLoginOtp(AuthRequest.LoginVerifyOtp request) {
-        boolean valid = otpService.verifyOtp("login:" + request.getEmail(), request.getOtp());
+    public ApiResponse<AuthResponse> verifyLoginOtp(
+            AuthRequest.LoginVerifyOtp request) {
+
+        boolean valid = otpService.verifyOtp(
+                "login:" + request.getEmail(),
+                request.getOtp()
+        );
+
         if (!valid) {
             throw new AviroException("Invalid or expired OTP");
         }
@@ -114,139 +149,326 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new AviroException("User not found"));
 
-        log.info("Login OTP verified, issuing token: {}", request.getEmail());
-        return ApiResponse.success("Login successful", buildAuthResponse(user));
+        log.info(
+                "Login OTP verified, issuing token: {}",
+                request.getEmail()
+        );
+
+        return ApiResponse.success(
+                "Login successful",
+                buildAuthResponse(user)
+        );
     }
+
+    // =========================================================
+    // REGISTRATION OTP
+    // Keep for later
+    // =========================================================
 
     @Override
     @Transactional
-    public ApiResponse<String> verifyOtp(AuthRequest.VerifyOtp request) {
-        boolean valid = otpService.verifyOtp(request.getEmail(), request.getOtp());
+    public ApiResponse<String> verifyOtp(
+            AuthRequest.VerifyOtp request) {
+
+        boolean valid = otpService.verifyOtp(
+                request.getEmail(),
+                request.getOtp()
+        );
+
         if (!valid) {
             throw new AviroException("Invalid or expired OTP");
         }
 
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new AviroException("User not found"));
+
         user.setIsVerified(true);
         userRepository.save(user);
 
-        return ApiResponse.success("Email verified successfully! Welcome to AVIRO!", null);
+        return ApiResponse.success(
+                "Email verified successfully! Welcome to AVIRO!",
+                null
+        );
     }
 
+    // =========================================================
+    // REFRESH TOKEN
+    // =========================================================
+
     @Override
-    public ApiResponse<AuthResponse> refreshToken(AuthRequest.RefreshToken request) {
+    public ApiResponse<AuthResponse> refreshToken(
+            AuthRequest.RefreshToken request) {
+
         if (!jwtTokenProvider.validateToken(request.getRefreshToken())) {
-            throw new AviroException("Invalid or expired refresh token");
+            throw new AviroException(
+                    "Invalid or expired refresh token"
+            );
         }
-        String email = jwtTokenProvider.getEmailFromToken(request.getRefreshToken());
+
+        String email = jwtTokenProvider.getEmailFromToken(
+                request.getRefreshToken()
+        );
+
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new AviroException("User not found"));
 
-        return ApiResponse.success(buildAuthResponse(user));
+        return ApiResponse.success(
+                buildAuthResponse(user)
+        );
     }
+
+    // =========================================================
+    // FORGOT PASSWORD
+    // OTP remains enabled here
+    // =========================================================
 
     @Override
-    public ApiResponse<String> forgotPassword(AuthRequest.ForgotPassword request) {
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new AviroException("No account found with this email"));
+    public ApiResponse<String> forgotPassword(
+            AuthRequest.ForgotPassword request) {
 
-        String otp = otpService.generateAndSaveOtp(request.getEmail());
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() ->
+                        new AviroException(
+                                "No account found with this email"
+                        )
+                );
+
+        String otp = otpService.generateAndSaveOtp(
+                request.getEmail()
+        );
+
         try {
-            emailService.sendPasswordResetEmail(request.getEmail(), user.getFullName(), otp);
+
+            emailService.sendPasswordResetEmail(
+                    request.getEmail(),
+                    user.getFullName(),
+                    otp
+            );
+
         } catch (Exception e) {
-            log.warn("Failed to send reset email: {}", e.getMessage());
+
+            log.warn(
+                    "Failed to send reset email: {}",
+                    e.getMessage()
+            );
         }
 
-        return ApiResponse.success("Password reset OTP sent to your email", null);
+        return ApiResponse.success(
+                "Password reset OTP sent to your email",
+                null
+        );
     }
+
+    // =========================================================
+    // RESET PASSWORD
+    // OTP remains enabled here
+    // =========================================================
 
     @Override
     @Transactional
-    public ApiResponse<String> resetPassword(AuthRequest.ResetPassword request) {
-        boolean valid = otpService.verifyOtp(request.getEmail(), request.getOtp());
-        if (!valid) throw new AviroException("Invalid or expired OTP");
+    public ApiResponse<String> resetPassword(
+            AuthRequest.ResetPassword request) {
 
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new AviroException("User not found"));
-        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        boolean valid = otpService.verifyOtp(
+                request.getEmail(),
+                request.getOtp()
+        );
+
+        if (!valid) {
+            throw new AviroException(
+                    "Invalid or expired OTP"
+            );
+        }
+
+        User user = userRepository.findByEmail(
+                request.getEmail()
+        ).orElseThrow(() ->
+                new AviroException("User not found")
+        );
+
+        user.setPassword(
+                passwordEncoder.encode(
+                        request.getNewPassword()
+                )
+        );
+
         userRepository.save(user);
 
-        return ApiResponse.success("Password reset successfully. Please login.", null);
+        return ApiResponse.success(
+                "Password reset successfully. Please login.",
+                null
+        );
     }
+
+    // =========================================================
+    // LOGOUT
+    // =========================================================
 
     @Override
     public ApiResponse<String> logout(String email) {
-        return ApiResponse.success("Logged out successfully", null);
+        return ApiResponse.success(
+                "Logged out successfully",
+                null
+        );
     }
+
+    // =========================================================
+    // COLLEGE EMAIL OTP
+    // Keep enabled
+    // =========================================================
 
     @Override
     @Transactional
-    public ApiResponse<String> sendCollegeEmailOtp(String userEmail, AuthRequest.SendCollegeEmailOtp request) {
-        User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new AviroException("User not found"));
+    public ApiResponse<String> sendCollegeEmailOtp(
+            String userEmail,
+            AuthRequest.SendCollegeEmailOtp request) {
 
-        String collegeEmail = request.getCollegeEmail().trim().toLowerCase();
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() ->
+                        new AviroException("User not found")
+                );
+
+        String collegeEmail = request
+                .getCollegeEmail()
+                .trim()
+                .toLowerCase();
 
         if (!isCollegeEmail(collegeEmail)) {
-            throw new AviroException("Please use a valid college email ending in .edu.in");
+            throw new AviroException(
+                    "Please use a valid college email ending in .edu.in"
+            );
         }
 
-        String otp = otpService.generateAndSaveOtp("college:" + collegeEmail);
+        String otp = otpService.generateAndSaveOtp(
+                "college:" + collegeEmail
+        );
+
         try {
-            emailService.sendVerificationEmail(collegeEmail, user.getFullName(), otp);
+
+            emailService.sendVerificationEmail(
+                    collegeEmail,
+                    user.getFullName(),
+                    otp
+            );
+
         } catch (Exception e) {
-            log.warn("Failed to send college email OTP: {}", e.getMessage());
-            throw new AviroException("Failed to send OTP. Please try again.");
+
+            log.warn(
+                    "Failed to send college email OTP: {}",
+                    e.getMessage()
+            );
+
+            throw new AviroException(
+                    "Failed to send OTP. Please try again."
+            );
         }
 
-        return ApiResponse.success("OTP sent to " + collegeEmail, null);
+        return ApiResponse.success(
+                "OTP sent to " + collegeEmail,
+                null
+        );
     }
+
+    // =========================================================
+    // VERIFY COLLEGE EMAIL OTP
+    // =========================================================
 
     @Override
     @Transactional
-    public ApiResponse<String> verifyCollegeEmailOtp(String userEmail, AuthRequest.VerifyCollegeEmailOtp request) {
-        String collegeEmail = request.getCollegeEmail().trim().toLowerCase();
+    public ApiResponse<String> verifyCollegeEmailOtp(
+            String userEmail,
+            AuthRequest.VerifyCollegeEmailOtp request) {
+
+        String collegeEmail = request
+                .getCollegeEmail()
+                .trim()
+                .toLowerCase();
 
         if (!isCollegeEmail(collegeEmail)) {
-            throw new AviroException("Invalid college email domain");
+            throw new AviroException(
+                    "Invalid college email domain"
+            );
         }
 
-        boolean valid = otpService.verifyOtp("college:" + collegeEmail, request.getOtp());
+        boolean valid = otpService.verifyOtp(
+                "college:" + collegeEmail,
+                request.getOtp()
+        );
+
         if (!valid) {
-            throw new AviroException("Invalid or expired OTP");
+            throw new AviroException(
+                    "Invalid or expired OTP"
+            );
         }
 
         User user = userRepository.findByEmail(userEmail)
-                .orElseThrow(() -> new AviroException("User not found"));
+                .orElseThrow(() ->
+                        new AviroException("User not found")
+                );
 
         user.setIsCollegeVerified(true);
+
         userRepository.save(user);
 
-        return ApiResponse.success("College verified successfully! 🎓", null);
+        return ApiResponse.success(
+                "College verified successfully! 🎓",
+                null
+        );
     }
+
+    // =========================================================
+    // COLLEGE EMAIL CHECK
+    // =========================================================
 
     private boolean isCollegeEmail(String email) {
-        return email != null && COLLEGE_DOMAIN_PATTERN.matcher(email.trim()).matches();
+
+        return email != null
+                && COLLEGE_DOMAIN_PATTERN
+                .matcher(email.trim())
+                .matches();
     }
 
+    // =========================================================
+    // AUTH RESPONSE
+    // =========================================================
+
     private AuthResponse buildAuthResponse(User user) {
+
         return AuthResponse.builder()
-                .accessToken(jwtTokenProvider.generateAccessToken(user.getEmail()))
-                .refreshToken(jwtTokenProvider.generateRefreshToken(user.getEmail()))
+
+                .accessToken(
+                        jwtTokenProvider.generateAccessToken(
+                                user.getEmail()
+                        )
+                )
+
+                .refreshToken(
+                        jwtTokenProvider.generateRefreshToken(
+                                user.getEmail()
+                        )
+                )
+
                 .tokenType("Bearer")
-                .user(AuthResponse.UserResponse.builder()
-                        .id(user.getId())
-                        .fullName(user.getFullName())
-                        .email(user.getEmail())
-                        .gender(user.getGender())
-                        .role(user.getRole())
-                        .collegeName(user.getCollegeName())
-                        .isVerified(user.getIsVerified())
-                        .isCollegeVerified(user.getIsCollegeVerified())
-                        .rating(user.getRating())
-                        .aviroCredits(user.getAviroCredits())
-                        .build())
+
+                .user(
+                        AuthResponse.UserResponse.builder()
+                                .id(user.getId())
+                                .fullName(user.getFullName())
+                                .email(user.getEmail())
+                                .gender(user.getGender())
+                                .role(user.getRole())
+                                .collegeName(user.getCollegeName())
+                                .isVerified(user.getIsVerified())
+                                .isCollegeVerified(
+                                        user.getIsCollegeVerified()
+                                )
+                                .rating(user.getRating())
+                                .aviroCredits(
+                                        user.getAviroCredits()
+                                )
+                                .build()
+                )
+
                 .build();
     }
 }
