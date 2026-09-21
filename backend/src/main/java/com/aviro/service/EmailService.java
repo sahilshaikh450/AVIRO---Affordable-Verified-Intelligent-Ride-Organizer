@@ -1,11 +1,15 @@
 package com.aviro.service;
 
 import jakarta.mail.internet.MimeMessage;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -18,12 +22,18 @@ public class EmailService {
     @Value("${spring.mail.username}")
     private String mailUsername;
 
-    // ─────────────────────────────────────────────────────────────
-    // OTP / EMAIL VERIFICATION
-    // ─────────────────────────────────────────────────────────────
-    public void sendVerificationEmail(String to, String name, String otp) {
+    // ============================================================
+    // VERIFICATION OTP
+    // ============================================================
+    @Async("taskExecutor")
+    public void sendVerificationEmail(
+            String to,
+            String name,
+            String otp
+    ) {
 
-        String subject = "🚀 Verify your AVIRO account";
+        String subject =
+                "🚀 Verify your AVIRO account";
 
         String body = buildEmailHtml(
                 name,
@@ -36,12 +46,18 @@ public class EmailService {
         sendEmail(to, subject, body);
     }
 
-    // ─────────────────────────────────────────────────────────────
+    // ============================================================
     // PASSWORD RESET OTP
-    // ─────────────────────────────────────────────────────────────
-    public void sendPasswordResetEmail(String to, String name, String otp) {
+    // ============================================================
+    @Async("taskExecutor")
+    public void sendPasswordResetEmail(
+            String to,
+            String name,
+            String otp
+    ) {
 
-        String subject = "🔐 AVIRO Password Reset OTP";
+        String subject =
+                "🔐 AVIRO Password Reset OTP";
 
         String body = buildEmailHtml(
                 name,
@@ -54,16 +70,18 @@ public class EmailService {
         sendEmail(to, subject, body);
     }
 
-    // ─────────────────────────────────────────────────────────────
+    // ============================================================
     // BOOKING CONFIRMATION
-    // ─────────────────────────────────────────────────────────────
+    // ============================================================
+    @Async("taskExecutor")
     public void sendBookingConfirmation(
             String to,
             String name,
             String rideDetails
     ) {
 
-        String subject = "✅ Ride Booking Confirmed - AVIRO";
+        String subject =
+                "✅ Ride Booking Confirmed - AVIRO";
 
         String body =
                 "<html><body style='font-family:sans-serif;"
@@ -79,9 +97,7 @@ public class EmailService {
 
                         + "<div style='background:#161A22;"
                         + "border-radius:12px;padding:16px;margin:16px 0'>"
-
                         + rideDetails
-
                         + "</div>"
 
                         + "<p style='color:#8B93A8'>"
@@ -94,16 +110,18 @@ public class EmailService {
         sendEmail(to, subject, body);
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // RIDE REQUEST NOTIFICATION
-    // ─────────────────────────────────────────────────────────────
+    // ============================================================
+    // RIDE REQUEST
+    // ============================================================
+    @Async("taskExecutor")
     public void sendRideRequestNotification(
             String to,
             String driverName,
             String riderName
     ) {
 
-        String subject = "🙋 New Ride Request - AVIRO";
+        String subject =
+                "🙋 New Ride Request - AVIRO";
 
         String body =
                 "<html><body style='font-family:sans-serif;padding:24px'>"
@@ -114,8 +132,7 @@ public class EmailService {
                         + driverName
                         + ", <strong>"
                         + riderName
-                        + "</strong> wants to join your ride."
-                        + "</p>"
+                        + "</strong> wants to join your ride.</p>"
 
                         + "<p>Open the AVIRO app to accept or decline.</p>"
 
@@ -128,9 +145,10 @@ public class EmailService {
         sendEmail(to, subject, body);
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // SOS ALERT EMAIL
-    // ─────────────────────────────────────────────────────────────
+    // ============================================================
+    // SOS ALERT
+    // ============================================================
+    @Async("taskExecutor")
     public void sendSosAlert(
             String toEmail,
             String senderName,
@@ -177,19 +195,15 @@ public class EmailService {
 
                         + "<p style='color:#ef4444;font-size:22px;"
                         + "font-weight:bold;text-align:center'>"
-
                         + "Please call 112 if needed!"
-
                         + "</p>"
 
                         + "<hr style='border-color:#333;margin:20px 0'/>"
 
                         + "<p style='color:#666;font-size:12px;"
                         + "text-align:center'>"
-
                         + "Automated emergency alert from AVIRO - "
                         + "Pune's College Ride Platform"
-
                         + "</p>"
 
                         + "</div></body></html>";
@@ -197,9 +211,10 @@ public class EmailService {
         sendEmail(toEmail, subject, body);
     }
 
-    // ─────────────────────────────────────────────────────────────
+    // ============================================================
     // RIDE SHARE ALERT
-    // ─────────────────────────────────────────────────────────────
+    // ============================================================
+    @Async("taskExecutor")
     public void sendRideShareAlert(
             String toEmail,
             String senderName,
@@ -243,9 +258,7 @@ public class EmailService {
 
                         + "<p style='color:#8B93A8;font-size:12px;"
                         + "text-align:center'>"
-
                         + "Sent via AVIRO - Pune's College Ride Sharing"
-
                         + "</p>"
 
                         + "</div></body></html>";
@@ -253,9 +266,10 @@ public class EmailService {
         sendEmail(toEmail, subject, body);
     }
 
-    // ─────────────────────────────────────────────────────────────
+    // ============================================================
     // ADMIN ALERT
-    // ─────────────────────────────────────────────────────────────
+    // ============================================================
+    @Async("taskExecutor")
     public void sendAdminAlert(
             String subject,
             String alertBody
@@ -273,9 +287,7 @@ public class EmailService {
 
                         + "<pre style='font-size:14px;"
                         + "white-space:pre-wrap'>"
-
                         + alertBody
-
                         + "</pre>"
 
                         + "</div>"
@@ -293,9 +305,9 @@ public class EmailService {
         );
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // COMMON EMAIL SENDER
-    // ─────────────────────────────────────────────────────────────
+    // ============================================================
+    // COMMON EMAIL METHOD
+    // ============================================================
     private void sendEmail(
             String to,
             String subject,
@@ -304,8 +316,10 @@ public class EmailService {
 
         try {
 
-            log.info("Preparing to send email to: {}", to);
-            log.info("Using mail username: {}", mailUsername);
+            log.info(
+                    "Starting email send to: {}",
+                    to
+            );
 
             MimeMessage message =
                     mailSender.createMimeMessage();
@@ -321,11 +335,7 @@ public class EmailService {
             helper.setSubject(subject);
             helper.setText(htmlBody, true);
 
-            /*
-             * IMPORTANT:
-             * Use the same Gmail account configured in
-             * MAIL_USERNAME on Render.
-             */
+            // Use authenticated Gmail account
             helper.setFrom(mailUsername);
 
             mailSender.send(message);
@@ -338,25 +348,16 @@ public class EmailService {
         } catch (Exception e) {
 
             log.error(
-                    "FAILED TO SEND EMAIL TO: {}",
+                    "EMAIL FAILED TO: {}",
                     to,
-                    e
-            );
-
-            /*
-             * Throw the actual error so the application does not
-             * falsely report that the email was sent.
-             */
-            throw new RuntimeException(
-                    "Email sending failed: " + e.getMessage(),
                     e
             );
         }
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // OTP EMAIL HTML
-    // ─────────────────────────────────────────────────────────────
+    // ============================================================
+    // OTP HTML
+    // ============================================================
     private String buildEmailHtml(
             String name,
             String heading,
