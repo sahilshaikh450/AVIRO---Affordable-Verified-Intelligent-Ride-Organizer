@@ -1,6 +1,7 @@
 package com.aviro.config;
 
 import com.aviro.security.JwtAuthFilter;
+
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.context.annotation.Bean;
@@ -19,6 +20,7 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 
 import org.springframework.security.core.userdetails.UserDetailsService;
+
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -39,151 +41,158 @@ public class SecurityConfig {
     private final JwtAuthFilter jwtAuthFilter;
     private final UserDetailsService userDetailsService;
 
-    // ============================================================
-    // SECURITY FILTER CHAIN
-    // ============================================================
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http
+    ) throws Exception {
 
         http
-            // Disable CSRF because this is a stateless REST API
-            .csrf(AbstractHttpConfigurer::disable)
+                .csrf(AbstractHttpConfigurer::disable)
 
-            // Enable CORS
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .cors(cors ->
+                        cors.configurationSource(
+                                corsConfigurationSource()
+                        )
+                )
 
-            // Stateless JWT authentication
-            .sessionManagement(session ->
-                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            )
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(
+                                SessionCreationPolicy.STATELESS
+                        )
+                )
 
-            // Authorization rules
-            .authorizeHttpRequests(auth -> auth
+                .authorizeHttpRequests(auth -> auth
 
-                // IMPORTANT:
-                // Allow browser CORS preflight requests
-                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // CORS preflight
+                        .requestMatchers(
+                                HttpMethod.OPTIONS,
+                                "/**"
+                        ).permitAll()
 
-                // Public authentication APIs
-                .requestMatchers(
-                    "/auth/**",
+                        // Authentication
+                        .requestMatchers(
+                                "/auth/**"
+                        ).permitAll()
 
-                    // Chat
-                    "/chat/**",
+                        // Chat
+                        .requestMatchers(
+                                "/chat/**"
+                        ).permitAll()
 
-                    // WebSocket
-                    "/ws/**",
-                    "/ws",
-                    "/ws/info",
-                    "/ws/info/**",
+                        // WebSocket
+                        .requestMatchers(
+                                "/ws/**",
+                                "/ws",
+                                "/ws/info",
+                                "/ws/info/**"
+                        ).permitAll()
 
-                    // Swagger
-                    "/v3/api-docs/**",
-                    "/swagger-ui/**",
-                    "/swagger-ui.html",
+                        // Swagger
+                        .requestMatchers(
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html"
+                        ).permitAll()
 
-                    // Safety
-                    "/safety/**",
+                        // Safety
+                        .requestMatchers(
+                                "/safety/**"
+                        ).permitAll()
 
-                    // Health
-                    "/actuator/health"
-                ).permitAll()
+                        // Health
+                        .requestMatchers(
+                                "/actuator/health"
+                        ).permitAll()
 
-                // Everything else needs authentication
-                .anyRequest().authenticated()
-            )
+                        // All remaining endpoints
+                        .anyRequest().authenticated()
+                )
 
-            // Authentication provider
-            .authenticationProvider(authenticationProvider())
+                .authenticationProvider(
+                        authenticationProvider()
+                )
 
-            // JWT filter
-            .addFilterBefore(
-                jwtAuthFilter,
-                UsernamePasswordAuthenticationFilter.class
-            );
+                .addFilterBefore(
+                        jwtAuthFilter,
+                        UsernamePasswordAuthenticationFilter.class
+                );
 
         return http.build();
     }
 
-    // ============================================================
-    // CORS CONFIGURATION
-    // ============================================================
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
 
-        CorsConfiguration config = new CorsConfiguration();
+        CorsConfiguration config =
+                new CorsConfiguration();
 
-        /*
-         * Current Vercel frontend URL from your browser screenshot.
-         */
-        config.setAllowedOriginPatterns(List.of(
-            "https://aviro-affordable-verified-intelligent-ride-organizer-fuj8eamw3.vercel.app",
-            "http://localhost:3000"
-        ));
+        config.setAllowedOriginPatterns(
+                List.of(
+                        "https://aviro-affordable-verified-intelligent-ride-organizer-fuj8eamw3.vercel.app",
+                        "http://localhost:3000"
+                )
+        );
 
-        /*
-         * Allow all required HTTP methods.
-         */
-        config.setAllowedMethods(List.of(
-            "GET",
-            "POST",
-            "PUT",
-            "PATCH",
-            "DELETE",
-            "OPTIONS"
-        ));
+        config.setAllowedMethods(
+                List.of(
+                        "GET",
+                        "POST",
+                        "PUT",
+                        "PATCH",
+                        "DELETE",
+                        "OPTIONS"
+                )
+        );
 
-        /*
-         * Allow request headers such as:
-         * Content-Type
-         * Authorization
-         */
-        config.setAllowedHeaders(List.of("*"));
+        config.setAllowedHeaders(
+                List.of(
+                        "Authorization",
+                        "Content-Type",
+                        "Accept",
+                        "Origin",
+                        "X-Requested-With"
+                )
+        );
 
-        /*
-         * Needed if frontend sends cookies/credentials.
-         */
         config.setAllowCredentials(true);
 
-        /*
-         * Headers that browser is allowed to read.
-         */
-        config.setExposedHeaders(List.of(
-            "Authorization",
-            "Content-Type"
-        ));
+        config.setExposedHeaders(
+                List.of(
+                        "Authorization",
+                        "Content-Type"
+                )
+        );
 
-        /*
-         * Cache preflight response for 1 hour.
-         */
         config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source =
-            new UrlBasedCorsConfigurationSource();
+                new UrlBasedCorsConfigurationSource();
 
-        source.registerCorsConfiguration("/**", config);
+        source.registerCorsConfiguration(
+                "/**",
+                config
+        );
 
         return source;
     }
 
-    // ============================================================
-    // AUTHENTICATION PROVIDER
-    // ============================================================
     @Bean
     public AuthenticationProvider authenticationProvider() {
 
         DaoAuthenticationProvider provider =
-            new DaoAuthenticationProvider();
+                new DaoAuthenticationProvider();
 
-        provider.setUserDetailsService(userDetailsService);
-        provider.setPasswordEncoder(passwordEncoder());
+        provider.setUserDetailsService(
+                userDetailsService
+        );
+
+        provider.setPasswordEncoder(
+                passwordEncoder()
+        );
 
         return provider;
     }
 
-    // ============================================================
-    // AUTHENTICATION MANAGER
-    // ============================================================
     @Bean
     public AuthenticationManager authenticationManager(
             AuthenticationConfiguration config
@@ -192,9 +201,6 @@ public class SecurityConfig {
         return config.getAuthenticationManager();
     }
 
-    // ============================================================
-    // PASSWORD ENCODER
-    // ============================================================
     @Bean
     public PasswordEncoder passwordEncoder() {
 
