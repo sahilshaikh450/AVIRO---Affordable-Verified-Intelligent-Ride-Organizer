@@ -20,7 +20,6 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 
 import org.springframework.security.core.userdetails.UserDetailsService;
-
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -41,45 +40,62 @@ public class SecurityConfig {
     private final JwtAuthFilter jwtAuthFilter;
     private final UserDetailsService userDetailsService;
 
+    // ============================================================
+    // SECURITY FILTER CHAIN
+    // ============================================================
     @Bean
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http
     ) throws Exception {
 
         http
+
+                // Disable CSRF for REST API
                 .csrf(AbstractHttpConfigurer::disable)
 
+                // Enable CORS
                 .cors(cors ->
                         cors.configurationSource(
                                 corsConfigurationSource()
                         )
                 )
 
+                // Stateless JWT authentication
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(
                                 SessionCreationPolicy.STATELESS
                         )
                 )
 
+                // Authorization rules
                 .authorizeHttpRequests(auth -> auth
 
-                        // CORS preflight
+                        // =================================================
+                        // IMPORTANT:
+                        // Allow browser CORS preflight requests
+                        // =================================================
                         .requestMatchers(
                                 HttpMethod.OPTIONS,
                                 "/**"
                         ).permitAll()
 
-                        // Authentication
+                        // =================================================
+                        // Authentication APIs
+                        // =================================================
                         .requestMatchers(
                                 "/auth/**"
                         ).permitAll()
 
+                        // =================================================
                         // Chat
+                        // =================================================
                         .requestMatchers(
                                 "/chat/**"
                         ).permitAll()
 
+                        // =================================================
                         // WebSocket
+                        // =================================================
                         .requestMatchers(
                                 "/ws/**",
                                 "/ws",
@@ -87,31 +103,41 @@ public class SecurityConfig {
                                 "/ws/info/**"
                         ).permitAll()
 
+                        // =================================================
                         // Swagger
+                        // =================================================
                         .requestMatchers(
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html"
                         ).permitAll()
 
+                        // =================================================
                         // Safety
+                        // =================================================
                         .requestMatchers(
                                 "/safety/**"
                         ).permitAll()
 
+                        // =================================================
                         // Health
+                        // =================================================
                         .requestMatchers(
                                 "/actuator/health"
                         ).permitAll()
 
-                        // All remaining endpoints
+                        // =================================================
+                        // Everything else requires authentication
+                        // =================================================
                         .anyRequest().authenticated()
                 )
 
+                // Authentication provider
                 .authenticationProvider(
                         authenticationProvider()
                 )
 
+                // JWT filter
                 .addFilterBefore(
                         jwtAuthFilter,
                         UsernamePasswordAuthenticationFilter.class
@@ -120,19 +146,25 @@ public class SecurityConfig {
         return http.build();
     }
 
+    // ============================================================
+    // CORS CONFIGURATION
+    // ============================================================
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
 
         CorsConfiguration config =
                 new CorsConfiguration();
 
+        /*
+         * Use allowedOriginPatterns instead of allowedOrigins.
+         * This allows Vercel deployment URLs without hardcoding
+         * one changing deployment URL.
+         */
         config.setAllowedOriginPatterns(
-                List.of(
-                        "https://aviro-affordable-verified-intelligent-ride-organizer-fuj8eamw3.vercel.app",
-                        "http://localhost:3000"
-                )
+                List.of("*")
         );
 
+        // Allowed HTTP methods
         config.setAllowedMethods(
                 List.of(
                         "GET",
@@ -144,18 +176,15 @@ public class SecurityConfig {
                 )
         );
 
+        // Allow all request headers
         config.setAllowedHeaders(
-                List.of(
-                        "Authorization",
-                        "Content-Type",
-                        "Accept",
-                        "Origin",
-                        "X-Requested-With"
-                )
+                List.of("*")
         );
 
+        // Allow credentials
         config.setAllowCredentials(true);
 
+        // Expose useful response headers
         config.setExposedHeaders(
                 List.of(
                         "Authorization",
@@ -163,6 +192,7 @@ public class SecurityConfig {
                 )
         );
 
+        // Cache preflight response
         config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source =
@@ -176,6 +206,9 @@ public class SecurityConfig {
         return source;
     }
 
+    // ============================================================
+    // AUTHENTICATION PROVIDER
+    // ============================================================
     @Bean
     public AuthenticationProvider authenticationProvider() {
 
@@ -193,6 +226,9 @@ public class SecurityConfig {
         return provider;
     }
 
+    // ============================================================
+    // AUTHENTICATION MANAGER
+    // ============================================================
     @Bean
     public AuthenticationManager authenticationManager(
             AuthenticationConfiguration config
@@ -201,6 +237,9 @@ public class SecurityConfig {
         return config.getAuthenticationManager();
     }
 
+    // ============================================================
+    // PASSWORD ENCODER
+    // ============================================================
     @Bean
     public PasswordEncoder passwordEncoder() {
 
