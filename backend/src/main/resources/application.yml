@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: ${PORT:8080}
   servlet:
     context-path: /api
 
@@ -8,28 +8,33 @@ spring:
     name: aviro-backend
 
   datasource:
-    url: jdbc:mysql://localhost:3306/aviro_db?useSSL=false&serverTimezone=Asia/Kolkata&allowPublicKeyRetrieval=true
-    username: root
-    password: Sahil890majbu
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:update}
     show-sql: false
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
 
-  redis:
-    host: localhost
-    port: 6379
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+      username: ${REDIS_USERNAME:default}
+      password: ${REDIS_PASSWORD}
+      ssl:
+        enabled: true
 
   mail:
     host: smtp.gmail.com
     port: 587
-    username: sahilshaikh34088@gmail.com
-    password: zupmqvwukuevguln
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
     properties:
       mail:
         smtp:
@@ -44,14 +49,17 @@ spring:
 
 aviro:
   jwt:
-    secret: aVir0SuperSecretKeyForPuneCollegeRideSharing2025
-    expiration: 86400000
-    refresh-expiration: 604800000
+    secret: ${AVIRO_JWT_SECRET}
+    expiration: ${AVIRO_JWT_EXPIRATION:86400000}
+    refresh-expiration: ${AVIRO_JWT_REFRESH_EXPIRATION:604800000}
+
   otp:
     expiry-minutes: 10
     length: 6
+
   ride:
     max-search-radius-km: 5.0
     route-match-threshold: 0.7
+
   claude:
-    api-key: 
+    api-key: ${GEMINI_API_KEY:}
