@@ -8,6 +8,10 @@ import java.util.Optional;
 
 @Repository
 public interface VehicleRepository extends JpaRepository<Vehicle, Long> {
+
     Optional<Vehicle> findByUserId(Long userId);
-    Boolean existsByRegistrationNumber(String registrationNumber);
+
+    boolean existsByUserId(Long userId);
+
+    boolean existsByRegistrationNumber(String registrationNumber);
 }

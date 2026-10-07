@@ -11,6 +11,8 @@ import com.aviro.service.CollegeIdVerificationService;
 import com.aviro.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -26,13 +28,15 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/users")
 @RequiredArgsConstructor
+@Slf4j
 public class UserController {
 
     private final UserService userService;
     private final UserRepository userRepository;
     private final CollegeIdVerificationService verificationService;
 
-    private static final String UPLOAD_DIR = "uploads/college-ids/";
+    // ✅ Use absolute path so it works on both local and Render
+    private static final String UPLOAD_DIR = System.getProperty("user.dir") + "/uploads/college-ids/";
 
     @GetMapping("/profile")
     public ResponseEntity<ApiResponse<UserResponse>> getProfile(
@@ -94,60 +98,83 @@ public class UserController {
         }
 
         try {
-            // Save file
+            // ✅ Create upload directory if not exists
             Path uploadPath = Paths.get(UPLOAD_DIR);
-            if (!Files.exists(uploadPath)) Files.createDirectories(uploadPath);
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+            }
 
+            // ✅ Generate unique filename
             String originalName = file.getOriginalFilename();
             String extension = (originalName != null && originalName.contains("."))
-                    ? originalName.substring(originalName.lastIndexOf(".")) : ".jpg";
+                    ? originalName.substring(originalName.lastIndexOf(".")).toLowerCase()
+                    : ".jpg";
             String filename = "college_id_" + user.getId() + "_" + UUID.randomUUID() + extension;
 
             Path filePath = uploadPath.resolve(filename);
             Files.copy(file.getInputStream(), filePath);
 
+            log.info("College ID uploaded for user {}: {} ({} bytes)",
+                user.getId(), filename, file.getSize());
+
+            // ✅ Store URL that can be served via API
             String imageUrl = "/api/users/college-id-image/" + filename;
             user.setCollegeIdPicUrl(imageUrl);
-            user.setIsCollegeVerified(false); // Reset until AI verifies
+            user.setIsCollegeVerified(false);
             userRepository.save(user);
 
-            // 🤖 AUTO-VERIFY using Claude Vision AI
-            CollegeIdVerificationService.VerificationResult result =
-                    verificationService.verifyCollegeId(user.getId(), UPLOAD_DIR + filename);
+            // ✅ Absolute path for Gemini verification
+            String absoluteImagePath = UPLOAD_DIR + filename;
 
-            if (result.approved()) {
-                return ResponseEntity.ok(ApiResponse.success(
-                        "✅ College ID verified automatically! You can now book and post rides.",
-                        imageUrl
-                ));
-            } else {
-                return ResponseEntity.ok(ApiResponse.success(
-                        "📤 ID uploaded. " + result.message(),
-                        imageUrl
-                ));
-            }
+            // 🤖 AUTO-VERIFY via Gemini Vision API
+            CollegeIdVerificationService.VerificationResult result =
+                    verificationService.verifyCollegeId(user.getId(), absoluteImagePath);
+
+            log.info("Verification result for user {}: approved={}, message={}",
+                user.getId(), result.approved(), result.message());
+
+            return ResponseEntity.ok(ApiResponse.success(result.message(), imageUrl));
 
         } catch (IOException e) {
+            log.error("File upload failed for user {}: {}", user.getId(), e.getMessage());
             return ResponseEntity.internalServerError()
                     .body(ApiResponse.error("Upload failed: " + e.getMessage()));
         }
     }
 
-    // ── SERVE IMAGE ──────────────────────────────────────────────
+    // ── SERVE COLLEGE ID IMAGE ────────────────────────────────────
     @GetMapping("/college-id-image/{filename}")
     public ResponseEntity<org.springframework.core.io.Resource> getCollegeIdImage(
             @PathVariable String filename) {
         try {
-            Path filePath = Paths.get(UPLOAD_DIR).resolve(filename);
+            // ✅ Security — prevent path traversal
+            if (filename.contains("..") || filename.contains("/")) {
+                return ResponseEntity.badRequest().build();
+            }
+
+            Path filePath = Paths.get(UPLOAD_DIR).resolve(filename).normalize();
             org.springframework.core.io.Resource resource =
                     new org.springframework.core.io.UrlResource(filePath.toUri());
 
-            if (!resource.exists()) return ResponseEntity.notFound().build();
+            if (!resource.exists() || !resource.isReadable()) {
+                log.warn("College ID image not found: {}", filename);
+                return ResponseEntity.notFound().build();
+            }
+
+            // ✅ Detect content type
+            String contentType = "image/jpeg";
+            String lower = filename.toLowerCase();
+            if (lower.endsWith(".png"))  contentType = "image/png";
+            if (lower.endsWith(".webp")) contentType = "image/webp";
+            if (lower.endsWith(".gif"))  contentType = "image/gif";
 
             return ResponseEntity.ok()
-                    .header("Content-Type", "image/jpeg")
+                    .contentType(MediaType.parseMediaType(contentType))
+                    .header("Cache-Control", "max-age=3600")
                     .body(resource);
+
         } catch (Exception e) {
+            log.error("Error serving college ID image {}: {}", filename, e.getMessage());
             return ResponseEntity.notFound().build();
         }
     }

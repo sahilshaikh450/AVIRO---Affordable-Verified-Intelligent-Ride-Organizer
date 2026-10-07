@@ -31,6 +31,8 @@ public class RideResponse {
     private String notes;
     private LocalDateTime createdAt;
 
+    // RideResponse.java mein DriverInfo class update karo — ye fields add karo:
+
     @Data
     @Builder
     public static class DriverInfo {
@@ -41,10 +43,14 @@ public class RideResponse {
         private Double rating;
         private Integer totalRides;
         private String collegeName;
+        private String department;      // ✅ Branch
+        private String yearOfStudy;     // ✅ Year
+        private String phone;           // ✅ Mobile (shown after confirm only)
         private String profilePicUrl;
         private Boolean isCollegeVerified;
-        private VehicleType vehicleType;
+        private String vehicleType;
         private String vehicleModel;
         private String vehicleColor;
+        private String vehicleRegistrationNumber; // ✅ Vehicle number
     }
 }

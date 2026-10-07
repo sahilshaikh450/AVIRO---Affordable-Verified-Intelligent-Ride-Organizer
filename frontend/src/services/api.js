@@ -9,28 +9,86 @@ const api = axios.create({
   timeout: 10000,
 });
 
+<<<<<<< HEAD
 // Attach JWT token to every request
+=======
+// =========================================================
+// PUBLIC AUTH ENDPOINTS
+// In requests par purana JWT attach nahi hoga
+// =========================================================
+
+const publicEndpoints = [
+  '/auth/login',
+  '/auth/register',
+  '/auth/forgot-password',
+  '/auth/reset-password',
+  '/auth/verify-otp',
+  '/auth/login-verify-otp',
+];
+
+// =========================================================
+// REQUEST INTERCEPTOR
+// =========================================================
+
+>>>>>>> 2a2d6cdfcb1496005c6f4c50313e54ff72827d9a
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('aviro_token');
 
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    const requestUrl = config.url || '';
+
+    const isPublicEndpoint = publicEndpoints.some(
+      (endpoint) => requestUrl.includes(endpoint)
+    );
+
+    // Login/register etc. par old token mat bhejo
+    if (!isPublicEndpoint) {
+
+      const token = localStorage.getItem('aviro_token');
+
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
 
     return config;
   },
+
   (error) => Promise.reject(error)
 );
 
+<<<<<<< HEAD
 // Handle 401 errors
+=======
+// =========================================================
+// RESPONSE INTERCEPTOR
+// =========================================================
+
+>>>>>>> 2a2d6cdfcb1496005c6f4c50313e54ff72827d9a
 api.interceptors.response.use(
+
   (response) => response,
+
   (error) => {
-    if (error.response?.status === 401) {
-      console.warn('Session expired. Redirecting to login...');
+
+    const status = error.response?.status;
+    const requestUrl = error.config?.url || '';
+
+    const isPublicEndpoint = publicEndpoints.some(
+      (endpoint) => requestUrl.includes(endpoint)
+    );
+
+    // =====================================================
+    // 401 ONLY FOR PROTECTED API REQUESTS
+    // =====================================================
+
+    if (status === 401 && !isPublicEndpoint) {
+
+      console.warn(
+        'Session expired. Redirecting to login...'
+      );
 
       localStorage.removeItem('aviro_token');
+      localStorage.removeItem('aviro_refresh');
       localStorage.removeItem('aviro_refresh_token');
       localStorage.removeItem('aviro_user');
 
@@ -44,6 +102,7 @@ api.interceptors.response.use(
       }
     }
 
+    // Login ka actual backend error normally return hone do
     return Promise.reject(error);
   }
 );

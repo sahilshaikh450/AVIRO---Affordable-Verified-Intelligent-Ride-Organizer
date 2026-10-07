@@ -1,6 +1,7 @@
 package com.aviro.dto.response;
 
 import com.aviro.enums.BookingStatus;
+import com.aviro.enums.Gender;
 import com.aviro.enums.PaymentStatus;
 import lombok.Builder;
 import lombok.Data;
@@ -18,8 +19,8 @@ public class BookingResponse {
     private Double totalAmount;
     private BookingStatus status;
     private PaymentStatus paymentStatus;
-    private String paymentMethod;      // ✅ UPI / CASH
-    private String paymentReference;   // ✅ Transaction ID
+    private String paymentMethod;
+    private String paymentReference;
     private String pickupPoint;
     private RideResponse.DriverInfo driver;
     private RiderInfo rider;
@@ -30,9 +31,13 @@ public class BookingResponse {
     public static class RiderInfo {
         private Long id;
         private String fullName;
-        private com.aviro.enums.Gender gender;
+        private Gender gender;
         private String collegeName;
+        private String department;      // ✅ Branch/Department
+        private String yearOfStudy;     // ✅ Year
+        private String phone;           // ✅ Mobile number
         private String profilePicUrl;
         private Double rating;
+        private Integer totalRides;
     }
 }
