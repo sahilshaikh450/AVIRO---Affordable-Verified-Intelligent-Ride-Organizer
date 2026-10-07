@@ -1,13 +1,22 @@
+
 FROM maven:3.9.5-eclipse-temurin-17 AS build
+
 WORKDIR /app
+
 COPY pom.xml .
 RUN mvn dependency:go-offline -B
+
 COPY src ./src
 RUN mvn clean package -DskipTests -B
 
 FROM eclipse-temurin:17-jre-alpine
+
 WORKDIR /app
+
 RUN mkdir -p uploads/college-ids
+
 COPY --from=build /app/target/*.jar app.jar
-EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "-Dspring.profiles.active=prod", "app.jar"]
+
+EXPOSE 10000
+
+ENTRYPOINT ["java", "-Dspring.profiles.active=prod", "-jar", "app.jar"]

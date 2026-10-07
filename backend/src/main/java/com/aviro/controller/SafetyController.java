@@ -14,7 +14,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -38,21 +37,34 @@ public class SafetyController {
         User user = userRepository.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        // ✅ Handle both List<String> and comma-separated String from frontend
+        List<String> contactList = new ArrayList<>();
+
         Object contactsObj = body.get("contacts");
-        List<String> contacts;
-        if (contactsObj instanceof List) {
-            contacts = new ArrayList<>();
-            for (Object c : (List<?>) contactsObj) {
-                contacts.add(c.toString());
+        if (contactsObj instanceof List<?> list) {
+            // Frontend sent JSON array: ["email1", "email2"]
+            for (Object item : list) {
+                if (item != null && !item.toString().trim().isEmpty()) {
+                    contactList.add(item.toString().trim());
+                }
             }
-        } else {
-            contacts = Arrays.asList(contactsObj.toString().split(","));
+        } else if (contactsObj instanceof String str) {
+            // Frontend sent comma-separated string: "email1,email2"
+            for (String c : str.split(",")) {
+                if (!c.trim().isEmpty()) {
+                    contactList.add(c.trim());
+                }
+            }
         }
-        user.setEmergencyContacts(contacts);
+
+        // ✅ setEmergencyContacts expects List<String>
+        user.setEmergencyContacts(contactList);
         userRepository.save(user);
 
-        log.info("Emergency contacts updated for: {}", userDetails.getUsername());
-        return ResponseEntity.ok(ApiResponse.success("Emergency contacts saved!", null));
+        log.info("Emergency contacts updated for: {} — {} contacts saved",
+            userDetails.getUsername(), contactList.size());
+        return ResponseEntity.ok(ApiResponse.success(
+            "Emergency contacts saved! (" + contactList.size() + " contacts)", null));
     }
 
     // ── 2. SOS Alert ─────────────────────────────────────────────
@@ -64,7 +76,7 @@ public class SafetyController {
         User user = userRepository.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        Long bookingId = body.get("bookingId") != null
+        Long   bookingId = body.get("bookingId") != null
                 ? Long.valueOf(body.get("bookingId").toString()) : null;
         Double lat = body.get("lat") != null ? Double.valueOf(body.get("lat").toString()) : null;
         Double lng = body.get("lng") != null ? Double.valueOf(body.get("lng").toString()) : null;
@@ -74,11 +86,11 @@ public class SafetyController {
                 : "Location unavailable";
 
         String sosMessage = "🆘 SOS ALERT from " + user.getFullName() +
-                "!\nPhone: " + user.getPhone() +
+                "!\nPhone: " + (user.getPhone() != null ? user.getPhone() : "N/A") +
                 "\nLocation: " + mapsLink +
                 "\nPlease check on them immediately!";
 
-        // Notify driver/rider in booking
+        // Notify driver/rider in booking via WebSocket
         if (bookingId != null) {
             bookingRepository.findById(bookingId).ifPresent(booking -> {
                 Long driverId = booking.getRide().getDriver().getId();
@@ -87,35 +99,38 @@ public class SafetyController {
 
                 try {
                     notificationService.send(targetId,
-                            "🆘 SOS EMERGENCY ALERT!",
-                            user.getFullName() + " needs help! Location: " + mapsLink,
-                            "SOS_ALERT",
-                            bookingId.toString()
+                        "🆘 SOS EMERGENCY ALERT!",
+                        user.getFullName() + " needs help! Location: " + mapsLink,
+                        "SOS_ALERT",
+                        bookingId.toString()
                     );
                 } catch (Exception e) {
-                    log.warn("SOS notification failed: {}", e.getMessage());
+                    log.warn("SOS WebSocket notification failed: {}", e.getMessage());
                 }
             });
         }
 
-        // Email emergency contacts
-        if (user.getEmergencyContacts() != null && !user.getEmergencyContacts().isEmpty()) {
-            try {
-                List<String> contacts = user.getEmergencyContacts();
-                for (String contact : contacts) {
-                    String email = contact.trim();
-                    if (email.contains("@")) {
+        // ✅ emergencyContacts is List<String> — iterate directly, no split()
+        List<String> contacts = user.getEmergencyContacts();
+        if (contacts != null && !contacts.isEmpty()) {
+            for (String contact : contacts) {
+                String email = contact.trim();
+                if (email.contains("@")) {
+                    try {
                         emailService.sendSosAlert(email, user.getFullName(), sosMessage);
                         log.info("SOS email sent to: {}", email);
+                    } catch (Exception e) {
+                        log.warn("SOS email failed for {}: {}", email, e.getMessage());
                     }
                 }
-            } catch (Exception e) {
-                log.warn("SOS email failed: {}", e.getMessage());
             }
+        } else {
+            log.warn("SOS triggered but no emergency contacts saved for user: {}", user.getEmail());
         }
 
-        log.warn("SOS triggered by user: {} at {}", user.getEmail(), mapsLink);
-        return ResponseEntity.ok(ApiResponse.success("SOS alert sent to all emergency contacts!", null));
+        log.warn("🆘 SOS triggered by: {} at {}", user.getEmail(), mapsLink);
+        return ResponseEntity.ok(ApiResponse.success(
+            "🆘 SOS alert sent to all emergency contacts!", null));
     }
 
     // ── 3. Share Ride Link ────────────────────────────────────────
@@ -128,8 +143,12 @@ public class SafetyController {
         User user = userRepository.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        String shareEmail = body.get("email");
-        String trackingLink = "https://aviro-ride-sharing.vercel.app/tracking/" + bookingId;
+        String shareEmail    = body.get("email");
+        String trackingLink  = "https://aviro-ride-sharing.vercel.app/tracking/" + bookingId;
+
+        if (shareEmail == null || !shareEmail.contains("@")) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Invalid email address"));
+        }
 
         bookingRepository.findById(bookingId).ifPresent(booking -> {
             try {
@@ -137,7 +156,7 @@ public class SafetyController {
                         booking.getRide().getFromLocation() + " to " +
                         booking.getRide().getToLocation() +
                         ".\n\nTrack their live location: " + trackingLink +
-                        "\n\nStay safe! - AVIRO";
+                        "\n\nStay safe! — AVIRO";
 
                 emailService.sendRideShareAlert(shareEmail, user.getFullName(), message);
                 log.info("Ride share sent to: {}", shareEmail);
@@ -147,7 +166,7 @@ public class SafetyController {
         });
 
         return ResponseEntity.ok(ApiResponse.success(
-                "Ride tracking link shared with " + shareEmail, trackingLink));
+            "Ride tracking link shared with " + shareEmail, trackingLink));
     }
 
     // ── 4. Report Driver ──────────────────────────────────────────
@@ -164,9 +183,8 @@ public class SafetyController {
 
         bookingRepository.findById(bookingId).ifPresent(booking -> {
             try {
-                // Notify admin via email
                 emailService.sendAdminAlert(
-                    "🚨 Driver Reported - AVIRO",
+                    "🚨 Driver Reported — AVIRO",
                     "Reporter: " + reporter.getFullName() + " (" + reporter.getEmail() + ")\n" +
                     "Booking ID: " + bookingId + "\n" +
                     "Driver: " + booking.getRide().getDriver().getFullName() + "\n" +
@@ -177,8 +195,8 @@ public class SafetyController {
             }
         });
 
-        log.warn("Driver reported - booking: {} by: {}", bookingId, reporter.getEmail());
+        log.warn("Driver reported — booking: {} by: {}", bookingId, reporter.getEmail());
         return ResponseEntity.ok(ApiResponse.success(
-                "Report submitted. Our team will review it within 24 hours.", null));
+            "Report submitted. Our team will review within 24 hours.", null));
     }
 }

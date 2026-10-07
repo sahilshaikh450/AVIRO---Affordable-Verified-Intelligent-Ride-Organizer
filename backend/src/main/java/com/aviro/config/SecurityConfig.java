@@ -35,22 +35,28 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .csrf(AbstractHttpConfigurer::disable)
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .cors(cors -> cors.configurationSource(corsConfigurationSource())) // ✅ CORS here
+            .sessionManagement(session ->
+                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
+                // ✅ Public endpoints
                 .requestMatchers(
                     "/auth/**",
-                    "/chat/**",
+                    "/auth/register",
+                    "/auth/login",
+                    "/auth/login-verify-otp",
+                    "/auth/verify-otp",
+                    "/auth/forgot-password",
+                    "/auth/reset-password",
+                    "/auth/send-college-email-otp",
+                    "/auth/verify-college-email-otp",
+                    "/users/college-id-image/**",
                     "/ws/**",
-                    "/ws",
-                    "/ws/info",
-                    "/ws/info/**",
-                    "/v3/api-docs/**",
-                    "/swagger-ui/**",
-                    "/safety/**",
                     "/actuator/health"
-                    
                 ).permitAll()
+                // ✅ Admin only
+                .requestMatchers("/admin/**").hasRole("ADMIN")
+                // ✅ Everything else needs JWT
                 .anyRequest().authenticated()
             )
             .authenticationProvider(authenticationProvider())
@@ -59,13 +65,35 @@ public class SecurityConfig {
         return http.build();
     }
 
+    // ✅ CORS Configuration — allows Vercel frontend
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of("*"));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("*"));
+
+        config.setAllowedOriginPatterns(List.of(
+            "http://localhost:3000",
+            "http://localhost:3001",
+            "https://aviro-ride-sharing.vercel.app",
+            "https://aviro-affordable-verified-intellige.vercel.app",
+            "https://*.vercel.app"
+        ));
+
+        config.setAllowedMethods(List.of(
+            "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"
+        ));
+
+        config.setAllowedHeaders(List.of(
+            "Authorization",
+            "Content-Type",
+            "Accept",
+            "Origin",
+            "X-Requested-With"
+        ));
+
+        config.setExposedHeaders(List.of("Authorization"));
         config.setAllowCredentials(true);
+        config.setMaxAge(3600L);
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
@@ -80,7 +108,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
 

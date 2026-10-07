@@ -21,6 +21,9 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     Optional<Booking> findByRideIdAndRiderId(Long rideId, Long riderId);
 
+    // ✅ Added — used in RideServiceImpl to check confirmed bookings before cancel/delete
+    long countByRideIdAndStatus(Long rideId, BookingStatus status);
+
     @Query("SELECT COUNT(b) FROM Booking b WHERE b.rider.id = :riderId AND b.status = 'COMPLETED'")
     Long countCompletedByRider(@Param("riderId") Long riderId);
 
