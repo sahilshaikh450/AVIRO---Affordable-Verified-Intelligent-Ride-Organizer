@@ -1,13 +1,15 @@
+
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL;
+const API_URL =
+  process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
 
 const api = axios.create({
   baseURL: API_URL,
   timeout: 10000,
 });
 
-// ── Request interceptor: attach JWT token to every request ──
+// Attach JWT token to every request
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('aviro_token');
@@ -21,7 +23,7 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// ── Response interceptor: handle 401 (expired/invalid token) ──
+// Handle 401 errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {

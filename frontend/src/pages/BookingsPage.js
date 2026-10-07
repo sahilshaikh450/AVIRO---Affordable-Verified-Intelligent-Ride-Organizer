@@ -5,6 +5,7 @@ import { EmptyState, Spinner, StatusBadge, GenderBadge } from '../components/com
 import ReviewModal from '../components/common/ReviewModal';
 import PaymentChoiceModal from '../components/common/PaymentChoiceModal';
 import MiniTrackingCard from '../components/common/MiniTrackingCard';
+import { RiderOTPCard, DriverOTPVerifyCard } from '../components/common/RideOTPCard';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
 import toast from 'react-hot-toast';
@@ -87,11 +88,11 @@ export default function BookingsPage() {
   const handleConfirmCash = async (bookingId) => {
     try {
       await api.post(`/bookings/${bookingId}/confirm-cash`);
-      toast.success('💰 Cash payment confirmed! Rider notified.');
+      toast.success('💰 Cash payment confirmed!');
       fetchDriverBookings();
       dispatch(fetchMyBookings());
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to confirm');
+      toast.error(err.response?.data?.message || 'Failed');
     }
   };
 
@@ -146,7 +147,6 @@ export default function BookingsPage() {
                   <div className="text-right">
                     <p className="text-aviro-green font-bold text-lg">₹{b.totalAmount}</p>
                     <p className="text-xs text-aviro-muted">{b.seatsBooked} seat{b.seatsBooked > 1 ? 's' : ''}</p>
-                    <p className="text-xs text-aviro-muted">⭐ {b.rider?.rating?.toFixed(1)}</p>
                   </div>
                 </div>
                 <div className="bg-aviro-card2 rounded-xl p-3 mb-4">
@@ -186,19 +186,22 @@ export default function BookingsPage() {
                     <div>
                       <p className="font-semibold text-sm">{b.rider?.fullName || 'Rider'}</p>
                       <p className="text-xs text-aviro-muted">{b.fromLocation} → {b.toLocation}</p>
-                      {b.rider?.department && (
-                        <p className="text-xs text-aviro-muted">{b.rider.department} · Year {b.rider.yearOfStudy}</p>
-                      )}
                       {b.rider?.phone && (
                         <a href={`tel:${b.rider.phone}`} className="text-xs text-aviro-orange">📞 {b.rider.phone}</a>
                       )}
-                      <span className={`text-xs font-semibold block mt-0.5 ${b.paymentStatus === 'COMPLETED' ? 'text-aviro-green' : 'text-yellow-400'}`}>
-                        {b.paymentStatus === 'COMPLETED' ? '💰 Payment Received' : '⏳ Payment Pending'}
-                      </span>
                     </div>
                   </div>
                   <StatusBadge status="CONFIRMED" />
                 </div>
+
+                {/* ── Driver OTP Verify Card ── */}
+                <div className="mb-3">
+                  <DriverOTPVerifyCard
+                    bookingId={b.id}
+                    onVerified={() => fetchDriverBookings()}
+                  />
+                </div>
+
                 <div className="flex gap-2">
                   <Link to={`/tracking/${b.id}`}
                     className="flex-1 bg-aviro-orange/10 border border-aviro-orange/30 text-aviro-orange font-semibold py-2.5 rounded-xl text-sm text-center hover:bg-aviro-orange/20">
@@ -206,7 +209,7 @@ export default function BookingsPage() {
                   </Link>
                   <button onClick={() => handleDriverComplete(b.id, {
                       booking: b, revieweeId: b.rider?.id,
-                      revieweeName: b.rider?.fullName || 'Rider', revieweeGender: b.rider?.gender,
+                      revieweeName: b.rider?.fullName || 'Rider',
                     })}
                     className="flex-1 bg-aviro-blue text-white font-bold py-2.5 rounded-xl text-sm hover:opacity-90">
                     🏁 Complete
@@ -243,19 +246,10 @@ export default function BookingsPage() {
                     <p className="text-xs text-yellow-400">Cash claimed</p>
                   </div>
                 </div>
-                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 mb-3">
-                  <p className="text-xs text-yellow-400 font-semibold">
-                    💵 {b.rider?.fullName} says they paid ₹{b.totalAmount} in cash. Did you receive it?
-                  </p>
-                </div>
                 <div className="flex gap-2">
                   <button onClick={() => handleConfirmCash(b.id)}
                     className="flex-1 bg-aviro-green text-white font-bold py-2.5 rounded-xl text-sm hover:opacity-90">
                     ✅ Yes, I got the cash!
-                  </button>
-                  <button onClick={() => toast('Contact the rider if payment is missing', { icon: '💬' })}
-                    className="flex-1 bg-red-500/10 text-red-400 border border-red-500/30 font-semibold py-2.5 rounded-xl text-sm">
-                    ❌ Not received
                   </button>
                 </div>
               </div>
@@ -299,15 +293,7 @@ export default function BookingsPage() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <StatusBadge status={b.status} />
-                    {b.status === 'CONFIRMED' && (
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full
-                        ${b.paymentStatus === 'COMPLETED' ? 'bg-aviro-green/10 text-aviro-green' : 'bg-yellow-500/10 text-yellow-400'}`}>
-                        {b.paymentStatus === 'COMPLETED' ? '✅ Paid' : '⏳ Payment Due'}
-                      </span>
-                    )}
-                  </div>
+                  <StatusBadge status={b.status} />
                 </div>
 
                 {/* Route + Booking ID */}
@@ -338,7 +324,7 @@ export default function BookingsPage() {
                   </p>
                 </div>
 
-                {/* ── ✅ Driver Details — CONFIRMED pe hi dikhega ── */}
+                {/* Driver Details after CONFIRMED */}
                 {b.status === 'CONFIRMED' && b.driver && (
                   <div className="bg-aviro-card2 rounded-xl p-4 mb-3 border border-aviro-green/20">
                     <p className="text-xs text-aviro-green font-semibold mb-3">✅ Booking Confirmed — Driver Details</p>
@@ -349,58 +335,37 @@ export default function BookingsPage() {
                       <div>
                         <p className="font-bold text-sm">{b.driver?.fullName}</p>
                         <p className="text-xs text-aviro-muted">{b.driver?.collegeName}</p>
-                        {b.driver?.isCollegeVerified && (
-                          <span className="text-xs text-green-400 font-semibold">✓ College Verified</span>
-                        )}
+                        {b.driver?.department && <p className="text-xs text-aviro-muted">{b.driver.department} · Year {b.driver.yearOfStudy}</p>}
                       </div>
                       <div className="ml-auto text-right">
-                        <p className="text-xs text-aviro-muted">Rating</p>
                         <p className="text-aviro-orange font-bold">⭐ {b.driver?.rating?.toFixed(1)}</p>
-                        <p className="text-xs text-aviro-muted">{b.driver?.totalRides || 0} rides</p>
                       </div>
                     </div>
-
                     <div className="grid grid-cols-2 gap-2">
-                      {b.driver?.department && (
-                        <div className="bg-aviro-card rounded-lg p-2.5">
-                          <p className="text-xs text-aviro-muted">Branch</p>
-                          <p className="text-xs font-semibold text-white">{b.driver.department}</p>
-                        </div>
-                      )}
-                      {b.driver?.yearOfStudy && (
-                        <div className="bg-aviro-card rounded-lg p-2.5">
-                          <p className="text-xs text-aviro-muted">Year</p>
-                          <p className="text-xs font-semibold text-white">Year {b.driver.yearOfStudy}</p>
-                        </div>
-                      )}
                       {b.driver?.phone && (
                         <div className="bg-aviro-card rounded-lg p-2.5 col-span-2">
-                          <p className="text-xs text-aviro-muted mb-0.5">Mobile Number</p>
-                          <a href={`tel:${b.driver.phone}`}
-                            className="text-sm font-bold text-aviro-orange flex items-center gap-1">
+                          <p className="text-xs text-aviro-muted mb-0.5">Mobile</p>
+                          <a href={`tel:${b.driver.phone}`} className="text-sm font-bold text-aviro-orange">
                             📞 {b.driver.phone}
-                            <span className="text-xs text-aviro-muted font-normal ml-1">tap to call</span>
                           </a>
                         </div>
                       )}
                       {b.driver?.vehicleModel && (
                         <div className="bg-aviro-card rounded-lg p-2.5 col-span-2">
                           <p className="text-xs text-aviro-muted mb-0.5">Vehicle</p>
-                          <p className="text-xs font-semibold text-white flex items-center gap-1">
-                            <span>
-                              {b.driver.vehicleType === 'BIKE'   ? '🏍️' :
-                               b.driver.vehicleType === 'CAR'    ? '🚗' :
-                               b.driver.vehicleType === 'SCOOTY' ? '🛵' :
-                               b.driver.vehicleType === 'AUTO'   ? '🛺' : '🚗'}
-                            </span>
-                            {b.driver.vehicleModel} · {b.driver.vehicleColor}
-                            {b.driver.vehicleRegistrationNumber && (
-                              <span className="text-aviro-muted ml-1">· {b.driver.vehicleRegistrationNumber}</span>
-                            )}
+                          <p className="text-xs font-semibold text-white">
+                            🚗 {b.driver.vehicleModel} · {b.driver.vehicleColor}
                           </p>
                         </div>
                       )}
                     </div>
+                  </div>
+                )}
+
+                {/* ── Rider OTP Card ── */}
+                {b.status === 'CONFIRMED' && (
+                  <div className="mb-3">
+                    <RiderOTPCard bookingId={b.id} />
                   </div>
                 )}
 
@@ -411,47 +376,16 @@ export default function BookingsPage() {
 
                 {/* Complete button */}
                 {b.status === 'CONFIRMED' && (
-                  <div className="space-y-2 mt-2">
-                    <button onClick={() => handleRiderComplete(b)}
-                      className="w-full bg-aviro-card2 border border-aviro-border text-white font-semibold py-2 rounded-xl text-sm hover:border-aviro-blue/50 transition-colors">
-                      🏁 Mark as Completed
-                    </button>
-                  </div>
-                )}
-
-                {/* Cash pending */}
-                {b.status === 'COMPLETED' && b.paymentMethod === 'CASH' && b.paymentStatus !== 'COMPLETED' && (
-                  <div className="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 rounded-xl px-4 py-2.5 mb-2">
-                    <span className="text-xl">⏳</span>
-                    <div>
-                      <p className="text-xs font-semibold text-yellow-400">Waiting for driver to confirm cash</p>
-                      <p className="text-xs text-aviro-muted">Driver will confirm once they receive the cash</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Already paid */}
-                {b.status === 'COMPLETED' && b.paymentStatus === 'COMPLETED' && (
-                  <div className="flex items-center gap-2 bg-aviro-green/10 border border-aviro-green/20 rounded-xl px-4 py-2.5 mb-2">
-                    <span className="text-aviro-green font-semibold text-sm">✅ Payment Complete</span>
-                    {b.paymentMethod && (
-                      <span className="text-xs text-aviro-muted ml-auto">via {b.paymentMethod}</span>
-                    )}
-                  </div>
-                )}
-
-                {/* UPI pending */}
-                {b.status === 'COMPLETED' && b.paymentStatus !== 'COMPLETED' && b.paymentMethod !== 'CASH' && (
-                  <button onClick={() => setPaymentBooking(b)}
-                    className="w-full mb-2 bg-aviro-orange/10 border border-aviro-orange/30 text-aviro-orange font-semibold py-2 rounded-xl text-sm hover:bg-aviro-orange/20">
-                    💰 Pay ₹{b.totalAmount} (Pending)
+                  <button onClick={() => handleRiderComplete(b)}
+                    className="w-full mt-2 bg-aviro-card2 border border-aviro-border text-white font-semibold py-2 rounded-xl text-sm hover:border-aviro-blue/50 transition-colors">
+                    🏁 Mark as Completed
                   </button>
                 )}
 
                 {/* Cancel */}
                 {['REQUESTED', 'CONFIRMED'].includes(b.status) && (
                   <button onClick={() => dispatch(cancelBooking(b.id))}
-                    className="w-full text-xs text-red-400 hover:underline font-medium py-1">
+                    className="w-full mt-2 text-xs text-red-400 hover:underline font-medium py-1">
                     Cancel Booking
                   </button>
                 )}
@@ -460,17 +394,11 @@ export default function BookingsPage() {
                 {b.status === 'COMPLETED' && b.paymentStatus === 'COMPLETED' && !reviewedIds.has(b.id) && (
                   <button onClick={() => setReviewTarget({
                     booking: b, revieweeId: b.driver?.id,
-                    revieweeName: b.driver?.fullName || 'Driver', revieweeGender: b.driver?.gender,
+                    revieweeName: b.driver?.fullName || 'Driver',
                   })}
-                    className="w-full mt-2 bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 font-semibold py-2 rounded-xl text-sm hover:bg-yellow-500/20">
+                    className="w-full mt-2 bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 font-semibold py-2 rounded-xl text-sm">
                     ⭐ Rate this Driver
                   </button>
-                )}
-
-                {b.status === 'COMPLETED' && reviewedIds.has(b.id) && (
-                  <div className="mt-2 text-center text-xs text-aviro-green bg-aviro-green/5 py-2 rounded-xl">
-                    ✅ Ride completed & reviewed
-                  </div>
                 )}
               </div>
             ))}
@@ -480,23 +408,14 @@ export default function BookingsPage() {
 
       {paymentBooking && (
         <PaymentChoiceModal booking={paymentBooking} onClose={() => setPaymentBooking(null)}
-          onPaid={() => {
-            dispatch(fetchMyBookings());
-            setPaymentBooking(null);
-            setReviewTarget({
-              booking: paymentBooking, revieweeId: paymentBooking.driver?.id,
-              revieweeName: paymentBooking.driver?.fullName || 'Driver', revieweeGender: paymentBooking.driver?.gender,
-            });
-          }}
-        />
+          onPaid={() => { dispatch(fetchMyBookings()); setPaymentBooking(null); }} />
       )}
 
       {reviewTarget && (
         <ReviewModal booking={reviewTarget.booking} revieweeId={reviewTarget.revieweeId}
-          revieweeName={reviewTarget.revieweeName} revieweeGender={reviewTarget.revieweeGender}
+          revieweeName={reviewTarget.revieweeName}
           onClose={() => setReviewTarget(null)}
-          onSubmitted={() => setReviewedIds(prev => new Set(prev).add(reviewTarget.booking.id))}
-        />
+          onSubmitted={() => setReviewedIds(prev => new Set(prev).add(reviewTarget.booking.id))} />
       )}
     </div>
   );
