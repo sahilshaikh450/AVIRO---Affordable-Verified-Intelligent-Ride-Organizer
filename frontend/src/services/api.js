@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 
 const API_URL =
@@ -9,14 +8,9 @@ const api = axios.create({
   timeout: 10000,
 });
 
-<<<<<<< HEAD
-// Attach JWT token to every request
-=======
 // =========================================================
 // PUBLIC AUTH ENDPOINTS
-// In requests par purana JWT attach nahi hoga
 // =========================================================
-
 const publicEndpoints = [
   '/auth/login',
   '/auth/register',
@@ -29,22 +23,15 @@ const publicEndpoints = [
 // =========================================================
 // REQUEST INTERCEPTOR
 // =========================================================
-
->>>>>>> 2a2d6cdfcb1496005c6f4c50313e54ff72827d9a
 api.interceptors.request.use(
   (config) => {
-
     const requestUrl = config.url || '';
-
     const isPublicEndpoint = publicEndpoints.some(
       (endpoint) => requestUrl.includes(endpoint)
     );
 
-    // Login/register etc. par old token mat bhejo
     if (!isPublicEndpoint) {
-
       const token = localStorage.getItem('aviro_token');
-
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -52,24 +39,15 @@ api.interceptors.request.use(
 
     return config;
   },
-
   (error) => Promise.reject(error)
 );
 
-<<<<<<< HEAD
-// Handle 401 errors
-=======
 // =========================================================
 // RESPONSE INTERCEPTOR
 // =========================================================
-
->>>>>>> 2a2d6cdfcb1496005c6f4c50313e54ff72827d9a
 api.interceptors.response.use(
-
   (response) => response,
-
   (error) => {
-
     const status = error.response?.status;
     const requestUrl = error.config?.url || '';
 
@@ -77,15 +55,8 @@ api.interceptors.response.use(
       (endpoint) => requestUrl.includes(endpoint)
     );
 
-    // =====================================================
-    // 401 ONLY FOR PROTECTED API REQUESTS
-    // =====================================================
-
     if (status === 401 && !isPublicEndpoint) {
-
-      console.warn(
-        'Session expired. Redirecting to login...'
-      );
+      console.warn('Session expired. Redirecting to login...');
 
       localStorage.removeItem('aviro_token');
       localStorage.removeItem('aviro_refresh');
@@ -93,7 +64,6 @@ api.interceptors.response.use(
       localStorage.removeItem('aviro_user');
 
       const currentPath = window.location.pathname;
-
       if (
         !currentPath.includes('/login') &&
         !currentPath.includes('/register')
@@ -102,7 +72,6 @@ api.interceptors.response.use(
       }
     }
 
-    // Login ka actual backend error normally return hone do
     return Promise.reject(error);
   }
 );
