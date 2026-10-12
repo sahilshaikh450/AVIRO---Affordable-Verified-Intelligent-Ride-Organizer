@@ -1,4 +1,4 @@
-```java
+
 package com.aviro.entity;
 
 import com.aviro.enums.Gender;
@@ -115,4 +115,3 @@ public class User extends BaseEntity {
     @Builder.Default
     private List<String> emergencyContacts = new ArrayList<>();
 }
-```
