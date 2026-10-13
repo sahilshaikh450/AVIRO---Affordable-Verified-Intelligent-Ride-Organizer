@@ -1,9 +1,11 @@
+
 package com.aviro.config;
 
 import com.aviro.security.JwtAuthFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -32,42 +34,54 @@ public class SecurityConfig {
     private final UserDetailsService userDetailsService;
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http) throws Exception {
+
         http
             .csrf(AbstractHttpConfigurer::disable)
-            .cors(cors -> cors.configurationSource(corsConfigurationSource())) // ✅ CORS here
+
+            .cors(cors ->
+                cors.configurationSource(corsConfigurationSource()))
+
             .sessionManagement(session ->
-                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                session.sessionCreationPolicy(
+                    SessionCreationPolicy.STATELESS))
+
             .authorizeHttpRequests(auth -> auth
-                // ✅ Public endpoints
-                .requestMatchers(
-                    "/auth/**",
-                    "/auth/register",
-                    "/auth/login",
-                    "/auth/login-verify-otp",
-                    "/auth/verify-otp",
-                    "/auth/forgot-password",
-                    "/auth/reset-password",
-                    "/auth/send-college-email-otp",
-                    "/auth/verify-college-email-otp",
-                    "/users/college-id-image/**",
-                    "/ws/**",
-                    "/actuator/health"
-                ).permitAll()
-                // ✅ Admin only
+
+                // Allow browser preflight requests
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                // Public authentication endpoints
+                .requestMatchers("/auth/**").permitAll()
+
+                // Uploaded college ID images
+                .requestMatchers("/users/college-id-image/**").permitAll()
+
+                // WebSocket and health check
+                .requestMatchers("/ws/**").permitAll()
+                .requestMatchers("/actuator/health").permitAll()
+
+                // Admin endpoints require ADMIN role
                 .requestMatchers("/admin/**").hasRole("ADMIN")
-                // ✅ Everything else needs JWT
+
+                // All other endpoints require authentication
                 .anyRequest().authenticated()
             )
+
             .authenticationProvider(authenticationProvider())
-            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+
+            .addFilterBefore(
+                jwtAuthFilter,
+                UsernamePasswordAuthenticationFilter.class
+            );
 
         return http.build();
     }
 
-    // ✅ CORS Configuration — allows Vercel frontend
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
+
         CorsConfiguration config = new CorsConfiguration();
 
         config.setAllowedOriginPatterns(List.of(
@@ -79,7 +93,8 @@ public class SecurityConfig {
         ));
 
         config.setAllowedMethods(List.of(
-            "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"
+            "GET", "POST", "PUT", "PATCH",
+            "DELETE", "OPTIONS"
         ));
 
         config.setAllowedHeaders(List.of(
@@ -94,22 +109,30 @@ public class SecurityConfig {
         config.setAllowCredentials(true);
         config.setMaxAge(3600L);
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        UrlBasedCorsConfigurationSource source =
+            new UrlBasedCorsConfigurationSource();
+
         source.registerCorsConfiguration("/**", config);
+
         return source;
     }
 
     @Bean
     public AuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+
+        DaoAuthenticationProvider provider =
+            new DaoAuthenticationProvider();
+
         provider.setUserDetailsService(userDetailsService);
         provider.setPasswordEncoder(passwordEncoder());
+
         return provider;
     }
 
     @Bean
     public AuthenticationManager authenticationManager(
             AuthenticationConfiguration config) throws Exception {
+
         return config.getAuthenticationManager();
     }
 
