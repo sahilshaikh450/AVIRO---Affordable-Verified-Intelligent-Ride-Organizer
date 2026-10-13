@@ -1,6 +1,43 @@
+
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../services/api';
 import toast from 'react-hot-toast';
+
+// =========================================================
+// STORAGE HELPERS
+// =========================================================
+
+const getStoredUser = () => {
+  try {
+    const savedUser = localStorage.getItem('aviro_user');
+    return savedUser ? JSON.parse(savedUser) : null;
+  } catch {
+    localStorage.removeItem('aviro_user');
+    return null;
+  }
+};
+
+const saveAuthData = (data) => {
+  if (!data) {
+    throw new Error('Invalid authentication response');
+  }
+
+  const { accessToken, refreshToken, user } = data;
+
+  if (!accessToken || !user) {
+    throw new Error('Access token or user missing from response');
+  }
+
+  localStorage.setItem('aviro_token', accessToken);
+
+  if (refreshToken) {
+    localStorage.setItem('aviro_refresh', refreshToken);
+  } else {
+    localStorage.removeItem('aviro_refresh');
+  }
+
+  localStorage.setItem('aviro_user', JSON.stringify(user));
+};
 
 // =========================================================
 // LOGIN
@@ -11,9 +48,7 @@ export const loginUser = createAsyncThunk(
   async (data, { rejectWithValue }) => {
     try {
       const res = await api.post('/auth/login', data);
-
       return res.data.data;
-
     } catch (err) {
       return rejectWithValue(
         err.response?.data?.message || 'Login failed'
@@ -31,9 +66,7 @@ export const registerUser = createAsyncThunk(
   async (data, { rejectWithValue }) => {
     try {
       const res = await api.post('/auth/register', data);
-
       return res.data.data;
-
     } catch (err) {
       return rejectWithValue(
         err.response?.data?.message || 'Registration failed'
@@ -44,7 +77,6 @@ export const registerUser = createAsyncThunk(
 
 // =========================================================
 // REGISTRATION OTP
-// Keep for later OTP feature
 // =========================================================
 
 export const verifyOtp = createAsyncThunk(
@@ -52,9 +84,7 @@ export const verifyOtp = createAsyncThunk(
   async (data, { rejectWithValue }) => {
     try {
       const res = await api.post('/auth/verify-otp', data);
-
       return res.data;
-
     } catch (err) {
       return rejectWithValue(
         err.response?.data?.message ||
@@ -73,48 +103,39 @@ export const fetchProfile = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const res = await api.get('/users/profile');
-
       return res.data.data;
-
     } catch (err) {
       return rejectWithValue(
-        err.response?.data?.message
+        err.response?.data?.message || 'Failed to fetch profile'
       );
     }
   }
 );
 
-const saved = localStorage.getItem('aviro_token');
+// =========================================================
+// INITIAL STATE
+// =========================================================
 
-const savedUser = localStorage.getItem('aviro_user');
+const savedToken = localStorage.getItem('aviro_token');
+const savedUser = getStoredUser();
 
 const authSlice = createSlice({
-
   name: 'auth',
 
   initialState: {
-    token: saved || null,
-
-    user: savedUser
-      ? JSON.parse(savedUser)
-      : null,
-
+    token: savedToken || null,
+    user: savedUser,
     loading: false,
-
     error: null,
-
     pendingEmail: null,
   },
 
   reducers: {
-
     logout(state) {
-
       state.token = null;
-
       state.user = null;
-
       state.pendingEmail = null;
+      state.error = null;
 
       localStorage.removeItem('aviro_token');
       localStorage.removeItem('aviro_refresh');
@@ -125,161 +146,90 @@ const authSlice = createSlice({
     },
 
     setPendingEmail(state, action) {
-
       state.pendingEmail = action.payload;
     },
 
     clearError(state) {
-
       state.error = null;
     },
   },
 
-  extraReducers: builder => {
-
-    // =====================================================
+  extraReducers: (builder) => {
     // LOGIN
-    // =====================================================
-
-    builder.addCase(
-      loginUser.pending,
-      state => {
-
+    builder
+      .addCase(loginUser.pending, (state) => {
         state.loading = true;
         state.error = null;
-      }
-    );
-
-    builder.addCase(
-      loginUser.fulfilled,
-      (state, action) => {
-
+      })
+      .addCase(loginUser.fulfilled, (state, action) => {
         state.loading = false;
 
-        state.token =
-          action.payload.accessToken;
+        try {
+          saveAuthData(action.payload);
 
-        state.user =
-          action.payload.user;
+          state.token = action.payload.accessToken;
+          state.user = action.payload.user;
 
-        localStorage.setItem(
-          'aviro_token',
-          action.payload.accessToken
-        );
-
-        localStorage.setItem(
-          'aviro_refresh',
-          action.payload.refreshToken
-        );
-
-        localStorage.setItem(
-          'aviro_user',
-          JSON.stringify(
-            action.payload.user
-          )
-        );
-
-        toast.success(
-          `Welcome back, ${action.payload.user.fullName}! 🚀`
-        );
-      }
-    );
-
-    builder.addCase(
-      loginUser.rejected,
-      (state, action) => {
-
+          toast.success(
+            `Welcome back, ${action.payload.user.fullName || 'User'}! 🚀`
+          );
+        } catch (err) {
+          state.error = err.message;
+          toast.error('Login response is missing authentication data');
+        }
+      })
+      .addCase(loginUser.rejected, (state, action) => {
         state.loading = false;
+        state.error = action.payload || 'Login failed';
+        toast.error(state.error);
+      });
 
-        state.error = action.payload;
-
-        toast.error(action.payload);
-      }
-    );
-
-    // =====================================================
     // REGISTER
-    // =====================================================
-
-    builder.addCase(
-      registerUser.pending,
-      state => {
-
+    builder
+      .addCase(registerUser.pending, (state) => {
         state.loading = true;
         state.error = null;
-      }
-    );
-
-    builder.addCase(
-      registerUser.fulfilled,
-      (state, action) => {
-
+      })
+      .addCase(registerUser.fulfilled, (state, action) => {
         state.loading = false;
 
-        state.token =
-          action.payload.accessToken;
+        try {
+          saveAuthData(action.payload);
 
-        state.user =
-          action.payload.user;
+          state.token = action.payload.accessToken;
+          state.user = action.payload.user;
 
-        localStorage.setItem(
-          'aviro_token',
-          action.payload.accessToken
-        );
-
-        localStorage.setItem(
-          'aviro_refresh',
-          action.payload.refreshToken
-        );
-
-        localStorage.setItem(
-          'aviro_user',
-          JSON.stringify(
-            action.payload.user
-          )
-        );
-
-        toast.success(
-          'Account created successfully! 🎉'
-        );
-      }
-    );
-
-    builder.addCase(
-      registerUser.rejected,
-      (state, action) => {
-
+          toast.success('Account created successfully! 🎉');
+        } catch (err) {
+          state.error = err.message;
+          toast.error('Registration response is missing authentication data');
+        }
+      })
+      .addCase(registerUser.rejected, (state, action) => {
         state.loading = false;
+        state.error = action.payload || 'Registration failed';
+        toast.error(state.error);
+      });
 
-        state.error = action.payload;
-
-        toast.error(action.payload);
-      }
-    );
-
-    // =====================================================
     // PROFILE
-    // =====================================================
+    builder.addCase(fetchProfile.fulfilled, (state, action) => {
+      state.user = action.payload;
+      localStorage.setItem(
+        'aviro_user',
+        JSON.stringify(action.payload)
+      );
+    });
 
-    builder.addCase(
-      fetchProfile.fulfilled,
-      (state, action) => {
-
-        state.user = action.payload;
-
-        localStorage.setItem(
-          'aviro_user',
-          JSON.stringify(action.payload)
-        );
-      }
-    );
-  }
+    builder.addCase(fetchProfile.rejected, (state, action) => {
+      state.error = action.payload || null;
+    });
+  },
 });
 
 export const {
   logout,
   setPendingEmail,
-  clearError
+  clearError,
 } = authSlice.actions;
 
 export default authSlice.reducer;
