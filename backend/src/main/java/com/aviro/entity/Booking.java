@@ -44,7 +44,8 @@ public class Booking extends BaseEntity {
     private PaymentStatus paymentStatus = PaymentStatus.PENDING;
 
     private String paymentReference;
-
+@Column(name = "ride_otp")
+private String rideOtp;
     // ✅ NEW: UPI / CASH
     private String paymentMethod;
 
