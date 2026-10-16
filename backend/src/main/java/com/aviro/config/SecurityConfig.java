@@ -37,7 +37,7 @@ public class SecurityConfig {
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
-                    "/api/auth/**",
+                    "/auth/**",       // context path '/api' already stripped by Spring Security
                     "/setup/**",
                     "/actuator/**",
                     "/ws/**",
