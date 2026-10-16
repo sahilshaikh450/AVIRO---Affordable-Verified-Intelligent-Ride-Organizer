@@ -79,4 +79,21 @@ public class BookingController {
             @PathVariable Long rideId) {
         return ResponseEntity.ok(bookingService.getRideBookings(userDetails.getUsername(), rideId));
     }
+
+    // ── RIDER: OTP fetch ──
+    @GetMapping("/{bookingId}/ride-otp")
+    public ResponseEntity<ApiResponse<Map<String, String>>> getRideOtp(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Long bookingId) {
+        return ResponseEntity.ok(bookingService.getRideOtp(userDetails.getUsername(), bookingId));
+    }
+
+    // ── DRIVER: OTP verify ──
+    @PostMapping("/{bookingId}/verify-ride-otp")
+    public ResponseEntity<ApiResponse<String>> verifyRideOtp(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Long bookingId,
+            @RequestBody Map<String, String> body) {
+        return ResponseEntity.ok(bookingService.verifyRideOtp(userDetails.getUsername(), bookingId, body.get("otp")));
+    }
 }
