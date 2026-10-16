@@ -134,13 +134,14 @@ export const StatCard = ({ icon, label, value, color = 'orange', trend }) => {
     yellow: 'text-aviro-yellow bg-aviro-yellow/10',
   };
   return (
-    <div className="card p-5 hover:border-aviro-orange/30 transition-colors">
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl mb-3 ${colors[color]}`}>
+    <div className="card p-3 sm:p-5 hover:border-aviro-orange/30 transition-colors">
+      {/* Icon — chota mobile pe, thoda bada desktop pe */}
+      <div className={`w-7 h-7 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center text-sm sm:text-xl mb-2 sm:mb-3 ${colors[color]}`}>
         {icon}
       </div>
-      <p className="text-aviro-muted text-xs font-medium mb-1">{label}</p>
-      <p className="text-2xl font-display font-bold">{value}</p>
-      {trend && <p className="text-xs text-aviro-green mt-1">{trend}</p>}
+      <p className="text-aviro-muted text-[10px] sm:text-xs font-medium mb-0.5 sm:mb-1 leading-tight">{label}</p>
+      <p className="text-lg sm:text-2xl font-display font-bold">{value}</p>
+      {trend && <p className="text-[10px] sm:text-xs text-aviro-green mt-0.5 sm:mt-1">{trend}</p>}
     </div>
   );
 };
