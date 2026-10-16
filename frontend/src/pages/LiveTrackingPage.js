@@ -61,7 +61,8 @@ export default function LiveTrackingPage() {
   const [mapReady, setMapReady]         = useState(false);
   const [lastSeen, setLastSeen]         = useState(null);
   const [accuracy, setAccuracy]         = useState(null);
-  const [gpsStatus, setGpsStatus]       = useState('idle'); // idle | acquiring | active | lost
+  const [gpsStatus, setGpsStatus]       = useState('idle');
+  const [locating, setLocating]         = useState(false); // for "Find Me" button
 
   const clientRef        = useRef(null);
   const watchIdRef       = useRef(null);
@@ -69,9 +70,9 @@ export default function LiveTrackingPage() {
   const mapInstance      = useRef(null);
   const driverMarkerRef  = useRef(null);
   const myMarkerRef      = useRef(null);
-  const riderMarkerRef   = useRef(null);
   const locationTimerRef = useRef(null);
   const routeLineRef     = useRef(null);
+  const accuracyCircleRef = useRef(null);
 
   const isDriver = booking?.driver?.id === user?.id;
   const isRider  = booking?.rider?.id === user?.id;
@@ -91,33 +92,45 @@ export default function LiveTrackingPage() {
       if (!window.L || !mapRef.current || mapInstance.current) return;
       const L = window.L;
 
-      // Start at Pune center
+      // Default: Pune center
       const map = L.map(mapRef.current, {
         zoomControl: true,
-        attributionControl: false,
+        attributionControl: true,
       }).setView([18.5204, 73.8567], 15);
 
       mapInstance.current = map;
 
-      // Dark map tiles
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '© OpenStreetMap © CARTO', maxZoom: 19
+      // ── FREE tile — no API key needed ──
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        maxZoom: 19,
       }).addTo(map);
+
+      // Dark overlay for AVIRO theme feel
+      // (OSM tiles are light but we add a CSS filter on the map container)
+      if (mapRef.current) {
+        mapRef.current.style.filter = 'invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9)';
+      }
 
       setMapReady(true);
       setTimeout(() => map.invalidateSize(), 300);
 
-      // ── Auto-detect my location on map load ──
+      // ── Auto-detect current location on map load ──
       if (navigator.geolocation) {
+        setLocating(true);
         navigator.geolocation.getCurrentPosition(
           (pos) => {
-            const { latitude: lat, longitude: lng } = pos.coords;
+            const { latitude: lat, longitude: lng, accuracy: acc } = pos.coords;
             map.setView([lat, lng], 16);
-            addMyLocationMarker(lat, lng, L, map);
+            addMyLocationMarker(lat, lng, L, map, acc);
             setMyLoc({ lat, lng });
+            setLocating(false);
           },
-          () => {}, // silent fail
-          { enableHighAccuracy: true, timeout: 8000 }
+          (err) => {
+            setLocating(false);
+            console.warn('Location error:', err.message);
+          },
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
         );
       }
     };
@@ -141,21 +154,63 @@ export default function LiveTrackingPage() {
     };
   }, [booking]);
 
-  // ── Add "my location" blue dot marker ──
-  const addMyLocationMarker = (lat, lng, L, map) => {
+  // ── Add "my location" blue dot marker with accuracy circle ──
+  const addMyLocationMarker = (lat, lng, L, map, acc) => {
     const icon = L.divIcon({
-      html: `<div style="position:relative">
-        <div style="background:#3b82f6;width:16px;height:16px;border-radius:50%;border:3px solid white;box-shadow:0 0 10px rgba(59,130,246,0.9)"></div>
-        <div style="position:absolute;top:-4px;left:-4px;width:24px;height:24px;border-radius:50%;background:rgba(59,130,246,0.2);animation:pulse 2s infinite"></div>
+      html: `<div style="position:relative;width:20px;height:20px">
+        <div style="background:#3b82f6;width:16px;height:16px;border-radius:50%;border:3px solid white;
+          box-shadow:0 0 12px rgba(59,130,246,0.9);position:absolute;top:2px;left:2px"></div>
+        <div style="position:absolute;top:-2px;left:-2px;width:24px;height:24px;border-radius:50%;
+          background:rgba(59,130,246,0.25);animation:pulse 2s infinite"></div>
       </div>`,
-      iconSize: [16, 16], className: '', iconAnchor: [8, 8]
+      iconSize: [20, 20], className: '', iconAnchor: [10, 10]
     });
+
     if (myMarkerRef.current) {
       myMarkerRef.current.setLatLng([lat, lng]);
     } else {
       myMarkerRef.current = L.marker([lat, lng], { icon })
-        .addTo(map).bindPopup('📍 Your Location');
+        .addTo(map)
+        .bindPopup('📍 Your Location');
     }
+
+    // Accuracy circle
+    if (acc) {
+      if (accuracyCircleRef.current) {
+        accuracyCircleRef.current.setLatLng([lat, lng]).setRadius(acc);
+      } else {
+        accuracyCircleRef.current = L.circle([lat, lng], {
+          radius: acc,
+          color: '#3b82f6',
+          fillColor: '#3b82f6',
+          fillOpacity: 0.08,
+          weight: 1,
+        }).addTo(map);
+      }
+    }
+  };
+
+  // ── "Find Me" button — re-center map to user's current location ──
+  const findMe = () => {
+    if (!navigator.geolocation || !mapInstance.current) return;
+    setLocating(true);
+    toast('📡 Getting your location...', { icon: '⏳', duration: 1500 });
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude: lat, longitude: lng, accuracy: acc } = pos.coords;
+        mapInstance.current.setView([lat, lng], 17, { animate: true });
+        addMyLocationMarker(lat, lng, window.L, mapInstance.current, acc);
+        setMyLoc({ lat, lng });
+        setLocating(false);
+        toast.success('📍 Location found!');
+      },
+      (err) => {
+        setLocating(false);
+        if (err.code === 1) toast.error('Allow location access in browser settings');
+        else toast.error('Could not get location');
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
   };
 
   // ── Draw route line between driver and rider ──
@@ -167,8 +222,15 @@ export default function LiveTrackingPage() {
     }
     routeLineRef.current = L.polyline(
       [[dLat, dLng], [rLat, rLng]],
-      { color: '#f97316', weight: 3, opacity: 0.6, dashArray: '8, 6' }
+      { color: '#f97316', weight: 3, opacity: 0.7, dashArray: '8, 6' }
     ).addTo(mapInstance.current);
+  }, []);
+
+  // ── Fit map to show both markers ──
+  const fitBothMarkers = useCallback((dLat, dLng, rLat, rLng) => {
+    if (!mapInstance.current || !window.L) return;
+    const bounds = window.L.latLngBounds([[dLat, dLng], [rLat, rLng]]);
+    mapInstance.current.fitBounds(bounds, { padding: [50, 50], animate: true });
   }, []);
 
   // ── WebSocket connection ──
@@ -181,7 +243,6 @@ export default function LiveTrackingPage() {
       connectHeaders: { Authorization: `Bearer ${token}` },
       reconnectDelay: 3000,
       onConnect: () => {
-        // Rider: listen to driver location updates
         if (isRider) {
           client.subscribe(`/user/${user.id}/queue/location`, (frame) => {
             const data = JSON.parse(frame.body);
@@ -202,7 +263,6 @@ export default function LiveTrackingPage() {
               setLocationLost(false);
               setGpsStatus('active');
 
-              // Update/animate driver marker
               if (!mapInstance.current || !window.L) return;
               const L = window.L;
 
@@ -221,7 +281,6 @@ export default function LiveTrackingPage() {
               });
 
               if (driverMarkerRef.current) {
-                // Smooth animation to new position
                 animateMarker(driverMarkerRef.current, data.lat, data.lng, mapInstance.current);
                 driverMarkerRef.current.setIcon(icon);
               } else {
@@ -230,15 +289,14 @@ export default function LiveTrackingPage() {
                   .bindPopup(`🏍️ ${booking?.driver?.fullName || 'Driver'}`);
               }
 
-              // Pan map to show driver
-              mapInstance.current.panTo([data.lat, data.lng], { animate: true, duration: 0.5 });
-
-              // Draw route line if rider location known
+              // If both locations known: fit map to show both
               if (myLoc) {
+                fitBothMarkers(data.lat, data.lng, myLoc.lat, myLoc.lng);
                 drawRoute(data.lat, data.lng, myLoc.lat, myLoc.lng);
+              } else {
+                mapInstance.current.panTo([data.lat, data.lng], { animate: true, duration: 0.5 });
               }
 
-              // Reset location lost timer (30 sec)
               clearTimeout(locationTimerRef.current);
               locationTimerRef.current = setTimeout(() => {
                 setLocationLost(true);
@@ -249,7 +307,6 @@ export default function LiveTrackingPage() {
           });
         }
 
-        // Both: quick messages
         client.subscribe(`/user/${user.id}/queue/quick-message`, (frame) => {
           const data = JSON.parse(frame.body);
           setMessages(prev => [...prev, { ...data, received: true }]);
@@ -261,7 +318,7 @@ export default function LiveTrackingPage() {
     client.activate();
     clientRef.current = client;
     return () => { client.deactivate(); clearTimeout(locationTimerRef.current); };
-  }, [booking, user, myLoc, drawRoute]);
+  }, [booking, user, myLoc, drawRoute, fitBothMarkers]);
 
   // ── Driver: Start GPS sharing ──
   const startSharing = () => {
@@ -278,11 +335,11 @@ export default function LiveTrackingPage() {
         setAccuracy(Math.round(acc));
         setMyLoc({ lat, lng });
 
-        // Update my marker on map
         if (mapInstance.current && window.L) {
           const L = window.L;
           const icon = L.divIcon({
-            html: `<div style="background:#22c55e;width:20px;height:20px;border-radius:50%;border:3px solid white;box-shadow:0 0 12px rgba(34,197,94,0.9)"></div>`,
+            html: `<div style="background:#22c55e;width:20px;height:20px;border-radius:50%;border:3px solid white;
+              box-shadow:0 0 12px rgba(34,197,94,0.9)"></div>`,
             iconSize: [20, 20], className: '', iconAnchor: [10, 10]
           });
           if (myMarkerRef.current) {
@@ -295,7 +352,6 @@ export default function LiveTrackingPage() {
           mapInstance.current.setView([lat, lng], 16, { animate: true });
         }
 
-        // Broadcast via WebSocket
         if (clientRef.current?.connected) {
           clientRef.current.publish({
             destination: '/app/location.update',
@@ -316,7 +372,6 @@ export default function LiveTrackingPage() {
         if (err.code === 3) msg = 'GPS timeout. Retrying...';
         toast.error(msg);
 
-        // Notify rider
         if (clientRef.current?.connected) {
           clientRef.current.publish({
             destination: '/app/location.update',
@@ -324,15 +379,10 @@ export default function LiveTrackingPage() {
           });
         }
       },
-      {
-        enableHighAccuracy: true,
-        maximumAge: 2000,      // Accept 2s old position
-        timeout: 15000,        // 15s timeout
-      }
+      { enableHighAccuracy: true, maximumAge: 2000, timeout: 15000 }
     );
   };
 
-  // ── Mark arrived ──
   const markArrived = async () => {
     try {
       await api.post(`/location/arrived/${bookingId}`);
@@ -347,7 +397,6 @@ export default function LiveTrackingPage() {
     } catch { toast.error('Failed'); }
   };
 
-  // ── Mark started ──
   const markStarted = () => {
     setRideStatus('STARTED');
     if (clientRef.current?.connected) {
@@ -359,7 +408,6 @@ export default function LiveTrackingPage() {
     toast.success('🏁 Ride started!');
   };
 
-  // ── SOS ──
   const sendSOS = async () => {
     try {
       navigator.geolocation.getCurrentPosition(async (pos) => {
@@ -487,24 +535,36 @@ export default function LiveTrackingPage() {
 
       {/* Live Map */}
       <div className="card overflow-hidden rounded-2xl relative">
-        <div ref={mapRef} style={{ height: '320px', width: '100%', background: '#1a1a2e' }}/>
+        <div ref={mapRef} style={{ height: '340px', width: '100%', background: '#1a1a2e' }}/>
 
         {/* GPS accuracy badge */}
         {isDriver && sharing && accuracy && (
-          <div className="absolute top-2 right-2 z-10 bg-black/70 backdrop-blur rounded-lg px-2 py-1">
-            <p className="text-xs text-aviro-green font-semibold">📡 ±{accuracy}m accuracy</p>
+          <div className="absolute top-2 right-2 z-[1000] bg-black/80 backdrop-blur rounded-lg px-2 py-1">
+            <p className="text-xs text-aviro-green font-semibold">📡 ±{accuracy}m</p>
           </div>
+        )}
+
+        {/* Find Me button */}
+        {mapReady && (
+          <button
+            onClick={findMe}
+            disabled={locating}
+            className="absolute bottom-14 right-2 z-[1000] bg-white text-gray-800 font-bold px-3 py-2 rounded-xl shadow-lg text-xs flex items-center gap-1.5 hover:bg-gray-100 disabled:opacity-60 transition-all">
+            {locating
+              ? <><div className="w-3 h-3 border-2 border-gray-400 border-t-gray-800 rounded-full animate-spin"/>Finding...</>
+              : <>📍 Find Me</>}
+          </button>
         )}
 
         {/* Legend */}
         {mapReady && (
-          <div className="absolute bottom-2 left-2 z-10 bg-black/70 backdrop-blur rounded-lg px-3 py-2 flex items-center gap-3">
+          <div className="absolute bottom-2 left-2 z-[1000] bg-black/80 backdrop-blur rounded-lg px-3 py-2 flex items-center gap-3">
             <div className="flex items-center gap-1">
               <div className="w-3 h-3 rounded-full bg-aviro-orange border border-white"/>
               <span className="text-xs text-white">Driver</span>
             </div>
             <div className="flex items-center gap-1">
-              <div className="w-3 h-3 rounded-full bg-aviro-blue border border-white"/>
+              <div className="w-3 h-3 rounded-full bg-blue-500 border border-white"/>
               <span className="text-xs text-white">You</span>
             </div>
           </div>
@@ -660,7 +720,6 @@ export default function LiveTrackingPage() {
               <p className="text-xs text-aviro-muted">
                 ⭐ {isDriver ? booking?.rider?.rating?.toFixed(1) : booking?.driver?.rating?.toFixed(1)}
               </p>
-              {/* Phone number */}
               {isRider && booking?.driver?.phone && (
                 <a href={`tel:${booking.driver.phone}`} className="text-xs text-aviro-orange">
                   📞 {booking.driver.phone}
