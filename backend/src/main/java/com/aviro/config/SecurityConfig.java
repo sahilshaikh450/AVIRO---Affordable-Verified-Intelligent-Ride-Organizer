@@ -12,6 +12,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -21,7 +22,6 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import com.aviro.security.JwtAuthFilter;
-import com.aviro.service.UserDetailsServiceImpl;
 
 import java.util.List;
 
@@ -32,7 +32,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
-    private final UserDetailsServiceImpl userDetailsService;
+    private final UserDetailsService userDetailsService;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -42,19 +42,13 @@ public class SecurityConfig {
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // Public endpoints — no token needed
                 .requestMatchers(
                     "/api/auth/**",
-                    "/api/auth/login",
-                    "/api/auth/register",
-                    "/api/auth/refresh",
                     "/setup/**",
                     "/actuator/**",
-                    "/actuator/health",
                     "/ws/**",
                     "/error"
                 ).permitAll()
-                // Everything else requires a valid JWT
                 .anyRequest().authenticated()
             )
             .authenticationProvider(authenticationProvider())
@@ -66,7 +60,6 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-
         config.setAllowedOriginPatterns(List.of(
             "http://localhost:3000",
             "http://localhost:3001",
@@ -75,7 +68,6 @@ public class SecurityConfig {
             "https://aviro-affordable-verified-intelligent.vercel.app",
             "https://*.vercel.app"
         ));
-
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
