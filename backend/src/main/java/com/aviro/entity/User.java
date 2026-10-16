@@ -1,4 +1,3 @@
-
 package com.aviro.entity;
 
 import com.aviro.enums.Gender;
@@ -113,5 +112,6 @@ public class User extends BaseEntity {
     @ElementCollection
     @CollectionTable(name = "emergency_contacts", joinColumns = @JoinColumn(name = "user_id"))
     @Builder.Default
+    @JsonIgnore // CRITICAL: prevents lazy-load DB crash when User is serialized (table may not exist)
     private List<String> emergencyContacts = new ArrayList<>();
 }
