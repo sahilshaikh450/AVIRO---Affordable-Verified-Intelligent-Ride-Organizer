@@ -1,4 +1,3 @@
-
 package com.aviro.service.impl;
 
 import com.aviro.dto.request.BookingRequest;
@@ -24,6 +23,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Random;
 import java.util.stream.Collectors;
 
 @Service
@@ -246,7 +247,6 @@ public class BookingServiceImpl implements BookingService {
             booking.setPaymentStatus(PaymentStatus.COMPLETED);
             bookingRepository.save(booking);
 
-            // Notify rider: driver confirmed cash payment
             try {
                 notificationService.send(
                         rider.getId(),
@@ -260,7 +260,6 @@ public class BookingServiceImpl implements BookingService {
                 log.warn("Notification failed: {}", e.getMessage());
             }
 
-            // Notify driver: confirmation sent
             try {
                 notificationService.send(
                         driver.getId(),
@@ -288,11 +287,9 @@ public class BookingServiceImpl implements BookingService {
         booking.setPaymentReference(paymentReference);
 
         if ("CASH".equals(method)) {
-            // Cash: rider says paid → set PENDING, driver needs to confirm
             booking.setPaymentStatus(PaymentStatus.PENDING);
             bookingRepository.save(booking);
 
-            // Notify driver: rider claims cash paid, please confirm
             try {
                 notificationService.send(
                         driver.getId(),
@@ -310,11 +307,9 @@ public class BookingServiceImpl implements BookingService {
             return ApiResponse.success("Cash payment submitted! Waiting for driver confirmation.", null);
 
         } else {
-            // UPI: rider confirms → mark as COMPLETED directly
             booking.setPaymentStatus(PaymentStatus.COMPLETED);
             bookingRepository.save(booking);
 
-            // Notify driver: UPI payment received
             try {
                 notificationService.send(
                         driver.getId(),
@@ -329,7 +324,6 @@ public class BookingServiceImpl implements BookingService {
                 log.warn("Notification failed: {}", e.getMessage());
             }
 
-            // Notify rider: UPI payment confirmed
             try {
                 notificationService.send(
                         rider.getId(),
@@ -408,7 +402,67 @@ public class BookingServiceImpl implements BookingService {
         return ApiResponse.success(bookings.stream().map(this::toResponse).collect(Collectors.toList()));
     }
 
-    // BookingServiceImpl.java mein toResponse() method:
+    // ══════════════════════════════════════════════════════════
+    // RIDE OTP — Rider fetch kare, Driver verify kare
+    // ══════════════════════════════════════════════════════════
+
+    @Override
+    @Transactional
+    public ApiResponse<Map<String, String>> getRideOtp(String email, Long bookingId) {
+        User user = getUser(email);
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new AviroException("Booking not found"));
+
+        boolean isRider  = booking.getRider().getId().equals(user.getId());
+        boolean isDriver = booking.getRide().getDriver().getId().equals(user.getId());
+
+        if (!isRider && !isDriver) {
+            throw new AviroException("Not authorized to view this OTP");
+        }
+
+        if (booking.getStatus() != BookingStatus.CONFIRMED) {
+            throw new AviroException("OTP only available for confirmed bookings");
+        }
+
+        // Agar OTP pehle generate hua hai toh wohi return karo
+        String otp = booking.getRideOtp();
+        if (otp == null || otp.isBlank()) {
+            otp = String.format("%04d", new Random().nextInt(10000));
+            booking.setRideOtp(otp);
+            bookingRepository.save(booking);
+        }
+
+        log.info("Ride OTP fetched: booking={} user={}", bookingId, email);
+        return ApiResponse.success(Map.of("otp", otp));
+    }
+
+    @Override
+    @Transactional
+    public ApiResponse<String> verifyRideOtp(String driverEmail, Long bookingId, String otp) {
+        User driver = getUser(driverEmail);
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new AviroException("Booking not found"));
+
+        if (!booking.getRide().getDriver().getId().equals(driver.getId())) {
+            throw new AviroException("Only the driver can verify OTP");
+        }
+
+        if (booking.getStatus() != BookingStatus.CONFIRMED) {
+            throw new AviroException("Booking is not in CONFIRMED state");
+        }
+
+        String storedOtp = booking.getRideOtp();
+        if (storedOtp == null || !storedOtp.equals(otp)) {
+            throw new AviroException("Invalid OTP. Please check with the rider.");
+        }
+
+        log.info("Ride OTP verified: booking={} driver={}", bookingId, driverEmail);
+        return ApiResponse.success("OTP verified! Ride has started. 🚗", null);
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // HELPERS
+    // ══════════════════════════════════════════════════════════
 
     private BookingResponse toResponse(Booking booking) {
         User driver = booking.getRide().getDriver();
@@ -421,7 +475,6 @@ public class BookingServiceImpl implements BookingService {
             default -> "Driver";
         };
 
-        // ✅ Phone number sirf CONFIRMED booking mein dikhao
         boolean showPhone = booking.getStatus() == BookingStatus.CONFIRMED
                 || booking.getStatus() == BookingStatus.COMPLETED;
 
@@ -479,4 +532,3 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new AviroException("User not found"));
     }
 }
-
