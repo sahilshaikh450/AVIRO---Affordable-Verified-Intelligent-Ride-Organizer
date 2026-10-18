@@ -38,12 +38,23 @@ public class NotificationController {
         return ResponseEntity.ok(ApiResponse.success(notificationService.getUnreadCount(user.getId())));
     }
 
-    @PostMapping("/mark-all-read")
+    // Frontend uses PATCH; POST kept for backward compatibility
+    @RequestMapping(value = "/mark-all-read", method = {RequestMethod.PATCH, RequestMethod.POST})
     public ResponseEntity<ApiResponse<String>> markAllRead(
             @AuthenticationPrincipal UserDetails userDetails) {
         User user = userRepository.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
         notificationService.markAllRead(user.getId());
         return ResponseEntity.ok(ApiResponse.success("All marked as read", null));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<String>> deleteNotification(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Long id) {
+        User user = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        notificationService.deleteNotification(user.getId(), id);
+        return ResponseEntity.ok(ApiResponse.success("Notification deleted", null));
     }
 }
