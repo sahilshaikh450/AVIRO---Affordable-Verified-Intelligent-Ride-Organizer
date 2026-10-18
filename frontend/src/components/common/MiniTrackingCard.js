@@ -2,9 +2,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
+import { WS_URL } from '../../services/websocket';
 import { Link } from 'react-router-dom';
 
-const BASE_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:8080';
 
 const RIDE_STATUS_LABELS = {
   CONFIRMED:  { label: 'Driver Confirmed',   icon: '✅', color: 'text-aviro-green'  },
@@ -29,11 +29,11 @@ export default function MiniTrackingCard({ booking }) {
     const token = localStorage.getItem('aviro_token');
 
     const client = new Client({
-      webSocketFactory: () => new SockJS(`${BASE_URL}/api/ws`),
+      webSocketFactory: () => new SockJS(WS_URL),
       connectHeaders: { Authorization: `Bearer ${token}` },
       reconnectDelay: 5000,
       onConnect: () => {
-        client.subscribe(`/user/${user.id}/queue/location`, (frame) => {
+        client.subscribe('/user/queue/location', (frame) => {
           const data = JSON.parse(frame.body);
           if (data.bookingId?.toString() === booking.id?.toString()) {
             if (data.status) setRideStatus(data.status);

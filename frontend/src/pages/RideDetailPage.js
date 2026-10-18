@@ -8,6 +8,7 @@ import LiveMap from '../components/common/LiveMap';
 import useGeolocation from '../hooks/useGeolocation';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
+import { WS_URL } from '../services/websocket';
 import toast from 'react-hot-toast';
 
 export default function RideDetailPage() {
@@ -42,7 +43,7 @@ export default function RideDetailPage() {
 
     const token = localStorage.getItem('aviro_token');
     const client = new Client({
-      webSocketFactory: () => new SockJS('http://localhost:8080/api/ws'),
+      webSocketFactory: () => new SockJS(WS_URL),
       connectHeaders: { Authorization: `Bearer ${token}` },
       reconnectDelay: 3000,
       onConnect: () => {
