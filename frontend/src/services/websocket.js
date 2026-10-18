@@ -1,7 +1,10 @@
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 
-const WS_URL = process.env.REACT_APP_WS_URL || 'http://localhost:8080/api/ws';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
+
+// SockJS needs an http(s) URL; it upgrades to ws(s) by itself
+export const WS_URL = process.env.REACT_APP_WS_URL || `${API_URL.replace(/\/+$/, '')}/ws`;
 
 let stompClient = null;
 let subscribers = {};
@@ -9,12 +12,13 @@ let subscribers = {};
 export const connectWS = (userId, onMessage, onLocation, onSos) => {
   stompClient = new Client({
     webSocketFactory: () => new SockJS(WS_URL),
+    connectHeaders: { Authorization: `Bearer ${localStorage.getItem('aviro_token')}` },
     reconnectDelay: 5000,
     onConnect: () => {
       console.log('✅ WebSocket connected');
 
       // Subscribe to personal message queue
-      stompClient.subscribe(`/user/${userId}/queue/messages`, (msg) => {
+      stompClient.subscribe('/user/queue/messages', (msg) => {
         const data = JSON.parse(msg.body);
         onMessage && onMessage(data);
       });
