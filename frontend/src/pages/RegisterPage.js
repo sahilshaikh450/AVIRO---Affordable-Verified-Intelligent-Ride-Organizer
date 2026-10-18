@@ -7,16 +7,28 @@ import { registerUser } from '../store/authSlice';
 const COLLEGES = ['COEP Pune','VIT Pune','MIT Pune','Symbiosis Institute','PICT Pune','Fergusson College','Pune University','DYPIU','Bharati Vidyapeeth','NIBM','SCIT','Other'];
 
 export default function RegisterPage() {
-  const { register, handleSubmit, watch, formState: { errors } } = useForm({ defaultValues: { role: 'RIDER', gender: 'MALE' } });
+  const { register, handleSubmit, watch, trigger, formState: { errors } } = useForm({ defaultValues: { role: 'RIDER', gender: 'MALE' } });
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { loading } = useSelector(s => s.auth);
   const [step, setStep] = useState(1);
   const role = watch('role');
 
+  const STEP_FIELDS = { 1: ['role', 'gender'], 2: ['fullName', 'email', 'collegeName'] };
+
+  const goNext = async () => {
+    if (await trigger(STEP_FIELDS[step])) setStep(step + 1);
+  };
+
   const onSubmit = async (data) => {
-    const res = await dispatch(registerUser(data));
-    if (!res.error) navigate('/verify-otp');
+    // Enter key on steps 1-2 should move forward, not submit early
+    if (step < 3) {
+      goNext();
+      return;
+    }
+    const res = await dispatch(registerUser({ ...data, email: data.email.trim().toLowerCase() }));
+    // Registration OTP is currently bypassed: backend returns a JWT directly
+    if (!res.error) navigate('/dashboard');
   };
 
   return (
@@ -74,7 +86,7 @@ export default function RegisterPage() {
                   </div>
                 </div>
 
-                <button type="button" onClick={() => setStep(2)} className="btn-primary w-full">Next →</button>
+                <button type="button" onClick={goNext} className="btn-primary w-full">Next →</button>
               </div>
             )}
 
@@ -89,7 +101,7 @@ export default function RegisterPage() {
                 </div>
                 <div>
                   <label className="text-xs text-aviro-muted font-medium block mb-1.5">College Email</label>
-                  <input {...register('email', { required: 'Email required', pattern: { value: /\S+@\S+\.\S+/, message: 'Invalid' } })} type="email" placeholder="rahul@coep.ac.in" className="input-field" />
+                  <input {...register('email', { required: 'Email required', pattern: { value: /\S+@\S+\.\S+/, message: 'Invalid' } })} type="email" placeholder="rahul@college.edu.in" className="input-field" />
                   {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email.message}</p>}
                 </div>
                 <div>
@@ -115,7 +127,7 @@ export default function RegisterPage() {
                 </div>
                 <div className="flex gap-2">
                   <button type="button" onClick={() => setStep(1)} className="btn-secondary flex-1">← Back</button>
-                  <button type="button" onClick={() => setStep(3)} className="btn-primary flex-1">Next →</button>
+                  <button type="button" onClick={goNext} className="btn-primary flex-1">Next →</button>
                 </div>
               </div>
             )}
@@ -140,7 +152,7 @@ export default function RegisterPage() {
                 </div>
 
                 <div className="bg-aviro-orange/5 border border-aviro-orange/20 rounded-xl p-3 text-xs text-aviro-muted">
-                  🎓 You'll receive an OTP on your email to verify your college identity
+                  🎓 Using a .edu.in email verifies your college automatically. You can also verify it later from your profile.
                 </div>
 
                 <div className="flex gap-2">

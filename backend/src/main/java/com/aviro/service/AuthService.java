@@ -16,6 +16,8 @@ public interface AuthService {
 
     ApiResponse<String> verifyOtp(AuthRequest.VerifyOtp request);
 
+    ApiResponse<String> resendOtp(AuthRequest.ResendOtp request);
+
     ApiResponse<AuthResponse> refreshToken(AuthRequest.RefreshToken request);
 
     ApiResponse<String> forgotPassword(AuthRequest.ForgotPassword request);
