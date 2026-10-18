@@ -4,9 +4,9 @@ import { GenderBadge } from '../components/common/UIComponents';
 import api from '../services/api';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
+import { WS_URL } from '../services/websocket';
 import toast from 'react-hot-toast';
 
-const BASE_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:8080';
 
 export default function ChatPage() {
   const { user } = useSelector(s => s.auth);
@@ -74,12 +74,12 @@ export default function ChatPage() {
     if (!user?.id) return;
     const token = localStorage.getItem('aviro_token');
     const client = new Client({
-      webSocketFactory: () => new SockJS(`${BASE_URL}/api/ws`),
+      webSocketFactory: () => new SockJS(WS_URL),
       connectHeaders: { Authorization: `Bearer ${token}` },
       reconnectDelay: 5000,
       onConnect: () => {
         setConnected(true);
-        client.subscribe(`/user/${user.id}/queue/messages`, (frame) => {
+        client.subscribe('/user/queue/messages', (frame) => {
           try {
             const received = JSON.parse(frame.body);
             if (selectedRef.current) {

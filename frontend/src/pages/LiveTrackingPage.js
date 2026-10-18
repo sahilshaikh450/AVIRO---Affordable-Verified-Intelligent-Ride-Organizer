@@ -3,10 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
+import { WS_URL } from '../services/websocket';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 
-const BASE_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:8080';
 
 const QUICK_MESSAGES = [
   { label: "🚗 On my way!", text: "I'm on my way to pickup!" },
@@ -239,12 +239,12 @@ export default function LiveTrackingPage() {
     const token = localStorage.getItem('aviro_token');
 
     const client = new Client({
-      webSocketFactory: () => new SockJS(`${BASE_URL}/api/ws`),
+      webSocketFactory: () => new SockJS(WS_URL),
       connectHeaders: { Authorization: `Bearer ${token}` },
       reconnectDelay: 3000,
       onConnect: () => {
         if (isRider) {
-          client.subscribe(`/user/${user.id}/queue/location`, (frame) => {
+          client.subscribe('/user/queue/location', (frame) => {
             const data = JSON.parse(frame.body);
 
             if (data.status === 'LOCATION_LOST') {
@@ -307,7 +307,7 @@ export default function LiveTrackingPage() {
           });
         }
 
-        client.subscribe(`/user/${user.id}/queue/quick-message`, (frame) => {
+        client.subscribe('/user/queue/quick-message', (frame) => {
           const data = JSON.parse(frame.body);
           setMessages(prev => [...prev, { ...data, received: true }]);
           toast(data.message, { icon: '💬', duration: 4000 });
