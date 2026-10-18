@@ -2,9 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import api from '../../services/api';
-
-// ✅ Always use HTTPS for WebSocket
-const WS_URL = process.env.REACT_APP_API_URL?.replace('/api', '') + '/api/ws';
+import { WS_URL } from '../../services/websocket';
 
 export default function NotificationBell({ userId }) {
   const [notifications, setNotifications] = useState([]);
@@ -35,11 +33,7 @@ export default function NotificationBell({ userId }) {
     if (!token) return;
 
     const client = new Client({
-      // ✅ HTTPS fix — use wss:// not ws://
-      webSocketFactory: () => {
-        const wsUrl = WS_URL.replace('https://', 'https://').replace('http://', 'https://');
-        return new SockJS(wsUrl);
-      },
+      webSocketFactory: () => new SockJS(WS_URL),
       connectHeaders: {
         Authorization: `Bearer ${token}`,
       },
@@ -48,7 +42,7 @@ export default function NotificationBell({ userId }) {
         console.log('WebSocket connected');
 
         // Subscribe to notifications
-        client.subscribe(`/user/${userId}/queue/notifications`, (frame) => {
+        client.subscribe('/user/queue/notifications', (frame) => {
           const notification = JSON.parse(frame.body);
           setNotifications(prev => [notification, ...prev]);
           setUnreadCount(prev => prev + 1);
