@@ -87,8 +87,9 @@ export default function NotificationBell({ userId }) {
   const deleteNotification = async (id) => {
     try {
       await api.delete(`/notifications/${id}`);
+      const wasUnread = notifications.some(n => n.id === id && !n.isRead);
       setNotifications(prev => prev.filter(n => n.id !== id));
-      setUnreadCount(prev => Math.max(0, prev - 1));
+      if (wasUnread) setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (err) {
       console.warn('Delete notification failed:', err.message);
     }

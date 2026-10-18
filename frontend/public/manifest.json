@@ -1,0 +1,11 @@
+{
+  "short_name": "AVIRO",
+  "name": "AVIRO - College Ride Sharing Pune",
+  "description": "Affordable Verified Intelligent Ride Organizer",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "theme_color": "#f97316",
+  "background_color": "#0f0f1a",
+  "icons": []
+}
