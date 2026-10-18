@@ -45,6 +45,15 @@ public class NotificationService {
         return notificationRepository.countByUserIdAndIsRead(userId, false);
     }
 
+    public void deleteNotification(Long userId, Long notificationId) {
+        Notification n = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> new AviroException("Notification not found"));
+        if (!n.getUser().getId().equals(userId)) {
+            throw new AviroException("You can only delete your own notifications");
+        }
+        notificationRepository.delete(n);
+    }
+
     public void markAllRead(Long userId) {
         notificationRepository.findByUserIdOrderByCreatedAtDesc(userId)
                 .stream().filter(n -> !n.getIsRead()).forEach(n -> {
