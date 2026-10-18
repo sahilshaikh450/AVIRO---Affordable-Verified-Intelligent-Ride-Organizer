@@ -34,6 +34,12 @@ public class AuthServiceImpl implements AuthService {
     private final OtpService otpService;
     private final EmailService emailService;
 
+    // Separate Redis key namespaces so one OTP can't be used for another flow
+    private static final String VERIFY_OTP_PREFIX = "verify:";
+    private static final String RESET_OTP_PREFIX = "reset:";
+    private static final String LOGIN_OTP_PREFIX = "login:";
+    private static final String COLLEGE_OTP_PREFIX = "college:";
+
     private static final Pattern COLLEGE_DOMAIN_PATTERN =
             Pattern.compile(
                     "^[\\w.+-]+@[\\w-]+(\\.[\\w-]+)*\\.edu\\.in$",
@@ -48,13 +54,15 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public ApiResponse<AuthResponse> register(AuthRequest.Register request) {
 
-        if (userRepository.existsByEmail(request.getEmail())) {
+        String email = normalizeEmail(request.getEmail());
+
+        if (userRepository.existsByEmailIgnoreCase(email)) {
             throw new AviroException("Email already registered. Please login.");
         }
 
         User user = User.builder()
                 .fullName(request.getFullName())
-                .email(request.getEmail())
+                .email(email)
                 .password(passwordEncoder.encode(request.getPassword()))
                 .phone(request.getPhone())
                 .gender(request.getGender())
@@ -73,7 +81,7 @@ public class AuthServiceImpl implements AuthService {
                 .build();
 
         // Auto college verify for .edu.in email
-        if (isCollegeEmail(request.getEmail())) {
+        if (isCollegeEmail(email)) {
             user.setIsCollegeVerified(true);
         }
 
@@ -81,7 +89,7 @@ public class AuthServiceImpl implements AuthService {
 
         log.info(
                 "New user registered without OTP verification: {}",
-                request.getEmail()
+                email
         );
 
         // Directly return JWT
@@ -98,15 +106,17 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public ApiResponse<AuthResponse> login(AuthRequest.Login request) {
 
+        String email = normalizeEmail(request.getEmail());
+
         // Verify email + password
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
-                        request.getEmail(),
+                        email,
                         request.getPassword()
                 )
         );
 
-        User user = userRepository.findByEmail(request.getEmail())
+        User user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new AviroException("User not found"));
 
         if (!user.getIsActive()) {
@@ -118,7 +128,7 @@ public class AuthServiceImpl implements AuthService {
         // TEMPORARY: OTP bypass
         log.info(
                 "Login successful without OTP: {}",
-                request.getEmail()
+                email
         );
 
         // Directly generate access + refresh token
@@ -137,8 +147,10 @@ public class AuthServiceImpl implements AuthService {
     public ApiResponse<AuthResponse> verifyLoginOtp(
             AuthRequest.LoginVerifyOtp request) {
 
+        String email = normalizeEmail(request.getEmail());
+
         boolean valid = otpService.verifyOtp(
-                "login:" + request.getEmail(),
+                LOGIN_OTP_PREFIX + email,
                 request.getOtp()
         );
 
@@ -146,12 +158,12 @@ public class AuthServiceImpl implements AuthService {
             throw new AviroException("Invalid or expired OTP");
         }
 
-        User user = userRepository.findByEmail(request.getEmail())
+        User user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new AviroException("User not found"));
 
         log.info(
                 "Login OTP verified, issuing token: {}",
-                request.getEmail()
+                email
         );
 
         return ApiResponse.success(
@@ -170,8 +182,10 @@ public class AuthServiceImpl implements AuthService {
     public ApiResponse<String> verifyOtp(
             AuthRequest.VerifyOtp request) {
 
+        String email = normalizeEmail(request.getEmail());
+
         boolean valid = otpService.verifyOtp(
-                request.getEmail(),
+                VERIFY_OTP_PREFIX + email,
                 request.getOtp()
         );
 
@@ -179,7 +193,7 @@ public class AuthServiceImpl implements AuthService {
             throw new AviroException("Invalid or expired OTP");
         }
 
-        User user = userRepository.findByEmail(request.getEmail())
+        User user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new AviroException("User not found"));
 
         user.setIsVerified(true);
@@ -187,6 +201,55 @@ public class AuthServiceImpl implements AuthService {
 
         return ApiResponse.success(
                 "Email verified successfully! Welcome to AVIRO!",
+                null
+        );
+    }
+
+    // =========================================================
+    // RESEND REGISTRATION OTP
+    // =========================================================
+
+    @Override
+    public ApiResponse<String> resendOtp(AuthRequest.ResendOtp request) {
+
+        String email = normalizeEmail(request.getEmail());
+
+        User user = userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new AviroException("User not found"));
+
+        if (Boolean.TRUE.equals(user.getIsVerified())) {
+            return ApiResponse.success(
+                    "Email is already verified",
+                    null
+            );
+        }
+
+        String otp = otpService.generateAndSaveOtp(
+                VERIFY_OTP_PREFIX + email
+        );
+
+        try {
+
+            emailService.sendVerificationEmail(
+                    email,
+                    user.getFullName(),
+                    otp
+            );
+
+        } catch (Exception e) {
+
+            log.warn(
+                    "Failed to send verification email: {}",
+                    e.getMessage()
+            );
+
+            throw new AviroException(
+                    "Failed to send OTP. Please try again."
+            );
+        }
+
+        return ApiResponse.success(
+                "OTP sent to " + email,
                 null
         );
     }
@@ -226,7 +289,9 @@ public class AuthServiceImpl implements AuthService {
     public ApiResponse<String> forgotPassword(
             AuthRequest.ForgotPassword request) {
 
-        User user = userRepository.findByEmail(request.getEmail())
+        String email = normalizeEmail(request.getEmail());
+
+        User user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() ->
                         new AviroException(
                                 "No account found with this email"
@@ -234,13 +299,13 @@ public class AuthServiceImpl implements AuthService {
                 );
 
         String otp = otpService.generateAndSaveOtp(
-                request.getEmail()
+                RESET_OTP_PREFIX + email
         );
 
         try {
 
             emailService.sendPasswordResetEmail(
-                    request.getEmail(),
+                    email,
                     user.getFullName(),
                     otp
             );
@@ -269,8 +334,10 @@ public class AuthServiceImpl implements AuthService {
     public ApiResponse<String> resetPassword(
             AuthRequest.ResetPassword request) {
 
+        String email = normalizeEmail(request.getEmail());
+
         boolean valid = otpService.verifyOtp(
-                request.getEmail(),
+                RESET_OTP_PREFIX + email,
                 request.getOtp()
         );
 
@@ -280,8 +347,8 @@ public class AuthServiceImpl implements AuthService {
             );
         }
 
-        User user = userRepository.findByEmail(
-                request.getEmail()
+        User user = userRepository.findByEmailIgnoreCase(
+                email
         ).orElseThrow(() ->
                 new AviroException("User not found")
         );
@@ -340,7 +407,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         String otp = otpService.generateAndSaveOtp(
-                "college:" + collegeEmail
+                COLLEGE_OTP_PREFIX + collegeEmail
         );
 
         try {
@@ -391,7 +458,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         boolean valid = otpService.verifyOtp(
-                "college:" + collegeEmail,
+                COLLEGE_OTP_PREFIX + collegeEmail,
                 request.getOtp()
         );
 
@@ -419,6 +486,11 @@ public class AuthServiceImpl implements AuthService {
     // =========================================================
     // COLLEGE EMAIL CHECK
     // =========================================================
+
+    private String normalizeEmail(String email) {
+
+        return email == null ? null : email.trim().toLowerCase();
+    }
 
     private boolean isCollegeEmail(String email) {
 

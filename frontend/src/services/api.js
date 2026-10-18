@@ -17,6 +17,7 @@ const publicEndpoints = [
   '/auth/forgot-password',
   '/auth/reset-password',
   '/auth/verify-otp',
+  '/auth/resend-otp',
   '/auth/login-verify-otp',
 ];
 

@@ -62,6 +62,12 @@ public class AuthRequest {
     }
 
     @Data
+    public static class ResendOtp {
+        @NotBlank @Email
+        private String email;
+    }
+
+    @Data
     public static class RefreshToken {
         @NotBlank
         private String refreshToken;

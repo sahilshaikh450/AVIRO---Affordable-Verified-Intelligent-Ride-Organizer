@@ -17,6 +17,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Boolean existsByEmail(String email);
 
+    Optional<User> findByEmailIgnoreCase(String email);
+
+    Boolean existsByEmailIgnoreCase(String email);
+
     @Query("SELECT u FROM User u WHERE u.gender = :gender AND u.isActive = true")
     List<User> findByGender(@Param("gender") Gender gender);
 

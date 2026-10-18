@@ -50,13 +50,9 @@ export default function LoginPage() {
       // Direct login successful
       window.location.href = '/dashboard';
 
-    } catch (err) {
+    } catch {
 
-      toast.error(
-        typeof err === 'string'
-          ? err
-          : 'Login failed'
-      );
+      // Error toast is shown by the loginUser rejected reducer
 
     } finally {
 
