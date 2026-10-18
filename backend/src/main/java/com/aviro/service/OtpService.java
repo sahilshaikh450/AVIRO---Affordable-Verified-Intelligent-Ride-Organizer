@@ -29,7 +29,7 @@ public class OtpService {
         String otp = generateOtp();
         String key = OTP_PREFIX + email;
         redisTemplate.opsForValue().set(key, otp, otpExpiryMinutes, TimeUnit.MINUTES);
-        log.info("OTP generated for email: {} (expires in {} min) -- OTP: {}", email, otpExpiryMinutes, otp);
+        log.info("OTP generated for: {} (expires in {} min)", email, otpExpiryMinutes);
         return otp;
     }
 

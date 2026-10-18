@@ -2,6 +2,8 @@ import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { verifyOtp } from '../store/authSlice';
+import api from '../services/api';
+import toast from 'react-hot-toast';
 
 export default function VerifyOtpPage() {
   const [otp, setOtp]   = useState(['','','','','','']);
@@ -10,6 +12,23 @@ export default function VerifyOtpPage() {
   const navigate        = useNavigate();
   const { loading, pendingEmail, user } = useSelector(s => s.auth);
   const email           = pendingEmail || user?.email || '';
+  const [resending, setResending] = useState(false);
+
+  const handleResend = async () => {
+    if (!email) {
+      toast.error('Email not found. Please register again.');
+      return;
+    }
+    setResending(true);
+    try {
+      const res = await api.post('/auth/resend-otp', { email });
+      toast.success(res.data?.message || 'OTP sent! 📧');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to resend OTP');
+    } finally {
+      setResending(false);
+    }
+  };
 
   const handleChange = (val, i) => {
     if (!/^\d?$/.test(val)) return;
@@ -57,7 +76,7 @@ export default function VerifyOtpPage() {
           </button>
         </form>
 
-        <p className="text-aviro-muted text-xs mt-4">Didn't get it? Check spam or <button className="text-aviro-orange hover:underline">resend OTP</button></p>
+        <p className="text-aviro-muted text-xs mt-4">Didn't get it? Check spam or <button type="button" onClick={handleResend} disabled={resending} className="text-aviro-orange hover:underline disabled:opacity-50">{resending ? 'sending...' : 'resend OTP'}</button></p>
       </div>
     </div>
   );
