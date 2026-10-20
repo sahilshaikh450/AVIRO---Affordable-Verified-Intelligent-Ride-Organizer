@@ -39,6 +39,23 @@ const saveAuthData = (data) => {
   localStorage.setItem('aviro_user', JSON.stringify(user));
 };
 
+// Turn an axios error into a message the user can act on
+const getErrorMessage = (err, fallback) => {
+  if (err.code === 'ECONNABORTED') {
+    return 'Server is waking up. Please wait a few seconds and try again.';
+  }
+  if (!err.response) {
+    return 'Cannot reach the server. Check your internet and try again.';
+  }
+  const { message, data } = err.response.data || {};
+  // Validation errors come back as { field: message }
+  if (data && typeof data === 'object' && !Array.isArray(data)) {
+    const firstFieldError = Object.values(data)[0];
+    if (typeof firstFieldError === 'string') return firstFieldError;
+  }
+  return message || fallback;
+};
+
 // =========================================================
 // LOGIN
 // =========================================================
@@ -51,7 +68,7 @@ export const loginUser = createAsyncThunk(
       return res.data.data;
     } catch (err) {
       return rejectWithValue(
-        err.response?.data?.message || 'Login failed'
+        getErrorMessage(err, 'Login failed')
       );
     }
   }
@@ -69,7 +86,7 @@ export const registerUser = createAsyncThunk(
       return res.data.data;
     } catch (err) {
       return rejectWithValue(
-        err.response?.data?.message || 'Registration failed'
+        getErrorMessage(err, 'Registration failed')
       );
     }
   }
@@ -87,8 +104,7 @@ export const verifyOtp = createAsyncThunk(
       return res.data;
     } catch (err) {
       return rejectWithValue(
-        err.response?.data?.message ||
-        'OTP verification failed'
+        getErrorMessage(err, 'OTP verification failed')
       );
     }
   }
@@ -106,7 +122,7 @@ export const fetchProfile = createAsyncThunk(
       return res.data.data;
     } catch (err) {
       return rejectWithValue(
-        err.response?.data?.message || 'Failed to fetch profile'
+        getErrorMessage(err, 'Failed to fetch profile')
       );
     }
   }

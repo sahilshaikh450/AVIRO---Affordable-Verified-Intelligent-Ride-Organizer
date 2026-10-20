@@ -5,7 +5,8 @@ const API_URL =
 
 const api = axios.create({
   baseURL: API_URL,
-  timeout: 10000,
+  // Render free tier can take ~50s to wake up, so 10s was too short
+  timeout: 60000,
 });
 
 // =========================================================
