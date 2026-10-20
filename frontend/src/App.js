@@ -22,6 +22,8 @@ import RideDetailPage from './pages/RideDetailPage';
 import AdminPage from './pages/AdminPage';
 import NotFoundPage from './pages/NotFoundPage';
 import LiveTrackingPage from './pages/LiveTrackingPage';
+import LegalPage from './pages/LegalPage';
+import IntroPage from './pages/IntroPage';
 
 // Layout
 import AppLayout from './components/common/AppLayout';
@@ -96,6 +98,26 @@ export default function App() {
         <Route
           path="/safety"
           element={<SafetyPage />}
+        />
+
+        <Route
+          path="/privacy"
+          element={<LegalPage type="privacy" />}
+        />
+
+        <Route
+          path="/terms"
+          element={<LegalPage type="terms" />}
+        />
+
+        {/* Onboarding after signup */}
+        <Route
+          path="/welcome"
+          element={
+            <PrivateRoute>
+              <IntroPage />
+            </PrivateRoute>
+          }
         />
 
         {/* =========================

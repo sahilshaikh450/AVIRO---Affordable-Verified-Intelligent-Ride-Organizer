@@ -1,5 +1,6 @@
 package com.aviro.controller;
 
+import com.aviro.dto.request.AuthRequest;
 import com.aviro.dto.request.ProfileUpdateRequest;
 import com.aviro.dto.request.VehicleRequest;
 import com.aviro.dto.response.ApiResponse;
@@ -7,6 +8,7 @@ import com.aviro.dto.response.UserResponse;
 import com.aviro.dto.response.VehicleResponse;
 import com.aviro.entity.User;
 import com.aviro.repository.UserRepository;
+import com.aviro.service.AccountDeletionService;
 import com.aviro.service.CollegeIdVerificationService;
 import com.aviro.service.UserService;
 import jakarta.validation.Valid;
@@ -34,6 +36,7 @@ public class UserController {
     private final UserService userService;
     private final UserRepository userRepository;
     private final CollegeIdVerificationService verificationService;
+    private final AccountDeletionService accountDeletionService;
 
     // ✅ Use absolute path so it works on both local and Render
     private static final String UPLOAD_DIR = System.getProperty("user.dir") + "/uploads/college-ids/";
@@ -76,6 +79,15 @@ public class UserController {
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable Long buddyId) {
         return ResponseEntity.ok(userService.removeRideBuddy(userDetails.getUsername(), buddyId));
+    }
+
+    // Delete my account (password confirmation required)
+    @DeleteMapping("/me")
+    public ResponseEntity<ApiResponse<String>> deleteMyAccount(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @Valid @RequestBody AuthRequest.DeleteAccount request) {
+        return ResponseEntity.ok(accountDeletionService.deleteAccount(
+                userDetails.getUsername(), request.getPassword()));
     }
 
     @GetMapping("/dashboard")

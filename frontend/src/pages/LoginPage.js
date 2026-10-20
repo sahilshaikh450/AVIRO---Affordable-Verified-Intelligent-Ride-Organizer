@@ -600,7 +600,9 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-aviro-muted text-xs mt-6">
-          By signing in, you agree to AVIRO's Terms of Service
+          By signing in, you agree to AVIRO's{' '}
+          <Link to="/terms" className="text-aviro-orange hover:underline">Terms of Service</Link> and{' '}
+          <Link to="/privacy" className="text-aviro-orange hover:underline">Privacy Policy</Link>
         </p>
 
       </div>

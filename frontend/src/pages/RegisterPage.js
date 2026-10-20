@@ -28,7 +28,7 @@ export default function RegisterPage() {
     }
     const res = await dispatch(registerUser({ ...data, email: data.email.trim().toLowerCase() }));
     // Registration OTP is currently bypassed: backend returns a JWT directly
-    if (!res.error) navigate('/dashboard');
+    if (!res.error) navigate('/welcome');
   };
 
   return (
@@ -166,6 +166,12 @@ export default function RegisterPage() {
             )}
           </form>
         </div>
+
+        <p className="text-center text-aviro-muted text-xs mt-4">
+          By creating an account, you agree to our{' '}
+          <Link to="/terms" className="text-aviro-orange hover:underline">Terms of Service</Link> and{' '}
+          <Link to="/privacy" className="text-aviro-orange hover:underline">Privacy Policy</Link>.
+        </p>
 
         <p className="text-center text-aviro-muted text-sm mt-4">
           Already have an account?{' '}
