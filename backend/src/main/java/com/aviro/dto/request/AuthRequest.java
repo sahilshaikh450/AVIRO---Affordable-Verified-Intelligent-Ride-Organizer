@@ -74,6 +74,11 @@ public class AuthRequest {
     }
 
     @Data
+    public static class Logout {
+        private String refreshToken;
+    }
+
+    @Data
     public static class ForgotPassword {
         @NotBlank @Email
         private String email;

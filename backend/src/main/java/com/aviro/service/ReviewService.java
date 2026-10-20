@@ -32,6 +32,15 @@ public class ReviewService {
         Booking booking = bookingRepository.findById(request.getBookingId())
                 .orElseThrow(() -> new AviroException("Booking not found"));
 
+        // Only the rider and driver of this booking can review each other
+        Long riderId = booking.getRider().getId();
+        Long driverId = booking.getRide().getDriver().getId();
+        boolean riderReviewsDriver = reviewer.getId().equals(riderId) && reviewee.getId().equals(driverId);
+        boolean driverReviewsRider = reviewer.getId().equals(driverId) && reviewee.getId().equals(riderId);
+        if (!riderReviewsDriver && !driverReviewsRider) {
+            throw new AviroException("You can only review the other person on your own ride");
+        }
+
         if (reviewRepository.existsByReviewerIdAndBookingId(reviewer.getId(), booking.getId())) {
             throw new AviroException("You have already reviewed this ride");
         }

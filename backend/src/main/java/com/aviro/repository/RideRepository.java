@@ -14,6 +14,9 @@ import java.util.List;
 @Repository
 public interface RideRepository extends JpaRepository<Ride, Long> {
 
+    @Query("SELECT r.driver.id FROM Ride r WHERE r.id = :rideId")
+    java.util.Optional<Long> findDriverIdByRideId(@Param("rideId") Long rideId);
+
     List<Ride> findByDriverId(Long driverId);
 
     List<Ride> findByStatus(RideStatus status);

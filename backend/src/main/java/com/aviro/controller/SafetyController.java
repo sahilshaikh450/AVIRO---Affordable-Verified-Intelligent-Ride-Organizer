@@ -2,13 +2,16 @@ package com.aviro.controller;
 
 import com.aviro.dto.response.ApiResponse;
 import com.aviro.entity.User;
+import com.aviro.exception.AviroException;
 import com.aviro.repository.BookingRepository;
 import com.aviro.repository.UserRepository;
 import com.aviro.service.EmailService;
 import com.aviro.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -27,6 +30,9 @@ public class SafetyController {
     private final BookingRepository bookingRepository;
     private final NotificationService notificationService;
     private final EmailService emailService;
+
+    @Value("${aviro.frontend-url:https://aviro-affordable-verified-intellige.vercel.app}")
+    private String frontendUrl;
 
     // ── 1. Save Emergency Contacts ──────────────────────────────
     @PostMapping("/emergency-contacts")
@@ -143,8 +149,10 @@ public class SafetyController {
         User user = userRepository.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        requireParticipant(user, bookingId);
+
         String shareEmail    = body.get("email");
-        String trackingLink  = "https://aviro-ride-sharing.vercel.app/tracking/" + bookingId;
+        String trackingLink  = frontendUrl + "/tracking/" + bookingId;
 
         if (shareEmail == null || !shareEmail.contains("@")) {
             return ResponseEntity.badRequest().body(ApiResponse.error("Invalid email address"));
@@ -179,6 +187,8 @@ public class SafetyController {
         User reporter = userRepository.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        requireParticipant(reporter, bookingId);
+
         String reason = body.getOrDefault("reason", "No reason provided");
 
         bookingRepository.findById(bookingId).ifPresent(booking -> {
@@ -198,5 +208,15 @@ public class SafetyController {
         log.warn("Driver reported — booking: {} by: {}", bookingId, reporter.getEmail());
         return ResponseEntity.ok(ApiResponse.success(
             "Report submitted. Our team will review within 24 hours.", null));
+    }
+
+    // Only the rider or driver of a booking can share or report it
+    private void requireParticipant(User user, Long bookingId) {
+        Long riderId = bookingRepository.findRiderIdByBookingId(bookingId)
+                .orElseThrow(() -> new AviroException("Booking not found"));
+        Long driverId = bookingRepository.findDriverIdByBookingId(bookingId).orElse(null);
+        if (!user.getId().equals(riderId) && !user.getId().equals(driverId)) {
+            throw new AccessDeniedException("You are not part of this booking");
+        }
     }
 }

@@ -7,6 +7,7 @@ import com.aviro.entity.User;
 import com.aviro.exception.AviroException;
 import com.aviro.repository.UserRepository;
 import com.aviro.security.JwtTokenProvider;
+import com.aviro.security.TokenBlacklistService;
 import com.aviro.service.AuthService;
 import com.aviro.service.EmailService;
 import com.aviro.service.OtpService;
@@ -29,6 +30,7 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final AuthenticationManager authenticationManager;
+    private final TokenBlacklistService tokenBlacklistService;
 
     // Keep these because OTP features are still present
     private final OtpService otpService;
@@ -262,7 +264,8 @@ public class AuthServiceImpl implements AuthService {
     public ApiResponse<AuthResponse> refreshToken(
             AuthRequest.RefreshToken request) {
 
-        if (!jwtTokenProvider.validateToken(request.getRefreshToken())) {
+        if (!jwtTokenProvider.validateToken(request.getRefreshToken())
+                || tokenBlacklistService.isRevoked(request.getRefreshToken())) {
             throw new AviroException(
                     "Invalid or expired refresh token"
             );
@@ -372,7 +375,9 @@ public class AuthServiceImpl implements AuthService {
     // =========================================================
 
     @Override
-    public ApiResponse<String> logout(String email) {
+    public ApiResponse<String> logout(String accessToken, String refreshToken) {
+        tokenBlacklistService.revoke(accessToken);
+        tokenBlacklistService.revoke(refreshToken);
         return ApiResponse.success(
                 "Logged out successfully",
                 null

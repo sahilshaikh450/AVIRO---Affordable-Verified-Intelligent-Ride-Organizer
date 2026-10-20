@@ -1,7 +1,7 @@
 import React from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { logout } from '../../store/authSlice';
+import { logoutUser } from '../../store/authSlice';
 import NotificationBell from './NotificationBell';
 
 // ── Bottom nav links (mobile) ──
@@ -76,7 +76,7 @@ function DesktopSidebar() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { user } = useSelector(s => s.auth);
-  const handleLogout = () => { dispatch(logout()); navigate('/login'); };
+  const handleLogout = () => { dispatch(logoutUser()); navigate('/login'); };
 
   return (
     <aside className="hidden md:flex w-60 flex-col bg-aviro-card border-r border-aviro-border h-screen sticky top-0">

@@ -9,7 +9,7 @@ import java.util.Map;
 public interface BookingService {
     ApiResponse<BookingResponse> createBooking(String email, BookingRequest.Create request);
     ApiResponse<List<BookingResponse>> getMyBookings(String email);
-    ApiResponse<BookingResponse> getBookingById(Long bookingId);
+    ApiResponse<BookingResponse> getBookingById(String email, Long bookingId);
     ApiResponse<BookingResponse> updateBookingStatus(String email, Long bookingId, String status);
     ApiResponse<String> cancelBooking(String email, Long bookingId);
     ApiResponse<List<BookingResponse>> getRideBookings(String email, Long rideId);

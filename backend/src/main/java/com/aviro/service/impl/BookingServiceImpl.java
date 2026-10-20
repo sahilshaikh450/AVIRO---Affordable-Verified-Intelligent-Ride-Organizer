@@ -10,6 +10,7 @@ import com.aviro.entity.User;
 import com.aviro.entity.Vehicle;
 import com.aviro.enums.BookingStatus;
 import com.aviro.enums.PaymentStatus;
+import com.aviro.enums.Role;
 import com.aviro.exception.AviroException;
 import com.aviro.repository.BookingRepository;
 import com.aviro.repository.RideRepository;
@@ -19,6 +20,7 @@ import com.aviro.service.EmailService;
 import com.aviro.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -119,9 +121,17 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public ApiResponse<BookingResponse> getBookingById(Long bookingId) {
+    public ApiResponse<BookingResponse> getBookingById(String email, Long bookingId) {
+        User user = getUser(email);
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new AviroException("Booking not found"));
+
+        boolean isRider = booking.getRider().getId().equals(user.getId());
+        boolean isDriver = booking.getRide().getDriver().getId().equals(user.getId());
+        boolean isAdmin = user.getRole() == Role.ADMIN;
+        if (!isRider && !isDriver && !isAdmin) {
+            throw new AccessDeniedException("You can only view your own bookings");
+        }
         return ApiResponse.success(toResponse(booking));
     }
 
