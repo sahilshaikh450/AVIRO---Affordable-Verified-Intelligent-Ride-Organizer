@@ -110,6 +110,13 @@
             <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!-- Error tracking (disabled unless SENTRY_DSN is set) -->
+        <dependency>
+            <groupId>io.sentry</groupId>
+            <artifactId>sentry-spring-boot-starter-jakarta</artifactId>
+            <version>7.22.6</version>
+        </dependency>
     </dependencies>
 
     <build>

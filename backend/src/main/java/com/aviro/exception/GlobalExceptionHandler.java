@@ -1,6 +1,7 @@
 package com.aviro.exception;
 
 import com.aviro.dto.response.ApiResponse;
+import io.sentry.Sentry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -12,6 +13,7 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.HashMap;
@@ -68,10 +70,18 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error("Endpoint not found"));
     }
 
+    // e.g. /rides/abc where a number is expected
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiResponse<Object>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        return ResponseEntity.badRequest()
+                .body(ApiResponse.error("Invalid value for '" + ex.getName() + "'"));
+    }
+
     // DB constraint errors (duplicate email, missing column value, etc.)
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiResponse<Object>> handleDataIntegrity(DataIntegrityViolationException ex) {
         log.error("Database constraint violation: {}", ex.getMostSpecificCause().getMessage());
+        Sentry.captureException(ex);
         String cause = String.valueOf(ex.getMostSpecificCause().getMessage()).toLowerCase();
         String message = cause.contains("duplicate") && cause.contains("email")
                 ? "Email already registered. Please login."
@@ -82,6 +92,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Object>> handleGeneral(Exception ex) {
         log.error("Unexpected error: {}", ex.getMessage(), ex);
+        // Handled here, so Sentry would not see it otherwise (no-op when SENTRY_DSN is unset)
+        Sentry.captureException(ex);
         return ResponseEntity.internalServerError()
                 .body(ApiResponse.error("Something went wrong. Please try again."));
     }
