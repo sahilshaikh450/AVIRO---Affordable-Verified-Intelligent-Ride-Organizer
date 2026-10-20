@@ -3,7 +3,74 @@ import api from '../services/api';
 import { Spinner, GenderBadge } from '../components/common/UIComponents';
 import toast from 'react-hot-toast';
 
-const BASE_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:8080';
+// The image endpoint needs the JWT, which a plain <img src> or link can't send.
+// Fetch it through the api client (adds the token) and show it as a blob URL.
+function CollegeIdImage({ url, onExpand }) {
+  const [src, setSrc]     = useState(null);
+  const [error, setError] = useState(null);
+  const [retry, setRetry] = useState(0);
+
+  useEffect(() => {
+    let objectUrl;
+    let cancelled = false;
+    setSrc(null);
+    setError(null);
+    // Stored as "/api/users/..."; the api client already has the /api base
+    api.get(url.replace(/^\/api/, ''), { responseType: 'blob' })
+      .then(res => {
+        if (cancelled) return;
+        objectUrl = URL.createObjectURL(res.data);
+        setSrc(objectUrl);
+      })
+      .catch(err => {
+        if (cancelled) return;
+        setError(err.response?.status === 404
+          ? 'Image file not found on server. Ask the user to upload again.'
+          : 'Image not loading');
+      });
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [url, retry]);
+
+  if (error) {
+    return (
+      <div className="bg-aviro-card2 rounded-xl border border-aviro-border p-4 flex items-center justify-center gap-2">
+        <span className="text-2xl">🖼️</span>
+        <div>
+          <p className="text-xs text-aviro-muted">{error}</p>
+          <button type="button" onClick={() => setRetry(r => r + 1)}
+            className="text-xs text-aviro-orange hover:underline">
+            Try again →
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!src) {
+    return (
+      <div className="bg-aviro-card2 rounded-xl border border-aviro-border p-6 flex items-center justify-center">
+        <Spinner />
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <img
+        src={src}
+        alt="College ID"
+        className="w-full max-h-64 object-contain rounded-xl border border-aviro-border bg-aviro-card2 cursor-zoom-in hover:opacity-90 transition-opacity"
+        onClick={() => onExpand(src)}
+      />
+      <p className="text-xs text-aviro-muted mt-1 text-center">
+        Tap image to view full size
+      </p>
+    </>
+  );
+}
 
 export default function AdminPage() {
   const [pending, setPending]               = useState([]);
@@ -165,33 +232,11 @@ export default function AdminPage() {
                     <GenderBadge gender={u.gender} />
                   </div>
 
-                  {/* ✅ College ID Image — uses BASE_URL */}
+                  {/* College ID image (loaded with the admin's token) */}
                   {u.collegeIdPicUrl ? (
                     <div className="mb-4">
                       <p className="text-xs text-aviro-muted mb-2">📷 Uploaded College ID:</p>
-                      <img
-                        src={`${BASE_URL}${u.collegeIdPicUrl}`}
-                        alt="College ID"
-                        className="w-full max-h-64 object-contain rounded-xl border border-aviro-border bg-aviro-card2 cursor-zoom-in hover:opacity-90 transition-opacity"
-                        onClick={() => setExpandedImg(`${BASE_URL}${u.collegeIdPicUrl}`)}
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                          e.target.nextSibling.style.display = 'flex';
-                        }}
-                      />
-                      <div className="hidden bg-aviro-card2 rounded-xl border border-aviro-border p-4 items-center justify-center gap-2">
-                        <span className="text-2xl">🖼️</span>
-                        <div>
-                          <p className="text-xs text-aviro-muted">Image not loading</p>
-                          <a href={`${BASE_URL}${u.collegeIdPicUrl}`} target="_blank" rel="noreferrer"
-                            className="text-xs text-aviro-orange hover:underline">
-                            Open image link →
-                          </a>
-                        </div>
-                      </div>
-                      <p className="text-xs text-aviro-muted mt-1 text-center">
-                        Tap image to view full size
-                      </p>
+                      <CollegeIdImage url={u.collegeIdPicUrl} onExpand={setExpandedImg} />
                     </div>
                   ) : (
                     <div className="mb-4 bg-aviro-card2 rounded-xl p-4 text-center text-aviro-muted text-sm">
