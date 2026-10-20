@@ -129,6 +129,24 @@ export const fetchProfile = createAsyncThunk(
 );
 
 // =========================================================
+// LOGOUT — revoke tokens on the server, then clear locally
+// =========================================================
+
+export const logoutUser = createAsyncThunk(
+  'auth/logoutUser',
+  async (_, { dispatch }) => {
+    try {
+      await api.post('/auth/logout', {
+        refreshToken: localStorage.getItem('aviro_refresh'),
+      });
+    } catch {
+      // Still log out locally even if the server call fails
+    }
+    dispatch(authSlice.actions.logout());
+  }
+);
+
+// =========================================================
 // INITIAL STATE
 // =========================================================
 

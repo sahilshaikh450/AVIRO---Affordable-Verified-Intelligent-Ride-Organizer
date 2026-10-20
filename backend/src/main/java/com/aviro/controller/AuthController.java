@@ -77,11 +77,18 @@ public class AuthController {
         return ResponseEntity.ok(authService.resetPassword(request));
     }
 
+    // Revokes the access token (Authorization header) and the refresh token (body, optional)
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<String>> logout(
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @RequestBody(required = false) AuthRequest.Logout request) {
 
-        return ResponseEntity.ok(authService.logout(userDetails.getUsername()));
+        String accessToken = (authHeader != null && authHeader.startsWith("Bearer "))
+                ? authHeader.substring(7).trim()
+                : null;
+        String refreshToken = request != null ? request.getRefreshToken() : null;
+
+        return ResponseEntity.ok(authService.logout(accessToken, refreshToken));
     }
 
     // College email verification endpoints
