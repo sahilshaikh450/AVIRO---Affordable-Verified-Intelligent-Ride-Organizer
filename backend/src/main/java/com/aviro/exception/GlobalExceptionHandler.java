@@ -2,6 +2,7 @@ package com.aviro.exception;
 
 import com.aviro.dto.response.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -65,6 +66,17 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Object>> handleNotFound(NoResourceFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(ApiResponse.error("Endpoint not found"));
+    }
+
+    // DB constraint errors (duplicate email, missing column value, etc.)
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiResponse<Object>> handleDataIntegrity(DataIntegrityViolationException ex) {
+        log.error("Database constraint violation: {}", ex.getMostSpecificCause().getMessage());
+        String cause = String.valueOf(ex.getMostSpecificCause().getMessage()).toLowerCase();
+        String message = cause.contains("duplicate") && cause.contains("email")
+                ? "Email already registered. Please login."
+                : "Could not save data. Please check your details and try again.";
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.error(message));
     }
 
     @ExceptionHandler(Exception.class)
