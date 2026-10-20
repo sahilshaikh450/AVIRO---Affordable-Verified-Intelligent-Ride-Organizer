@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { logout } from '../../store/authSlice';
+import { logoutUser } from '../../store/authSlice';
 
 const links = [
   { to: '/dashboard',  icon: '🏠', label: 'Dashboard'   },
@@ -18,7 +18,7 @@ export default function Sidebar({ open }) {
   const navigate  = useNavigate();
   const { user }  = useSelector(s => s.auth);
 
-  const handleLogout = () => { dispatch(logout()); navigate('/login'); };
+  const handleLogout = () => { dispatch(logoutUser()); navigate('/login'); };
 
   return (
     <aside className={`${open ? 'w-60' : 'w-16'} transition-all duration-300 flex flex-col bg-aviro-card border-r border-aviro-border h-screen sticky top-0 overflow-hidden`}>

@@ -2,6 +2,7 @@ package com.aviro.config;
 
 import com.aviro.repository.UserRepository;
 import com.aviro.security.JwtTokenProvider;
+import com.aviro.security.TokenBlacklistService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.Message;
@@ -26,6 +27,7 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final UserRepository userRepository;
+    private final TokenBlacklistService tokenBlacklistService;
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
@@ -43,7 +45,7 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
         }
 
         String token = header.substring(7);
-        if (!jwtTokenProvider.validateToken(token)) {
+        if (!jwtTokenProvider.validateToken(token) || tokenBlacklistService.isRevoked(token)) {
             log.warn("WebSocket CONNECT with invalid token");
             return message;
         }
