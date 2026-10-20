@@ -52,6 +52,12 @@ spring:
       max-file-size: 10MB
       max-request-size: 10MB
 
+# Error tracking: empty DSN = disabled
+sentry:
+  dsn: ${SENTRY_DSN:}
+  environment: ${SENTRY_ENVIRONMENT:production}
+  send-default-pii: false
+
 aviro:
   jwt:
     secret: ${AVIRO_JWT_SECRET}
