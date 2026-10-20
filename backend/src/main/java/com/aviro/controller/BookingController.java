@@ -34,8 +34,10 @@ public class BookingController {
     }
 
     @GetMapping("/{bookingId}")
-    public ResponseEntity<ApiResponse<BookingResponse>> getBooking(@PathVariable Long bookingId) {
-        return ResponseEntity.ok(bookingService.getBookingById(bookingId));
+    public ResponseEntity<ApiResponse<BookingResponse>> getBooking(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Long bookingId) {
+        return ResponseEntity.ok(bookingService.getBookingById(userDetails.getUsername(), bookingId));
     }
 
     @PatchMapping("/{bookingId}/status")

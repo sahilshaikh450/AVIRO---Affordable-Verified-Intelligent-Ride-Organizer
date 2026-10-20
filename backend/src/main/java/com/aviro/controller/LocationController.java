@@ -2,17 +2,21 @@ package com.aviro.controller;
 
 import com.aviro.dto.response.ApiResponse;
 import com.aviro.entity.Booking;
+import com.aviro.entity.User;
 import com.aviro.repository.BookingRepository;
+import com.aviro.repository.UserRepository;
 import com.aviro.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.Map;
 
 @RestController
@@ -23,12 +27,19 @@ public class LocationController {
 
     private final SimpMessagingTemplate messagingTemplate;
     private final BookingRepository bookingRepository;
+    private final UserRepository userRepository;
     private final NotificationService notificationService;
 
     // ── Driver broadcasts location via WebSocket ──
     @MessageMapping("/location.update")
-    public void updateLocation(@Payload Map<String, Object> payload) {
+    public void updateLocation(@Payload Map<String, Object> payload, Principal principal) {
         Long bookingId = Long.valueOf(payload.get("bookingId").toString());
+        Long userId = principal == null ? null : Long.valueOf(principal.getName());
+        Long driverId = bookingRepository.findDriverIdByBookingId(bookingId).orElse(null);
+        if (userId == null || !userId.equals(driverId)) {
+            log.warn("Rejected location.update for booking {} from user {}", bookingId, userId);
+            return;
+        }
         Double lat     = Double.valueOf(payload.get("lat").toString());
         Double lng     = Double.valueOf(payload.get("lng").toString());
         String status  = payload.getOrDefault("status", "ON_THE_WAY").toString();
@@ -42,8 +53,7 @@ public class LocationController {
         );
 
         // Send to rider's queue
-        bookingRepository.findById(bookingId).ifPresent(booking -> {
-            Long riderId = booking.getRider().getId();
+        bookingRepository.findRiderIdByBookingId(bookingId).ifPresent(riderId -> {
             messagingTemplate.convertAndSendToUser(
                 riderId.toString(),
                 "/queue/location",
@@ -55,36 +65,41 @@ public class LocationController {
 
     // ── Driver sends quick message ──
     @MessageMapping("/location.message")
-    public void sendQuickMessage(@Payload Map<String, Object> payload) {
+    public void sendQuickMessage(@Payload Map<String, Object> payload, Principal principal) {
         Long bookingId = Long.valueOf(payload.get("bookingId").toString());
         String message = payload.get("message").toString();
-        Long senderId  = Long.valueOf(payload.get("senderId").toString());
+        // Sender comes from the authenticated session, not the payload
+        Long senderId  = principal == null ? null : Long.valueOf(principal.getName());
 
-        bookingRepository.findById(bookingId).ifPresent(booking -> {
-            Long riderId  = booking.getRider().getId();
-            Long driverId = booking.getRide().getDriver().getId();
-            Long targetId = senderId.equals(driverId) ? riderId : driverId;
+        Long riderId  = bookingRepository.findRiderIdByBookingId(bookingId).orElse(null);
+        Long driverId = bookingRepository.findDriverIdByBookingId(bookingId).orElse(null);
+        if (senderId == null || riderId == null
+                || (!senderId.equals(riderId) && !senderId.equals(driverId))) {
+            log.warn("Rejected location.message for booking {} from user {}", bookingId, senderId);
+            return;
+        }
 
-            Map<String, Object> msgData = Map.of(
-                "bookingId", bookingId,
-                "message",   message,
-                "senderId",  senderId,
-                "timestamp", System.currentTimeMillis()
-            );
+        Long targetId = senderId.equals(driverId) ? riderId : driverId;
 
-            messagingTemplate.convertAndSendToUser(
-                targetId.toString(),
-                "/queue/quick-message",
-                msgData
-            );
+        Map<String, Object> msgData = Map.of(
+            "bookingId", bookingId,
+            "message",   message,
+            "senderId",  senderId,
+            "timestamp", System.currentTimeMillis()
+        );
 
-            // Also push as notification
-            try {
-                notificationService.send(targetId, "New Message 💬", message, "CHAT_MESSAGE", bookingId.toString());
-            } catch (Exception e) {
-                log.warn("Notification failed: {}", e.getMessage());
-            }
-        });
+        messagingTemplate.convertAndSendToUser(
+            targetId.toString(),
+            "/queue/quick-message",
+            msgData
+        );
+
+        // Also push as notification
+        try {
+            notificationService.send(targetId, "New Message 💬", message, "CHAT_MESSAGE", bookingId.toString());
+        } catch (Exception e) {
+            log.warn("Notification failed: {}", e.getMessage());
+        }
     }
 
     // ── Driver marks arrived at pickup ──
@@ -92,6 +107,13 @@ public class LocationController {
     public ApiResponse<String> driverArrived(
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable Long bookingId) {
+
+        Long userId = userRepository.findByEmail(userDetails.getUsername())
+                .map(User::getId).orElse(null);
+        Long driverId = bookingRepository.findDriverIdByBookingId(bookingId).orElse(null);
+        if (userId == null || !userId.equals(driverId)) {
+            throw new AccessDeniedException("Only the driver of this booking can mark arrival");
+        }
 
         bookingRepository.findById(bookingId).ifPresent(booking -> {
             Long riderId = booking.getRider().getId();

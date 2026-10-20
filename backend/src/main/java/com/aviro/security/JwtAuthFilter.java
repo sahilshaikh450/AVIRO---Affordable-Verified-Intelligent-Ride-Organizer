@@ -30,6 +30,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final UserDetailsService userDetailsService;
+    private final TokenBlacklistService tokenBlacklistService;
 
     @Override
     protected void doFilterInternal(
@@ -57,6 +58,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 log.warn("Invalid JWT for {}", request.getRequestURI());
 
                 writeUnauthorized(response, "Invalid token. Please login again.");
+                return;
+            }
+
+            if (tokenBlacklistService.isRevoked(jwt)) {
+                SecurityContextHolder.clearContext();
+                writeUnauthorized(response, "Session ended. Please login again.");
                 return;
             }
 
