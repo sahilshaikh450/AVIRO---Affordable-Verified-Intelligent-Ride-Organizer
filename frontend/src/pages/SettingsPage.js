@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { logoutUser } from '../store/authSlice';
+import { logoutUser, logout } from '../store/authSlice';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 
@@ -265,56 +265,6 @@ function InfoModal({ type, onClose }) {
         </div>
       )
     },
-    privacy: {
-      title: 'Privacy Policy 🔒',
-      body: (
-        <div className="space-y-4 text-sm text-aviro-muted">
-          <p className="text-xs text-aviro-muted">Last updated: January 2025</p>
-
-          {[
-            { title: '1. Information We Collect', content: 'We collect information you provide during registration such as your name, college email address, gender, and college ID card image. We also collect ride booking data, payment method (UPI/cash), location data during active rides, and chat messages between riders and drivers.' },
-            { title: '2. How We Use Your Information', content: 'Your information is used to verify your college identity using AI, match you with compatible riders/drivers, process bookings and payments, enable real-time GPS tracking during rides, send OTP and booking notifications via email, and improve platform safety and experience.' },
-            { title: '3. Location Data', content: 'AVIRO collects your GPS location only during active rides when you choose to share it. Location data is used exclusively for live tracking between confirmed ride partners. We do not store your location history after the ride ends.' },
-            { title: '4. College ID Verification', content: 'Your college ID image is processed by Google Gemini Vision API for automatic verification. The image is stored securely on our servers and is only visible to platform administrators for manual review if needed.' },
-            { title: '5. Data Sharing', content: 'We share your name, college name, gender, rating, and vehicle details with matched riders/drivers for booking purposes. Phone numbers are shared only after ride confirmation. We do not sell your personal data to third parties.' },
-            { title: '6. Data Security', content: 'All data is encrypted in transit using HTTPS/TLS. Passwords are hashed using BCrypt. JWT tokens expire after 24 hours. We use secure cloud infrastructure (Aiven, Upstash) for data storage.' },
-            { title: '7. Your Rights', content: 'You can update your profile information anytime. You can request account deletion by emailing aviro.support@gmail.com. You can withdraw location sharing at any time during a ride.' },
-            { title: '8. Contact Us', content: 'For privacy concerns, contact us at: aviro.support@gmail.com' },
-          ].map((s, i) => (
-            <div key={i} className="bg-aviro-card2 rounded-xl p-4 space-y-1">
-              <p className="font-semibold text-white">{s.title}</p>
-              <p>{s.content}</p>
-            </div>
-          ))}
-        </div>
-      )
-    },
-    terms: {
-      title: 'Terms of Service 📄',
-      body: (
-        <div className="space-y-4 text-sm text-aviro-muted">
-          <p className="text-xs text-aviro-muted">Last updated: January 2025</p>
-
-          {[
-            { title: '1. Eligibility', content: 'AVIRO is exclusively for verified college students in Pune. You must upload a valid college ID card to use ride booking and offering features. You must be 18 years or older to use this platform.' },
-            { title: '2. User Responsibilities', content: 'You agree to provide accurate information during registration. You must not impersonate another person or use a fake college ID. You are responsible for the accuracy of ride details you post as a driver.' },
-            { title: '3. Ride Booking Rules', content: 'Drivers must honor confirmed bookings. Cancellations must be made in advance. Repeated cancellations may result in account suspension. Riders must arrive at the agreed pickup point on time.' },
-            { title: '4. Payments', content: 'All payments are between riders and drivers directly. AVIRO does not process or hold any payments. For UPI payments, the transaction is between the student\'s UPI app and the driver. For cash, the driver must confirm receipt.' },
-            { title: '5. Safety', content: 'Both riders and drivers must treat each other with respect. Any form of harassment, inappropriate behavior, or unsafe driving should be reported immediately using the Report Driver feature or SOS button.' },
-            { title: '6. Prohibited Activities', content: 'You must not use AVIRO for commercial taxi services. You must not discriminate based on gender (except women-only rides), religion, or caste. You must not share false location data or manipulate the tracking system.' },
-            { title: '7. Liability', content: 'AVIRO is a peer-to-peer platform connecting students. AVIRO is not responsible for the conduct of individual users during rides. We strongly recommend using the SOS feature and sharing your trip with family.' },
-            { title: '8. Account Termination', content: 'AVIRO reserves the right to suspend or terminate accounts that violate these terms, receive multiple serious complaints, or engage in fraudulent activity.' },
-            { title: '9. Changes to Terms', content: 'We may update these terms from time to time. Continued use of AVIRO after changes constitutes acceptance of the new terms.' },
-            { title: '10. Contact', content: 'For any questions about these terms: aviro.support@gmail.com' },
-          ].map((s, i) => (
-            <div key={i} className="bg-aviro-card2 rounded-xl p-4 space-y-1">
-              <p className="font-semibold text-white">{s.title}</p>
-              <p>{s.content}</p>
-            </div>
-          ))}
-        </div>
-      )
-    }
   };
 
   const c = content[type];
@@ -342,8 +292,35 @@ export default function SettingsPage() {
 
   const [showChatbot, setShowChatbot]       = useState(false);
   const [showResetPass, setShowResetPass]   = useState(false);
-  const [showInfo, setShowInfo]             = useState(null); // 'about' | 'privacy' | 'terms'
+  const [showInfo, setShowInfo]             = useState(null); // 'about'
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletePassword, setDeletePassword]       = useState('');
+  const [deleting, setDeleting]                   = useState(false);
+
+  const closeDeleteConfirm = () => {
+    setShowDeleteConfirm(false);
+    setDeletePassword('');
+  };
+
+  const handleDeleteAccount = async (e) => {
+    e.preventDefault();
+    if (!deletePassword) {
+      toast.error('Enter your password to confirm');
+      return;
+    }
+    setDeleting(true);
+    try {
+      await api.delete('/users/me', { data: { password: deletePassword } });
+      toast.success('Your account has been deleted');
+      // Tokens no longer work after deletion, so just clear the local session
+      dispatch(logout());
+      navigate('/login', { replace: true });
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not delete account. Please try again.');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const handleLogout = () => {
     dispatch(logoutUser());
@@ -381,8 +358,8 @@ export default function SettingsPage() {
       title: 'ℹ️ About',
       items: [
         { icon: '🚀', label: 'About AVIRO',      sub: "Pune's #1 College Ride Platform",  action: () => setShowInfo('about') },
-        { icon: '📄', label: 'Terms of Service', sub: 'Read our terms and conditions',    action: () => setShowInfo('terms') },
-        { icon: '🔒', label: 'Privacy Policy',   sub: 'How we protect your data',        action: () => setShowInfo('privacy') },
+        { icon: '📄', label: 'Terms of Service', sub: 'Read our terms and conditions',    action: () => navigate('/terms') },
+        { icon: '🔒', label: 'Privacy Policy',   sub: 'How we protect your data',        action: () => navigate('/privacy') },
       ]
     },
   ];
@@ -471,26 +448,40 @@ export default function SettingsPage() {
       {/* Delete Confirm */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-aviro-card border border-aviro-border rounded-2xl w-full max-w-sm p-6 space-y-4">
+          <form onSubmit={handleDeleteAccount}
+            className="bg-aviro-card border border-aviro-border rounded-2xl w-full max-w-sm p-6 space-y-4">
             <div className="text-center">
               <p className="text-4xl mb-3">⚠️</p>
               <h3 className="font-bold text-lg">Delete Account?</h3>
               <p className="text-aviro-muted text-sm mt-2">
-                This action cannot be undone. Email us at{' '}
-                <span className="text-aviro-orange">aviro.support@gmail.com</span> to request deletion.
+                This cannot be undone. Your profile, college ID, vehicle and notifications will be removed,
+                and your open rides and bookings will be cancelled.
               </p>
             </div>
+            <div>
+              <label className="text-xs text-aviro-muted font-medium block mb-1.5">
+                Enter your password to confirm
+              </label>
+              <input
+                type="password"
+                value={deletePassword}
+                onChange={e => setDeletePassword(e.target.value)}
+                placeholder="Your password"
+                className="input-field"
+                autoFocus
+              />
+            </div>
             <div className="flex gap-2">
-              <button onClick={() => setShowDeleteConfirm(false)}
+              <button type="button" onClick={closeDeleteConfirm}
                 className="flex-1 bg-aviro-card2 border border-aviro-border text-aviro-muted py-2.5 rounded-xl text-sm">
                 Cancel
               </button>
-              <button onClick={() => { window.open('mailto:aviro.support@gmail.com?subject=Delete Account Request'); setShowDeleteConfirm(false); }}
-                className="flex-1 bg-red-500/10 border border-red-500/30 text-red-400 font-bold py-2.5 rounded-xl text-sm">
-                Send Request
+              <button type="submit" disabled={deleting || !deletePassword}
+                className="flex-1 bg-red-500/10 border border-red-500/30 text-red-400 font-bold py-2.5 rounded-xl text-sm disabled:opacity-50">
+                {deleting ? 'Deleting...' : 'Delete Forever'}
               </button>
             </div>
-          </div>
+          </form>
         </div>
       )}
 
