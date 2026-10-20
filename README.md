@@ -37,6 +37,10 @@
 - **AI-powered College ID Scan** — Google Gemini Vision API checks uploaded ID cards; admin can approve/reject
 - **JWT Authentication** — Access token (24h) + Refresh token (7 days)
 - **Auto-logout** — 401 interceptor clears session on token expiry
+- **Real Logout** — Logout revokes the access + refresh token on the server (Redis blacklist)
+- **Rate Limiting** — Login, signup, OTP and password-reset endpoints are limited per IP (HTTP 429)
+- **Role & Ownership Checks** — Admin APIs need the ADMIN role; bookings, chats, reviews and live location are limited to the people on that ride
+- **Delete Account** — In-app, password-confirmed; personal data and college ID image are removed
 - **Case-insensitive Email** — Emails are trimmed and lower-cased on signup/login
 
 > ℹ️ Login OTP and signup email OTP are **temporarily disabled** (users get a JWT directly). The endpoints are kept so they can be switched back on.
@@ -91,6 +95,14 @@
 - **Platform Stats** — Total users, verified count, pending count
 - **Two Tabs** — 🎓 College IDs | 🏍️ Vehicles
 
+### 🧭 Onboarding & Legal
+- **Welcome Onboarding** — 4-step intro after signup (verify ID, find a ride, offer a ride, stay safe)
+- **Privacy Policy & Terms Pages** — Public `/privacy` and `/terms`, linked from login, signup and footer
+
+### 📈 Monitoring
+- **Error Tracking** — Sentry on frontend and backend (enabled when a DSN is set)
+- **Analytics** — Vercel Web Analytics (enabled with an env flag)
+
 ### 📱 Mobile Experience
 - **Bottom Navigation Bar** — 5 tabs for mobile
 - **iOS Safe Area** — Notch/home bar support
@@ -120,6 +132,8 @@
 | **Containerization** | Docker | Backend Deploy |
 | **Backend Deploy** | Render | Cloud Hosting |
 | **Frontend Deploy** | Vercel | Frontend CDN |
+| **Error Tracking** | Sentry | Frontend + backend errors |
+| **Analytics** | Vercel Web Analytics | Page views |
 
 ---
 
@@ -160,6 +174,7 @@ AVIRO/
 │           │   │   ├── RideServiceImpl.java
 │           │   │   ├── BookingServiceImpl.java
 │           │   │   └── UserServiceImpl.java
+│           │   ├── AccountDeletionService.java
 │           │   ├── ChatService.java
 │           │   ├── CollegeIdVerificationService.java
 │           │   ├── EmailService.java
@@ -180,7 +195,9 @@ AVIRO/
 │           ├── security/               # JWT filter + token provider
 │           │   ├── CustomUserDetailsService.java
 │           │   ├── JwtAuthFilter.java
-│           │   └── JwtTokenProvider.java
+│           │   ├── JwtTokenProvider.java
+│           │   ├── RateLimitFilter.java          # Per-IP limits on auth endpoints
+│           │   └── TokenBlacklistService.java    # Revoked tokens after logout
 │           ├── exception/              # AviroException + GlobalExceptionHandler
 │           └── enums/                  # Role, Gender, RideStatus, BookingStatus, PaymentStatus, VehicleType
 │
@@ -191,7 +208,8 @@ AVIRO/
     └── src/
         ├── pages/
         │   ├── LandingPage.js
-        │   ├── IntroPage.js
+        │   ├── IntroPage.js           # Onboarding shown at /welcome after signup
+        │   ├── LegalPage.js           # /privacy and /terms
         │   ├── LoginPage.js           # Password login + forgot password (OTP)
         │   ├── RegisterPage.js        # 3-step signup with per-step validation
         │   ├── VerifyOtpPage.js       # Email OTP (kept for when signup OTP is re-enabled)
@@ -231,8 +249,10 @@ AVIRO/
         │   ├── bookingSlice.js
         │   ├── chatSlice.js
         │   └── uiSlice.js
+        ├── content/legal.js           # Privacy Policy + Terms text
         ├── services/
         │   ├── api.js                 # Axios: JWT header, 401 auto-logout, 60s timeout
+        │   ├── monitoring.js          # Sentry setup
         │   └── websocket.js           # Shared WS_URL + STOMP helpers
         ├── hooks/useGeolocation.js
         └── utils/puneLocations.js
@@ -320,6 +340,8 @@ npm start
 | `AVIRO_JWT_REFRESH_EXPIRATION` | | `604800000` | Refresh token lifetime (ms, 7 days) |
 | `GEMINI_API_KEY` | | empty | Gemini key for AI college ID scan |
 | `GEMINI_MODEL` | | `gemini-3.5-flash-lite` | Gemini model name |
+| `SENTRY_DSN` | | empty | Sentry DSN for backend error tracking (empty = off) |
+| `SENTRY_ENVIRONMENT` | | `production` | Environment name shown in Sentry |
 | `PORT` | | `10000` | Server port |
 | `SPRING_JPA_HIBERNATE_DDL_AUTO` | | `update` | Hibernate schema mode |
 
@@ -329,6 +351,8 @@ npm start
 |----------|---------|-------------|
 | `REACT_APP_API_URL` | `http://localhost:8080/api` | Backend API base URL (must end with `/api`) |
 | `REACT_APP_WS_URL` | `REACT_APP_API_URL` + `/ws` | WebSocket (SockJS) URL, only if different |
+| `REACT_APP_SENTRY_DSN` | empty | Sentry DSN for frontend error tracking (empty = off) |
+| `REACT_APP_ENABLE_ANALYTICS` | `false` | Set `true` after enabling Web Analytics in Vercel |
 
 ### Getting API Keys
 
@@ -336,12 +360,15 @@ npm start
 |---------|-----------|
 | **Gmail App Password** | myaccount.google.com → Security → App Passwords |
 | **Gemini API Key** | aistudio.google.com/apikey (Free) |
+| **Sentry DSN** | sentry.io → Create project (React / Spring Boot) → Client Keys (DSN) |
 
 ---
 
 ## 📡 API Reference
 
-All endpoints are under `/api`. Everything except `/api/auth/**` needs `Authorization: Bearer <accessToken>`.
+All endpoints are under `/api`. Everything except `/api/auth/**` needs `Authorization: Bearer <accessToken>`. `/api/admin/**` needs an ADMIN account.
+
+Auth endpoints are rate limited per IP (e.g. login 10/min, register 5/10 min, OTP sends 3/10 min) and return `429 Too Many Requests` when exceeded.
 
 ### Auth Endpoints
 
@@ -349,7 +376,7 @@ All endpoints are under `/api`. Everything except `/api/auth/**` needs `Authoriz
 POST   /api/auth/register                  Register new student → returns JWT
 POST   /api/auth/login                     Email + password → returns JWT
 POST   /api/auth/refresh-token             New access token from refresh token
-POST   /api/auth/logout                    Logout
+POST   /api/auth/logout                    Logout (revokes access + refresh token)
 POST   /api/auth/forgot-password           Send password reset OTP
 POST   /api/auth/reset-password            Reset password with OTP
 POST   /api/auth/send-college-email-otp    Send college email OTP (logged in)
@@ -401,6 +428,7 @@ POST   /api/users/ride-buddies/{buddyId}       Add ride buddy
 DELETE /api/users/ride-buddies/{buddyId}       Remove ride buddy
 POST   /api/users/upload-college-id            Upload + AI verify college ID
 GET    /api/users/college-id-image/{filename}  College ID image (needs token)
+DELETE /api/users/me                           Delete my account ({ "password": "..." })
 ```
 
 ### Notification, Chat & Review Endpoints
@@ -489,11 +517,14 @@ Endpoint: `/api/ws`. Send the JWT in the STOMP `CONNECT` headers as `Authorizati
 
 ```
 Register → JWT issued (.edu.in email → college auto-verified)
-Login → Email + Password check → JWT (access 24h + refresh 7d)
+Login → Rate limit check → Email + Password check → JWT (access 24h + refresh 7d)
+Logout → Access + refresh token revoked in Redis → rejected everywhere
 College ID → Upload → Gemini AI scan / Admin approve
 Book Ride → College ID verified? ✅ → Proceed
 Offer Ride → College ID verified? ✅ → Vehicle verified? ✅ → Post
 Forgot Password → Email OTP → Reset
+Admin API → ADMIN role? ✅ → Proceed (else 403)
+Booking / Chat / Review → Rider or driver of that ride? ✅ → Proceed (else 403)
 Token Expired → 401 → Auto logout → Redirect to login
 ```
 

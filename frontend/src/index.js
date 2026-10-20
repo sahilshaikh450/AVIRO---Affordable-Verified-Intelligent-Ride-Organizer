@@ -6,11 +6,31 @@ import App from './App';
 import { Provider } from 'react-redux';
 import { store } from './store/store';
 import { Toaster } from 'react-hot-toast';
+import { Analytics } from '@vercel/analytics/react';
+import { initMonitoring, ErrorBoundary } from './services/monitoring';
+
+initMonitoring();
+
+// Shown if a render error crashes the app (the error is reported to Sentry when enabled)
+const CrashFallback = () => (
+  <div className="min-h-screen bg-aviro-dark flex items-center justify-center p-4 text-center">
+    <div className="space-y-3">
+      <p className="text-4xl">😵</p>
+      <h1 className="font-bold text-xl text-white">Something went wrong</h1>
+      <p className="text-aviro-muted text-sm">Please reload the page. If it keeps happening, contact aviro.support@gmail.com</p>
+      <button onClick={() => window.location.reload()} className="btn-primary">Reload</button>
+    </div>
+  </div>
+);
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <Provider store={store}>
-    <App />
+    <ErrorBoundary fallback={<CrashFallback />}>
+      <App />
+    </ErrorBoundary>
+    {/* Turn on after enabling Analytics in the Vercel dashboard */}
+    {process.env.REACT_APP_ENABLE_ANALYTICS === 'true' && <Analytics />}
     <Toaster
       position="top-right"
       toastOptions={{
