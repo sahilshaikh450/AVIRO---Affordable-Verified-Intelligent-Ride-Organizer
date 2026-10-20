@@ -74,6 +74,12 @@ public class AuthRequest {
     }
 
     @Data
+    public static class DeleteAccount {
+        @NotBlank(message = "Password is required")
+        private String password;
+    }
+
+    @Data
     public static class Logout {
         private String refreshToken;
     }

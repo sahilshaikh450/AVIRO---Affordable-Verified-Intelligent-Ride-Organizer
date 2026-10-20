@@ -145,7 +145,12 @@ export default function LandingPage() {
       <footer className="border-t border-aviro-border py-8 text-center text-aviro-muted text-sm">
         <p className="font-display font-bold text-aviro-orange text-xl mb-2">AVIRO</p>
         <p>Affordable · Verified · Intelligent · Ride Organizer</p>
-        <p className="mt-2 text-xs">© 2025 AVIRO · Made for Pune's College Students 🏍️</p>
+        <p className="mt-2 text-xs">
+          <Link to="/privacy" className="hover:text-white">Privacy Policy</Link>
+          {' · '}
+          <Link to="/terms" className="hover:text-white">Terms of Service</Link>
+        </p>
+        <p className="mt-2 text-xs">© 2026 AVIRO · Made for Pune's College Students 🏍️</p>
       </footer>
     </div>
   );
