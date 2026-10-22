@@ -24,15 +24,27 @@ export default function ChatPage() {
   const clientRef   = useRef(null);
   const selectedRef = useRef(null);
 
-  // Load contacts
+  // Load contacts. Last list is cached so the sidebar shows instantly on revisit.
+  const contactsCacheKey = user?.id ? `aviro_chat_contacts_${user.id}` : null;
+  const [contactsLoading, setContactsLoading] = useState(true);
+
   useEffect(() => {
     if (!user?.id) return;
+    try {
+      const cached = JSON.parse(sessionStorage.getItem(contactsCacheKey) || 'null');
+      if (Array.isArray(cached)) { setContacts(cached); setContactsLoading(false); }
+    } catch {}
+
     const loadAllContacts = async () => {
-      let allContacts = [];
-      try {
-        const myBookings = await api.get('/bookings/my');
-        const bookings = myBookings.data.data || [];
-        bookings.forEach(b => {
+      const allContacts = [];
+      // Independent calls run in parallel instead of one after another
+      const [bookingsRes, ridesRes] = await Promise.allSettled([
+        api.get('/bookings/my'),
+        api.get('/rides/my'),
+      ]);
+
+      if (bookingsRes.status === 'fulfilled') {
+        (bookingsRes.value.data.data || []).forEach(b => {
           if (b.driver?.id && b.driver.id !== user.id) {
             allContacts.push({
               id: b.driver.id, name: b.driver.fullName,
@@ -41,33 +53,37 @@ export default function ChatPage() {
             });
           }
         });
-      } catch {}
-      try {
-        const myRides = await api.get('/rides/my');
-        const rides = myRides.data.data || [];
-        for (const ride of rides) {
-          try {
-            const rideBookings = await api.get(`/bookings/ride/${ride.id}`);
-            const rbs = rideBookings.data.data || [];
-            rbs.forEach(b => {
-              if (b.rider?.id && b.rider.id !== user.id) {
-                allContacts.push({
-                  id: b.rider.id, name: b.rider.fullName || 'Rider',
-                  gender: b.rider.gender, rideId: ride.id,
-                  route: `${ride.fromLocation} → ${ride.toLocation}`, role: 'Rider'
-                });
-              }
-            });
-          } catch {}
-        }
-      } catch {}
+      }
+
+      if (ridesRes.status === 'fulfilled') {
+        const rides = ridesRes.value.data.data || [];
+        const rideBookings = await Promise.allSettled(
+          rides.map(ride => api.get(`/bookings/ride/${ride.id}`))
+        );
+        rideBookings.forEach((res, idx) => {
+          if (res.status !== 'fulfilled') return;
+          const ride = rides[idx];
+          (res.value.data.data || []).forEach(b => {
+            if (b.rider?.id && b.rider.id !== user.id) {
+              allContacts.push({
+                id: b.rider.id, name: b.rider.fullName || 'Rider',
+                gender: b.rider.gender, rideId: ride.id,
+                route: `${ride.fromLocation} → ${ride.toLocation}`, role: 'Rider'
+              });
+            }
+          });
+        });
+      }
+
       const unique = allContacts.filter((c, i, self) =>
         c.id && i === self.findIndex(x => x.id === c.id && x.rideId === c.rideId)
       );
       setContacts(unique);
+      setContactsLoading(false);
+      try { sessionStorage.setItem(contactsCacheKey, JSON.stringify(unique)); } catch {}
     };
     loadAllContacts();
-  }, [user?.id]);
+  }, [user?.id, contactsCacheKey]);
 
   // WebSocket
   useEffect(() => {
@@ -206,7 +222,12 @@ export default function ChatPage() {
           </div>
         </div>
 
-        {visibleContacts.length === 0 ? (
+        {contactsLoading && visibleContacts.length === 0 ? (
+          <div className="p-6 text-center text-aviro-muted text-sm flex-1 flex flex-col items-center justify-center">
+            <div className="w-6 h-6 border-2 border-aviro-border border-t-aviro-orange rounded-full animate-spin mb-2" />
+            <p>Loading chats…</p>
+          </div>
+        ) : visibleContacts.length === 0 ? (
           <div className="p-6 text-center text-aviro-muted text-sm flex-1 flex flex-col items-center justify-center">
             <div className="text-3xl mb-2">💬</div>
             <p>No contacts yet</p>
