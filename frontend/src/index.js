@@ -8,8 +8,10 @@ import { store } from './store/store';
 import { Toaster } from 'react-hot-toast';
 import { Analytics } from '@vercel/analytics/react';
 import { initMonitoring, ErrorBoundary } from './services/monitoring';
+import { wakeServer } from './services/api';
 
 initMonitoring();
+wakeServer();
 
 // Shown if a render error crashes the app (the error is reported to Sentry when enabled)
 const CrashFallback = () => (
