@@ -2,7 +2,11 @@ package com.aviro.repository;
 
 import com.aviro.entity.Notification;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -12,4 +16,9 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
 
     void deleteByUserId(Long userId);
     Long countByUserIdAndIsRead(Long userId, Boolean isRead);
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE Notification n SET n.isRead = true WHERE n.user.id = :userId AND n.isRead = false")
+    int markAllRead(@Param("userId") Long userId);
 }

@@ -12,6 +12,13 @@ spring:
     username: ${DATABASE_USERNAME}
     password: ${DATABASE_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
+    # Cloud MySQL closes idle connections; refresh them before that happens
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:5}
+      minimum-idle: 1
+      max-lifetime: 300000
+      keepalive-time: 120000
+      connection-timeout: 20000
 
   jpa:
     hibernate:
@@ -20,6 +27,8 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
+        # Load lazy relations (ride, driver, rider) in batches instead of one query each
+        default_batch_fetch_size: 50
 
   data:
     redis:
@@ -29,6 +38,9 @@ spring:
       password: ${REDIS_PASSWORD}
       ssl:
         enabled: true
+      # Fail fast instead of hanging requests if Redis is slow or unreachable
+      timeout: 2s
+      connect-timeout: 3s
 
   mail:
     host: smtp.gmail.com
@@ -37,7 +49,7 @@ spring:
     password: ${MAIL_PASSWORD}
     properties:
       mail:
-        debug: true
+        debug: false
         smtp:
           auth: true
           starttls:

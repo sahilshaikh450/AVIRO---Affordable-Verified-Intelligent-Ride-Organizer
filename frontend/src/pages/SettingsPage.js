@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { logoutUser, logout } from '../store/authSlice';
@@ -445,8 +446,9 @@ export default function SettingsPage() {
         AVIRO v1.0.0 · Made with ❤️ for Pune Students
       </p>
 
-      {/* Delete Confirm */}
-      {showDeleteConfirm && (
+      {/* Delete Confirm (portal: the page wrapper is animated with a transform,
+          which would otherwise position this fixed overlay relative to the page) */}
+      {showDeleteConfirm && createPortal(
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <form onSubmit={handleDeleteAccount}
             className="bg-aviro-card border border-aviro-border rounded-2xl w-full max-w-sm p-6 space-y-4">
@@ -482,7 +484,8 @@ export default function SettingsPage() {
               </button>
             </div>
           </form>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Modals */}

@@ -22,6 +22,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -143,7 +145,7 @@ public class RideServiceImpl implements RideService {
             request.getDriverGender()   // ✅ correct field: driverGender
         );
 
-        List<RideResponse> result = rides.stream()
+        List<Ride> matched = rides.stream()
             // ✅ correct field: fromLocation / toLocation
             .filter(r -> request.getFromLocation() == null ||
                 r.getFromLocation().toLowerCase().contains(request.getFromLocation().toLowerCase()))
@@ -152,8 +154,8 @@ public class RideServiceImpl implements RideService {
             // Price filter
             .filter(r -> request.getMaxPrice() == null ||
                 r.getPricePerSeat() <= request.getMaxPrice())
-            .map(r -> toResponse(r, getVehicleForDriver(r.getDriver().getId())))
             .collect(Collectors.toList());
+        List<RideResponse> result = toResponses(matched);
 
         return ApiResponse.success(result);
     }
@@ -240,10 +242,7 @@ public class RideServiceImpl implements RideService {
             seats != null ? seats : 1,
             LocalDateTime.now()
         );
-        List<RideResponse> result = rides.stream()
-            .map(r -> toResponse(r, getVehicleForDriver(r.getDriver().getId())))
-            .collect(Collectors.toList());
-        return ApiResponse.success(result);
+        return ApiResponse.success(toResponses(rides));
     }
 
     // ── ESTIMATE FARE ────────────────────────────────
@@ -259,6 +258,17 @@ public class RideServiceImpl implements RideService {
     // ── Helpers ──────────────────────────────────────
     private Vehicle getVehicleForDriver(Long driverId) {
         return vehicleRepository.findByUserId(driverId).orElse(null);
+    }
+
+    // Lists: one query for all drivers' vehicles instead of one per ride
+    private List<RideResponse> toResponses(List<Ride> rides) {
+        Set<Long> driverIds = rides.stream().map(r -> r.getDriver().getId()).collect(Collectors.toSet());
+        Map<Long, Vehicle> vehicles = driverIds.isEmpty() ? Map.of()
+                : vehicleRepository.findByUserIdIn(driverIds).stream()
+                        .collect(Collectors.toMap(v -> v.getUser().getId(), v -> v, (a, b) -> a));
+        return rides.stream()
+                .map(r -> toResponse(r, vehicles.get(r.getDriver().getId())))
+                .collect(Collectors.toList());
     }
 
     private RideResponse toResponse(Ride ride, Vehicle vehicle) {
