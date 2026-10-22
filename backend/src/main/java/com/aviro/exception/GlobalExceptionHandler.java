@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.FieldError;
@@ -55,6 +56,13 @@ public class GlobalExceptionHandler {
                         .data(errors)
                         .build()
         );
+    }
+
+    // Malformed JSON or a bad value (e.g. an invalid date) is the client's mistake
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<Object>> handleUnreadable(HttpMessageNotReadableException ex) {
+        log.warn("Unreadable request body: {}", ex.getMostSpecificCause().getMessage());
+        return ResponseEntity.badRequest().body(ApiResponse.error("Invalid request data. Please check the form and try again."));
     }
 
     // Wrong HTTP method / unknown path should not show up as a 500

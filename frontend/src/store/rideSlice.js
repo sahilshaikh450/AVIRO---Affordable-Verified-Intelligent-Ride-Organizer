@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../services/api';
 import toast from 'react-hot-toast';
+import { getErrorMessage } from './authSlice';
 
 export const searchRides = createAsyncThunk('rides/search', async (data, { rejectWithValue }) => {
   try {
@@ -14,10 +15,8 @@ export const createRide = createAsyncThunk('rides/create', async (data, { reject
     const res = await api.post('/rides', data);
     return res.data.data;
   } catch (err) {
-    // No response at all means the server is down or still waking up (Render free tier)
-    const msg = err.response?.data?.message
-      || (err.response ? 'Could not post the ride. Please try again.'
-        : 'Server is not responding (it may be waking up). Please try again in a minute.');
+    // Shows the field message for validation errors and a clear one when the server is asleep
+    const msg = getErrorMessage(err, 'Could not post the ride. Please try again.');
     toast.error(msg);
     return rejectWithValue(msg);
   }

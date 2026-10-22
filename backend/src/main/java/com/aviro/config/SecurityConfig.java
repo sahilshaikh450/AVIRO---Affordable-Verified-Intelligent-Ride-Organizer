@@ -43,6 +43,7 @@ public class SecurityConfig {
                     "/auth/**",       // context path '/api' already stripped by Spring Security
                     "/setup/**",
                     "/actuator/**",
+                    "/health",
                     "/ws/**",
                     "/error"
                 ).permitAll()

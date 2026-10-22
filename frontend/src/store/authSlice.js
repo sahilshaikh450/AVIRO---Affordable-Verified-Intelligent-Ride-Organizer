@@ -40,7 +40,7 @@ const saveAuthData = (data) => {
 };
 
 // Turn an axios error into a message the user can act on
-const getErrorMessage = (err, fallback) => {
+export const getErrorMessage = (err, fallback) => {
   if (err.code === 'ECONNABORTED') {
     return 'Server is waking up. Please wait a few seconds and try again.';
   }
