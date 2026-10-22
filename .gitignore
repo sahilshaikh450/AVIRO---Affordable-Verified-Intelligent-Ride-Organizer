@@ -14,3 +14,6 @@ frontend/build/
 .DS_Store
 .idea/
 .vscode/
+
+# Redis local dump
+dump.rdb
