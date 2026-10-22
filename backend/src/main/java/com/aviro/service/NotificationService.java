@@ -55,10 +55,6 @@ public class NotificationService {
     }
 
     public void markAllRead(Long userId) {
-        notificationRepository.findByUserIdOrderByCreatedAtDesc(userId)
-                .stream().filter(n -> !n.getIsRead()).forEach(n -> {
-                    n.setIsRead(true);
-                    notificationRepository.save(n);
-                });
+        notificationRepository.markAllRead(userId);
     }
 }

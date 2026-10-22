@@ -4,7 +4,10 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "chat_messages")
+@Table(name = "chat_messages", indexes = {
+        @Index(name = "idx_chat_ride_sender_receiver", columnList = "ride_id, sender_id, receiver_id"),
+        @Index(name = "idx_chat_receiver_read", columnList = "receiver_id, is_read")
+})
 @Getter
 @Setter
 @NoArgsConstructor

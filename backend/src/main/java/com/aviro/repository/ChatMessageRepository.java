@@ -2,9 +2,11 @@ package com.aviro.repository;
 
 import com.aviro.entity.ChatMessage;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -25,4 +27,9 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
     );
 
     Long countBySenderIdAndReceiverIdAndIsRead(Long senderId, Long receiverId, Boolean isRead);
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE ChatMessage m SET m.isRead = true WHERE m.senderId = :senderId AND m.receiverId = :receiverId AND m.isRead = false")
+    int markRead(@Param("senderId") Long senderId, @Param("receiverId") Long receiverId);
 }

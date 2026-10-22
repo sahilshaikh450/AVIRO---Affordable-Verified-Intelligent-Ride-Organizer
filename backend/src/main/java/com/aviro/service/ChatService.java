@@ -29,16 +29,8 @@ public class ChatService {
     }
 
     public void markAsRead(Long senderId, Long receiverId) {
-        chatMessageRepository
-                .findAll()
-                .stream()
-                .filter(m -> m.getSenderId().equals(senderId)
-                        && m.getReceiverId().equals(receiverId)
-                        && !m.getIsRead())
-                .forEach(m -> {
-                    m.setIsRead(true);
-                    chatMessageRepository.save(m);
-                });
+        // One UPDATE instead of loading every chat message
+        chatMessageRepository.markRead(senderId, receiverId);
     }
 
     public Long getUnreadCount(Long senderId, Long receiverId) {

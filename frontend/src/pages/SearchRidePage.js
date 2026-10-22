@@ -35,7 +35,6 @@ export default function SearchRidePage() {
       seatsNeeded:  form.seatsNeeded,
       womenOnly:    form.womenOnly,
       driverGender: form.driverGender || null,
-      departureTime: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
     }));
   };
 
