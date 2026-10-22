@@ -119,9 +119,10 @@ export default function ChatPage() {
     if (!selected) return;
     selectedRef.current = selected;
     fetchMessages(selected);
+    // New messages arrive over WebSocket; poll only as a fallback when it is disconnected
     const interval = setInterval(() => {
-      if (selectedRef.current) fetchMessages(selectedRef.current);
-    }, 3000);
+      if (selectedRef.current && !clientRef.current?.connected) fetchMessages(selectedRef.current);
+    }, 10000);
     return () => clearInterval(interval);
   }, [selected, fetchMessages]);
 

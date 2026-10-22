@@ -11,11 +11,9 @@ export function RiderOTPCard({ bookingId }) {
   const [loading, setLoading] = useState(true);
   const [verified, setVerified] = useState(false);
 
+  // The OTP does not change, so load it once (polling every 5s only added server load)
   useEffect(() => {
     fetchOtp();
-    // Poll every 5 sec to check if driver verified
-    const interval = setInterval(fetchOtp, 5000);
-    return () => clearInterval(interval);
   }, [bookingId]);
 
   const fetchOtp = async () => {

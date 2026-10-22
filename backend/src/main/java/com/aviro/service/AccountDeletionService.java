@@ -91,10 +91,7 @@ public class AccountDeletionService {
         }
 
         notificationRepository.deleteByUserId(user.getId());
-        vehicleRepository.findByUserId(user.getId()).ifPresent(vehicle -> {
-            user.setVehicle(null);
-            vehicleRepository.delete(vehicle);
-        });
+        vehicleRepository.findByUserId(user.getId()).ifPresent(vehicleRepository::delete);
         deleteCollegeIdImage(user.getCollegeIdPicUrl());
 
         // Remove personal data; the freed email can be used to register again

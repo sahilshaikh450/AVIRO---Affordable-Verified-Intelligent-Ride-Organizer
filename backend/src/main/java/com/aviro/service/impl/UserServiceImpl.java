@@ -125,8 +125,8 @@ public class UserServiceImpl implements UserService {
     }
 
     private UserResponse toResponse(User user) {
-        VehicleResponse vehicleResponse = user.getVehicle() != null
-                ? toVehicleResponse(user.getVehicle()) : null;
+        VehicleResponse vehicleResponse = vehicleRepository.findByUserId(user.getId())
+                .map(this::toVehicleResponse).orElse(null);
         return UserResponse.builder()
                 .id(user.getId())
                 .fullName(user.getFullName())

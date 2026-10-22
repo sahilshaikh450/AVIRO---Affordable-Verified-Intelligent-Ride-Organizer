@@ -118,7 +118,7 @@ public class AuthServiceImpl implements AuthService {
                 )
         );
 
-        User user = userRepository.findByEmailIgnoreCase(email)
+        User user = userRepository.findByEmailNormalized(email)
                 .orElseThrow(() -> new AviroException("User not found"));
 
         if (!user.getIsActive()) {
@@ -160,7 +160,7 @@ public class AuthServiceImpl implements AuthService {
             throw new AviroException("Invalid or expired OTP");
         }
 
-        User user = userRepository.findByEmailIgnoreCase(email)
+        User user = userRepository.findByEmailNormalized(email)
                 .orElseThrow(() -> new AviroException("User not found"));
 
         log.info(
@@ -195,7 +195,7 @@ public class AuthServiceImpl implements AuthService {
             throw new AviroException("Invalid or expired OTP");
         }
 
-        User user = userRepository.findByEmailIgnoreCase(email)
+        User user = userRepository.findByEmailNormalized(email)
                 .orElseThrow(() -> new AviroException("User not found"));
 
         user.setIsVerified(true);
@@ -216,7 +216,7 @@ public class AuthServiceImpl implements AuthService {
 
         String email = normalizeEmail(request.getEmail());
 
-        User user = userRepository.findByEmailIgnoreCase(email)
+        User user = userRepository.findByEmailNormalized(email)
                 .orElseThrow(() -> new AviroException("User not found"));
 
         if (Boolean.TRUE.equals(user.getIsVerified())) {
@@ -294,7 +294,7 @@ public class AuthServiceImpl implements AuthService {
 
         String email = normalizeEmail(request.getEmail());
 
-        User user = userRepository.findByEmailIgnoreCase(email)
+        User user = userRepository.findByEmailNormalized(email)
                 .orElseThrow(() ->
                         new AviroException(
                                 "No account found with this email"
@@ -350,7 +350,7 @@ public class AuthServiceImpl implements AuthService {
             );
         }
 
-        User user = userRepository.findByEmailIgnoreCase(
+        User user = userRepository.findByEmailNormalized(
                 email
         ).orElseThrow(() ->
                 new AviroException("User not found")

@@ -51,7 +51,7 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
         }
 
         String email = jwtTokenProvider.getEmailFromToken(token);
-        userRepository.findByEmailIgnoreCase(email).ifPresent(user -> {
+        userRepository.findByEmailNormalized(email).ifPresent(user -> {
             String userId = String.valueOf(user.getId());
             Principal principal = () -> userId;
             accessor.setUser(principal);

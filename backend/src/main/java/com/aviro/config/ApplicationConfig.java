@@ -25,7 +25,7 @@ public class ApplicationConfig {
     @Bean
     public UserDetailsService userDetailsService() {
         return email -> {
-            com.aviro.entity.User user = userRepository.findByEmailIgnoreCase(email)
+            com.aviro.entity.User user = userRepository.findByEmailNormalized(email)
                     .orElseThrow(() -> new UsernameNotFoundException("User not found: " + email));
             return new org.springframework.security.core.userdetails.User(
                     user.getEmail(),

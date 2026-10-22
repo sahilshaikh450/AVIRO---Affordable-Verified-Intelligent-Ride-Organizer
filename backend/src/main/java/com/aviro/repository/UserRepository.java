@@ -19,6 +19,20 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByEmailIgnoreCase(String email);
 
+    // Emails are stored lower-case, so try the indexed exact match first;
+    // fall back to the (non-indexed) case-insensitive search for older rows
+    default Optional<User> findByEmailNormalized(String email) {
+        if (email == null) return Optional.empty();
+        String normalized = email.trim().toLowerCase();
+        Optional<User> exact = findByEmail(normalized);
+        return exact.isPresent() ? exact : findByEmailIgnoreCase(normalized);
+    }
+
+    @Query("SELECT u FROM User u WHERE u.collegeIdPicUrl IS NOT NULL AND u.collegeIdPicUrl <> '' AND u.isCollegeVerified = false")
+    List<User> findPendingCollegeVerifications();
+
+    long countByIsCollegeVerifiedTrue();
+
     Boolean existsByEmailIgnoreCase(String email);
 
     @Query("SELECT u FROM User u WHERE u.gender = :gender AND u.isActive = true")

@@ -15,6 +15,7 @@ import com.aviro.exception.AviroException;
 import com.aviro.repository.BookingRepository;
 import com.aviro.repository.RideRepository;
 import com.aviro.repository.UserRepository;
+import com.aviro.repository.VehicleRepository;
 import com.aviro.service.BookingService;
 import com.aviro.service.EmailService;
 import com.aviro.service.NotificationService;
@@ -27,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -36,6 +38,7 @@ public class BookingServiceImpl implements BookingService {
 
     private final BookingRepository bookingRepository;
     private final RideRepository rideRepository;
+    private final VehicleRepository vehicleRepository;
     private final UserRepository userRepository;
     private final EmailService emailService;
     private final NotificationService notificationService;
@@ -117,7 +120,7 @@ public class BookingServiceImpl implements BookingService {
     public ApiResponse<List<BookingResponse>> getMyBookings(String email) {
         User rider = getUser(email);
         List<Booking> bookings = bookingRepository.findByRiderId(rider.getId());
-        return ApiResponse.success(bookings.stream().map(this::toResponse).collect(Collectors.toList()));
+        return ApiResponse.success(toResponses(bookings));
     }
 
     @Override
@@ -409,7 +412,7 @@ public class BookingServiceImpl implements BookingService {
         }
 
         List<Booking> bookings = bookingRepository.findByRideId(rideId);
-        return ApiResponse.success(bookings.stream().map(this::toResponse).collect(Collectors.toList()));
+        return ApiResponse.success(toResponses(bookings));
     }
 
     // ══════════════════════════════════════════════════════════
@@ -474,9 +477,25 @@ public class BookingServiceImpl implements BookingService {
     // HELPERS
     // ══════════════════════════════════════════════════════════
 
+    // Lists: one query for all drivers' vehicles instead of one per booking
+    private List<BookingResponse> toResponses(List<Booking> bookings) {
+        Set<Long> driverIds = bookings.stream()
+                .map(b -> b.getRide().getDriver().getId())
+                .collect(Collectors.toSet());
+        Map<Long, Vehicle> vehicles = driverIds.isEmpty() ? Map.of()
+                : vehicleRepository.findByUserIdIn(driverIds).stream()
+                        .collect(Collectors.toMap(v -> v.getUser().getId(), v -> v, (a, b) -> a));
+        return bookings.stream()
+                .map(b -> toResponse(b, vehicles.get(b.getRide().getDriver().getId())))
+                .collect(Collectors.toList());
+    }
+
     private BookingResponse toResponse(Booking booking) {
+        return toResponse(booking, vehicleRepository.findByUserId(booking.getRide().getDriver().getId()).orElse(null));
+    }
+
+    private BookingResponse toResponse(Booking booking, Vehicle vehicle) {
         User driver = booking.getRide().getDriver();
-        Vehicle vehicle = driver.getVehicle();
         User rider = booking.getRider();
 
         String genderLabel = switch (driver.getGender()) {
