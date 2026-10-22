@@ -25,6 +25,11 @@ export default function OfferRidePage() {
       toast.error('Please select From and To locations'); 
       return; 
     } 
+
+    if (new Date(data.departureTime) < new Date(Date.now() + 15 * 60 * 1000)) { 
+      toast.error('Departure time must be at least 15 minutes from now.'); 
+      return; 
+    } 
  
     const payload = { 
       ...data, 
@@ -38,7 +43,8 @@ export default function OfferRidePage() {
       pricePerSeat: parseFloat(data.pricePerSeat), 
       womenOnly:    !!data.womenOnly, 
       isRecurring:  !!data.isRecurring, 
-      departureTime: new Date(data.departureTime).toISOString(), 
+      // Send local (IST) time as typed; toISOString() converted it to UTC 
+      departureTime: `${data.departureTime}:00`, 
     }; 
  
     const res = await dispatch(createRide(payload)); 
