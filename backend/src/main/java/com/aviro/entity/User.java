@@ -85,10 +85,6 @@ public class User extends BaseEntity {
     @Builder.Default
     private Boolean womenOnlyMode = false;
 
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonIgnore // vehicle is exposed separately via DTOs, not via raw entity
-    private Vehicle vehicle;
-
     @OneToMany(mappedBy = "rider", cascade = CascadeType.ALL)
     @Builder.Default
     @JsonIgnore // CRITICAL: prevents User -> bookings -> Booking -> rider(User) infinite loop

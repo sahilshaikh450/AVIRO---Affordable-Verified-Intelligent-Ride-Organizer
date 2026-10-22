@@ -25,10 +25,7 @@ public class AdminController {
     // ── Pending College ID verifications ──────────────────────────
     @GetMapping("/pending-verifications")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getPendingVerifications() {
-        List<User> users = userRepository.findAll().stream()
-                .filter(u -> u.getCollegeIdPicUrl() != null && !u.getCollegeIdPicUrl().isEmpty())
-                .filter(u -> !Boolean.TRUE.equals(u.getIsCollegeVerified()))
-                .collect(Collectors.toList());
+        List<User> users = userRepository.findPendingCollegeVerifications();
 
         List<Map<String, Object>> safe = users.stream().map(u -> {
             Map<String, Object> m = new LinkedHashMap<>();
@@ -69,9 +66,7 @@ public class AdminController {
     // ── Pending Vehicle verifications ─────────────────────────────
     @GetMapping("/pending-vehicles")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getPendingVehicles() {
-        List<Vehicle> vehicles = vehicleRepository.findAll().stream()
-                .filter(v -> !Boolean.TRUE.equals(v.getIsVerified()))
-                .collect(Collectors.toList());
+        List<Vehicle> vehicles = vehicleRepository.findPendingWithOwner();
 
         List<Map<String, Object>> safe = vehicles.stream().map(v -> {
             Map<String, Object> m = new LinkedHashMap<>();
@@ -117,18 +112,13 @@ public class AdminController {
     // ── Stats ─────────────────────────────────────────────────────
     @GetMapping("/stats")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getStats() {
-        List<User> allUsers = userRepository.findAll();
-        List<Vehicle> allVehicles = vehicleRepository.findAll();
-
-        long totalUsers     = allUsers.size();
-        long verifiedUsers  = allUsers.stream().filter(u -> Boolean.TRUE.equals(u.getIsCollegeVerified())).count();
-        long pendingUsers   = allUsers.stream()
-                .filter(u -> u.getCollegeIdPicUrl() != null && !u.getCollegeIdPicUrl().isEmpty())
-                .filter(u -> !Boolean.TRUE.equals(u.getIsCollegeVerified()))
-                .count();
-        long totalVehicles   = allVehicles.size();
-        long verifiedVehicles = allVehicles.stream().filter(v -> Boolean.TRUE.equals(v.getIsVerified())).count();
-        long pendingVehicles  = allVehicles.stream().filter(v -> !Boolean.TRUE.equals(v.getIsVerified())).count();
+        // Counts in the database instead of loading every user and vehicle
+        long totalUsers       = userRepository.count();
+        long verifiedUsers    = userRepository.countByIsCollegeVerifiedTrue();
+        long pendingUsers     = userRepository.findPendingCollegeVerifications().size();
+        long totalVehicles    = vehicleRepository.count();
+        long verifiedVehicles = vehicleRepository.countByIsVerifiedTrue();
+        long pendingVehicles  = totalVehicles - verifiedVehicles;
 
         Map<String, Object> stats = new LinkedHashMap<>();
         stats.put("totalUsers", totalUsers);
