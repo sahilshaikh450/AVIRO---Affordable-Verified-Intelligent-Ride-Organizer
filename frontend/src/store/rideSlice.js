@@ -12,9 +12,15 @@ export const searchRides = createAsyncThunk('rides/search', async (data, { rejec
 export const createRide = createAsyncThunk('rides/create', async (data, { rejectWithValue }) => {
   try {
     const res = await api.post('/rides', data);
-    toast.success('Ride posted successfully! 🏍️');
     return res.data.data;
-  } catch (err) { toast.error(err.response?.data?.message); return rejectWithValue(err.response?.data?.message); }
+  } catch (err) {
+    // No response at all means the server is down or still waking up (Render free tier)
+    const msg = err.response?.data?.message
+      || (err.response ? 'Could not post the ride. Please try again.'
+        : 'Server is not responding (it may be waking up). Please try again in a minute.');
+    toast.error(msg);
+    return rejectWithValue(msg);
+  }
 });
 
 export const fetchMyRides = createAsyncThunk('rides/myRides', async (_, { rejectWithValue }) => {
@@ -49,7 +55,9 @@ const rideSlice = createSlice({
     builder.addCase(searchRides.pending,       s => { s.loading = true; });
     builder.addCase(searchRides.fulfilled,     (s, a) => { s.loading = false; s.list = a.payload || []; });
     builder.addCase(searchRides.rejected,      s => { s.loading = false; });
-    builder.addCase(createRide.fulfilled,      (s, a) => { s.myRides.unshift(a.payload); });
+    builder.addCase(createRide.pending,        s => { s.loading = true; });
+    builder.addCase(createRide.fulfilled,      (s, a) => { s.loading = false; s.myRides.unshift(a.payload); });
+    builder.addCase(createRide.rejected,       s => { s.loading = false; });
     builder.addCase(fetchMyRides.fulfilled,    (s, a) => { s.myRides = a.payload || []; });
     builder.addCase(fetchNearbyRides.fulfilled,(s, a) => { s.nearby  = a.payload || []; });
     builder.addCase(cancelRide.fulfilled,      (s, a) => { s.myRides = s.myRides.filter(r => r.id !== a.payload); });
