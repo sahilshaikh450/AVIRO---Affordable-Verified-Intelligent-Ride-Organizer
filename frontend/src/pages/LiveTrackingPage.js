@@ -9,6 +9,7 @@ import api from '../services/api';
 import { getErrorMessage } from '../store/authSlice';
 import PaymentChoiceModal from '../components/common/PaymentChoiceModal';
 import ReviewModal from '../components/common/ReviewModal';
+import { geocodePlace, fetchRoute, hasRealCoords, googleMapsDirections } from '../utils/geo';
 import toast from 'react-hot-toast';
 
 const QUICK_MESSAGES = [
@@ -34,6 +35,7 @@ const TRIP_TYPES = ['BOOKING_ACCEPTED', 'BOOKING_REJECTED', 'BOOKING_CANCELLED',
 
 const AVG_CITY_SPEED_KMH = 25;
 const PUBLISH_EVERY_MS = 3000;
+const REROUTE_AFTER_KM = 0.15;
 
 // Straight-line distance in km
 const distanceKm = (a, b) => {
@@ -81,6 +83,8 @@ export default function LiveTrackingPage() {
   const [showPay, setShowPay]       = useState(false);
   const [showReview, setShowReview] = useState(false);
   const [reviewed, setReviewed]     = useState(false);
+  const [destination, setDestination] = useState(null);
+  const [route, setRoute]           = useState(null);
 
   const clientRef     = useRef(null);
   const watchIdRef    = useRef(null);
@@ -89,6 +93,10 @@ export default function LiveTrackingPage() {
   const mapInstance   = useRef(null);
   const markersRef    = useRef({});
   const fittedCountRef = useRef(0);
+  const routeLineRef  = useRef(null);
+  const routedRef     = useRef(null);
+  const routeReqRef   = useRef(0);
+  const fittedRouteRef = useRef(null);
 
   const isDriver = booking?.driver?.id === user?.id;
   const isRider  = booking?.rider?.id === user?.id;
@@ -100,6 +108,13 @@ export default function LiveTrackingPage() {
   const pickup = useMemo(() => (booking?.pickupLat && booking?.pickupLng
     ? { lat: booking.pickupLat, lng: booking.pickupLng } : null), [booking?.pickupLat, booking?.pickupLng]);
   const showMap = isLive || stage === 'REQUESTED';
+
+  // Route on the map: driver → rider before pickup, then current position → destination
+  const driverLoc = isDriver ? myLoc : otherLoc;
+  const riderLoc  = isDriver ? (otherLoc || pickup) : (myLoc || pickup);
+  const inTrip    = stage === 'STARTED';
+  const routeFrom = inTrip ? (myLoc || otherLoc) : driverLoc;
+  const routeTo   = inTrip ? destination : riderLoc;
 
   // ── Load booking (also called on every trip event) ──
   const loadBooking = useCallback(async () => {
@@ -132,8 +147,59 @@ export default function LiveTrackingPage() {
     mapRef.current.style.filter = 'invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9)';
     mapInstance.current = map;
     setTimeout(() => map.invalidateSize(), 300);
-    return () => { map.remove(); mapInstance.current = null; markersRef.current = {}; fittedCountRef.current = 0; };
+    return () => {
+      map.remove(); mapInstance.current = null; markersRef.current = {}; fittedCountRef.current = 0;
+      routeLineRef.current = null; fittedRouteRef.current = null;
+    };
   }, [booking?.id, showMap]);
+
+  // ── Destination point (older rides only stored the place name) ──
+  useEffect(() => {
+    if (!booking) return;
+    if (hasRealCoords(booking.toLat, booking.toLng)) {
+      setDestination({ lat: booking.toLat, lng: booking.toLng });
+      return;
+    }
+    let cancelled = false;
+    geocodePlace(booking.toLocation).then(p => { if (!cancelled && p) setDestination(p); });
+    return () => { cancelled = true; };
+  }, [booking?.id, booking?.toLat, booking?.toLng, booking?.toLocation]);
+
+  // ── Road route; refreshed when someone moves a bit or the trip stage changes ──
+  useEffect(() => {
+    if (!isLive || !routeFrom || !routeTo) { setRoute(null); routedRef.current = null; return; }
+    const last = routedRef.current;
+    if (last && last.stage === stage && distanceKm(last.from, routeFrom) < REROUTE_AFTER_KM
+        && distanceKm(last.to, routeTo) < REROUTE_AFTER_KM) return;
+    routedRef.current = { stage, from: routeFrom, to: routeTo };
+    const req = ++routeReqRef.current;
+    fetchRoute(routeFrom, routeTo).then(r => {
+      if (req !== routeReqRef.current) return;
+      const straight = distanceKm(routeFrom, routeTo);
+      // Without the routing service, fall back to a straight dashed line
+      setRoute(r ? { ...r, stage } : {
+        coords: [[routeFrom.lat, routeFrom.lng], [routeTo.lat, routeTo.lng]],
+        distanceKm: straight, durationMin: etaMinutes(straight), straight: true, stage,
+      });
+    });
+  }, [isLive, stage, routeFrom, routeTo]);
+
+  // Draw the route, and frame it once per stage
+  useEffect(() => {
+    const map = mapInstance.current;
+    if (!map) return;
+    if (routeLineRef.current) { map.removeLayer(routeLineRef.current); routeLineRef.current = null; }
+    if (!route) return;
+    routeLineRef.current = L.polyline(route.coords, {
+      color: route.stage === 'STARTED' ? '#22c55e' : '#f97316',
+      weight: 5, opacity: 0.85, dashArray: route.straight ? '8 8' : null,
+    }).addTo(map);
+    if (fittedRouteRef.current !== route.stage) {
+      fittedRouteRef.current = route.stage;
+      map.invalidateSize();
+      map.fitBounds(routeLineRef.current.getBounds(), { padding: [50, 50], animate: true, maxZoom: 17 });
+    }
+  }, [route]);
 
   const placeMarker = useCallback((key, loc, icon, popup) => {
     const map = mapInstance.current;
@@ -149,12 +215,12 @@ export default function LiveTrackingPage() {
 
   const fitAll = useCallback(() => {
     const map = mapInstance.current;
-    const points = [myLoc, otherLoc, pickup].filter(Boolean).map(p => [p.lat, p.lng]);
+    const points = [myLoc, otherLoc, inTrip ? destination : pickup].filter(Boolean).map(p => [p.lat, p.lng]);
     if (!map || points.length === 0) return;
     map.invalidateSize();
     if (points.length === 1) map.setView(points[0], 16, { animate: true });
     else map.fitBounds(points, { padding: [50, 50], animate: true, maxZoom: 17 });
-  }, [myLoc, otherLoc, pickup]);
+  }, [myLoc, otherLoc, pickup, destination, inTrip]);
 
   // Keep markers in sync with locations
   useEffect(() => {
@@ -164,11 +230,13 @@ export default function LiveTrackingPage() {
       ? pinIcon('#22c55e', '🙋', other?.fullName?.split(' ')[0] || 'Rider')
       : pinIcon('#f97316', booking.driver?.vehicleType === 'CAR' ? '🚗' : '🏍️', other?.fullName?.split(' ')[0] || 'Driver'),
       isDriver ? `🙋 ${other?.fullName || 'Rider'}` : `🚗 ${other?.fullName || 'Driver'}`);
-    placeMarker('pickup', pickup, pinIcon('#a855f7', '📌'), '📌 Pickup point');
+    // Once the rider is in the vehicle the pickup pin is replaced by the destination
+    placeMarker('pickup', inTrip ? null : pickup, pinIcon('#a855f7', '📌'), '📌 Pickup point');
+    placeMarker('dest', destination, pinIcon('#ef4444', '🏁', booking.toLocation?.split(' ').slice(0, 2).join(' ')), `🏁 ${booking.toLocation}`);
     // Reframe when someone new appears on the map; otherwise let the user move it freely
     const known = [myLoc, otherLoc, pickup].filter(Boolean).length;
     if (known > fittedCountRef.current) { fitAll(); fittedCountRef.current = known; }
-  }, [booking, myLoc, otherLoc, pickup, isDriver, other, placeMarker, fitAll]);
+  }, [booking, myLoc, otherLoc, pickup, destination, inTrip, isDriver, other, placeMarker, fitAll]);
 
   // ── WebSocket: locations, trip events, quick messages ──
   useEffect(() => {
@@ -286,10 +354,12 @@ export default function LiveTrackingPage() {
 
   if (!isDriver && !isRider) return <p className="text-center text-aviro-muted py-20">This trip is not yours.</p>;
 
-  // Distance between driver and the rider (live, else pickup point)
-  const driverLoc = isDriver ? myLoc : otherLoc;
-  const riderLoc  = isDriver ? (otherLoc || pickup) : (myLoc || pickup);
+  // Distance and time: road route when available, else straight line
   const gap = distanceKm(driverLoc, riderLoc);
+  const routeNow = route && route.stage === stage ? route : null;
+  const awayKm  = routeNow && !inTrip ? routeNow.distanceKm : gap;
+  const awayMin = routeNow && !inTrip ? routeNow.durationMin : (gap != null ? etaMinutes(gap) : null);
+  const navTarget = inTrip ? destination : riderLoc;
   const stepIndex = STEPS.findIndex(s => s.key === stage);
   const otherStale = otherSeenAt && Date.now() - otherSeenAt > 60000;
 
@@ -364,10 +434,17 @@ export default function LiveTrackingPage() {
                   STARTED:    `Drop ${other?.fullName?.split(' ')[0]} at ${booking.toLocation}`,
                 }[stage]}
               </p>
-              {gap != null && stage !== 'STARTED' && (
+              {awayKm != null && !inTrip && (
                 <p className="text-sm text-aviro-muted mt-1">
-                  {isDriver ? 'Rider' : 'Driver'} is <span className="text-white font-semibold">{formatDistance(gap)}</span> away
-                  {gap > 0.05 && <> · about <span className="text-white font-semibold">{etaMinutes(gap)} min</span></>}
+                  {isDriver ? 'Rider' : 'Driver'} is <span className="text-white font-semibold">{formatDistance(awayKm)}</span> away
+                  {awayKm > 0.05 && <> · about <span className="text-white font-semibold">{awayMin} min</span></>}
+                </p>
+              )}
+              {inTrip && (
+                <p className="text-sm text-aviro-muted mt-1" data-testid="trip-eta">
+                  {routeNow
+                    ? <>🏁 <span className="text-white font-semibold">{formatDistance(routeNow.distanceKm)}</span> · about <span className="text-white font-semibold">{routeNow.durationMin} min</span> to {booking.toLocation}</>
+                    : <>Finding the route to {booking.toLocation}…</>}
                 </p>
               )}
               {otherStale && <p className="text-xs text-yellow-400 mt-1">⚠️ {isDriver ? 'Rider' : 'Driver'}'s location hasn't updated for a minute</p>}
@@ -379,6 +456,14 @@ export default function LiveTrackingPage() {
                 <p className="text-xs text-aviro-muted mb-1">Share this OTP with your driver at pickup</p>
                 <p className="font-mono font-bold text-3xl tracking-[0.4em] text-aviro-orange" data-testid="rider-otp">{otp}</p>
               </div>
+            )}
+
+            {/* Turn-by-turn navigation for the driver */}
+            {isDriver && (navTarget || inTrip) && (
+              <a href={googleMapsDirections(navTarget, booking.toLocation)} target="_blank" rel="noreferrer"
+                className="w-full flex items-center justify-center gap-2 bg-aviro-card2 border border-aviro-border text-sm font-semibold py-2.5 rounded-xl hover:border-aviro-orange/50">
+                🧭 Navigate to {inTrip ? 'drop' : 'pickup'} in Google Maps
+              </a>
             )}
 
             {/* Driver controls */}
@@ -456,7 +541,8 @@ export default function LiveTrackingPage() {
           <div className="absolute bottom-2 left-2 z-[1000] bg-black/80 rounded-lg px-3 py-1.5 flex items-center gap-3 text-xs text-white">
             <span>🔵 You</span>
             <span>{isDriver ? '🟢 Rider' : '🟠 Driver'}</span>
-            {pickup && <span>📌 Pickup</span>}
+            {pickup && !inTrip && <span>📌 Pickup</span>}
+            {destination && <span>🏁 Drop</span>}
             {isLive && <span className={gpsStatus === 'active' ? 'text-aviro-green' : 'text-aviro-muted'}>
               {gpsStatus === 'active' ? '● Sharing live' : gpsStatus === 'acquiring' ? '○ Getting GPS…' : '○ GPS off'}
             </span>}
