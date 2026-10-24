@@ -71,6 +71,12 @@ sentry:
   send-default-pii: false
 
 aviro:
+  # Phone push notifications: off unless both VAPID keys are set
+  push:
+    vapid-public-key: ${VAPID_PUBLIC_KEY:}
+    vapid-private-key: ${VAPID_PRIVATE_KEY:}
+    subject: ${VAPID_SUBJECT:mailto:aviro.support@gmail.com}
+
   jwt:
     secret: ${AVIRO_JWT_SECRET}
     expiration: ${AVIRO_JWT_EXPIRATION:86400000}

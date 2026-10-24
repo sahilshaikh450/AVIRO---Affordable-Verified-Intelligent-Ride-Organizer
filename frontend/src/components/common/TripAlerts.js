@@ -10,6 +10,8 @@ import { getErrorMessage } from '../../store/authSlice';
 
 // Fired on window for every live notification (NotificationBell listens to it)
 export const NOTIFICATION_EVENT = 'aviro:notification';
+// Fired when the live connection (re)opens, so missed notifications can be reloaded
+export const REALTIME_CONNECTED_EVENT = 'aviro:realtime-connected';
 
 // Notifications that open a popup instead of only a toast
 const POPUPS = {
@@ -19,6 +21,29 @@ const POPUPS = {
   RIDE_COMPLETED:   'completed',
 };
 const TOASTS = ['BOOKING_REJECTED', 'BOOKING_CANCELLED', 'TRIP_ON_THE_WAY', 'TRIP_STARTED', 'PAYMENT_RECEIVED'];
+
+// A popup only makes sense while the booking is still at that step
+const stillRelevant = (kind, booking, userId) => {
+  switch (kind) {
+    case 'request':   return booking.status === 'REQUESTED';
+    case 'accepted':  return booking.status === 'CONFIRMED' && !booking.tripStage;
+    case 'arrived':   return booking.status === 'CONFIRMED' && booking.tripStage === 'ARRIVED';
+    case 'completed': return booking.status === 'COMPLETED' && (booking.rider?.id === userId
+      ? !booking.paymentMethod
+      : booking.paymentStatus !== 'COMPLETED');
+    default:          return false;
+  }
+};
+
+// After reconnecting (phone was in the background), still show alerts from the last few minutes
+const CATCH_UP_MS = 5 * 60 * 1000;
+const SHOWN_KEY = 'aviro_shown_alerts';
+const readShown = () => {
+  try { return new Set(JSON.parse(sessionStorage.getItem(SHOWN_KEY) || '[]')); } catch { return new Set(); }
+};
+const rememberShown = (shown) => {
+  try { sessionStorage.setItem(SHOWN_KEY, JSON.stringify([...shown].slice(-50))); } catch {}
+};
 
 // One app-wide WebSocket for notifications, plus cab-app style popups:
 // the driver can accept a request from any page, and the rider is told when
@@ -30,35 +55,71 @@ export default function TripAlerts() {
   const [popup, setPopup] = useState(null);
   const [busy, setBusy]   = useState(false);
   const pathRef = useRef(location.pathname);
+  const shownRef = useRef(readShown());
 
   useEffect(() => { pathRef.current = location.pathname; }, [location.pathname]);
 
+  // Tapping a phone notification while AVIRO is open: the service worker asks us to open the page
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+    const onMessage = (e) => {
+      if (e.data?.type === 'AVIRO_NAVIGATE' && typeof e.data.url === 'string' && e.data.url.startsWith('/')) {
+        navigate(e.data.url);
+      }
+    };
+    navigator.serviceWorker.addEventListener('message', onMessage);
+    return () => navigator.serviceWorker.removeEventListener('message', onMessage);
+  }, [navigate]);
+
   useEffect(() => {
     if (!user?.id) return;
+
+    const showAlert = async (n) => {
+      if (n.id && shownRef.current.has(n.id)) return;
+      if (n.id) { shownRef.current.add(n.id); rememberShown(shownRef.current); }
+
+      // The trip screen for this booking already shows these updates
+      if (n.referenceId && pathRef.current === `/tracking/${n.referenceId}`) return;
+
+      const kind = POPUPS[n.type];
+      if (kind && n.referenceId) {
+        try {
+          const res = await api.get(`/bookings/${n.referenceId}`);
+          const booking = res.data.data;
+          if (stillRelevant(kind, booking, user.id)) setPopup({ kind, notification: n, booking });
+        } catch {
+          toast(n.title, { icon: '🔔' });
+        }
+      } else if (TOASTS.includes(n.type)) {
+        toast(`${n.title} — ${n.message}`, { icon: '🔔', duration: 5000 });
+      }
+    };
+
+    // Newest unread ride alert from the last few minutes that was missed while disconnected
+    const catchUp = async () => {
+      try {
+        const res = await api.get('/notifications/my');
+        const cutoff = Date.now() - CATCH_UP_MS;
+        const missed = (res.data.data || []).find(n => !n.isRead && POPUPS[n.type]
+          && !shownRef.current.has(n.id) && new Date(n.createdAt).getTime() > cutoff);
+        if (missed) showAlert(missed);
+      } catch {
+        // Catch-up is best effort
+      }
+    };
+
     const client = new Client({
       webSocketFactory: () => new SockJS(WS_URL),
       connectHeaders: { Authorization: `Bearer ${localStorage.getItem('aviro_token')}` },
       reconnectDelay: 5000,
       onConnect: () => {
-        client.subscribe('/user/queue/notifications', async (frame) => {
+        window.dispatchEvent(new Event(REALTIME_CONNECTED_EVENT));
+        client.subscribe('/user/queue/notifications', (frame) => {
           const n = JSON.parse(frame.body);
           window.dispatchEvent(new CustomEvent(NOTIFICATION_EVENT, { detail: n }));
-
-          // The trip screen for this booking already shows these updates
-          if (n.referenceId && pathRef.current === `/tracking/${n.referenceId}`) return;
-
-          const kind = POPUPS[n.type];
-          if (kind && n.referenceId) {
-            try {
-              const res = await api.get(`/bookings/${n.referenceId}`);
-              setPopup({ kind, notification: n, booking: res.data.data });
-            } catch {
-              toast(n.title, { icon: '🔔' });
-            }
-          } else if (TOASTS.includes(n.type)) {
-            toast(`${n.title} — ${n.message}`, { icon: '🔔', duration: 5000 });
-          }
+          showAlert(n);
         });
+        catchUp();
       },
     });
     client.activate();

@@ -1,6 +1,7 @@
 
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../services/api';
+import { disablePush } from '../services/push';
 import toast from 'react-hot-toast';
 
 // =========================================================
@@ -135,14 +136,19 @@ export const fetchProfile = createAsyncThunk(
 export const logoutUser = createAsyncThunk(
   'auth/logoutUser',
   async (_, { dispatch }) => {
-    try {
-      await api.post('/auth/logout', {
-        refreshToken: localStorage.getItem('aviro_refresh'),
-      });
-    } catch {
-      // Still log out locally even if the server call fails
-    }
+    const token = localStorage.getItem('aviro_token');
+    const refreshToken = localStorage.getItem('aviro_refresh');
+    // Log out on screen at once, so nothing (like the push prompt) runs as this user meanwhile
     dispatch(authSlice.actions.logout());
+
+    const auth = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+    // Stop phone notifications for this account on this device
+    await disablePush(auth);
+    try {
+      await api.post('/auth/logout', { refreshToken }, auth);
+    } catch {
+      // Already logged out locally even if the server call fails
+    }
   }
 );
 

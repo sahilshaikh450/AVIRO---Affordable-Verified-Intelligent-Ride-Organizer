@@ -117,6 +117,18 @@
             <artifactId>sentry-spring-boot-starter-jakarta</artifactId>
             <version>7.22.6</version>
         </dependency>
+
+        <!-- Phone push notifications (Web Push / VAPID); off unless VAPID keys are set -->
+        <dependency>
+            <groupId>nl.martijndwars</groupId>
+            <artifactId>web-push</artifactId>
+            <version>5.1.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-jdk18on</artifactId>
+            <version>1.78.1</version>
+        </dependency>
     </dependencies>
 
     <build>
