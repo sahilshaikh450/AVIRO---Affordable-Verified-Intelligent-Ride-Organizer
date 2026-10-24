@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 import { pushSupported, isIos, isInstalledApp, enablePush, syncPushSubscription } from '../../services/push';
@@ -15,7 +16,11 @@ const recentlyDismissed = () => {
 };
 
 // Asks once to turn on phone notifications, so ride alerts arrive like WhatsApp messages
+// Full-screen pages where the banner would take space from the content
+const HIDDEN_ON = ['/chat', '/tracking'];
+
 export default function PushPrompt() {
+  const { pathname } = useLocation();
   const [mode, setMode] = useState(null); // 'ask' | 'ios-install'
   const [busy, setBusy] = useState(false);
 
@@ -61,7 +66,7 @@ export default function PushPrompt() {
     setBusy(false);
   };
 
-  if (!mode) return null;
+  if (!mode || HIDDEN_ON.some(p => pathname.startsWith(p))) return null;
 
   return (
     <div className="card p-4 mb-4 flex items-start gap-3 border-aviro-orange/40 bg-aviro-orange/5" role="region" aria-label="Notifications">

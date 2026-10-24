@@ -48,6 +48,15 @@ public class NotificationController {
         return ResponseEntity.ok(ApiResponse.success("All marked as read", null));
     }
 
+    @DeleteMapping
+    public ResponseEntity<ApiResponse<String>> clearAll(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        User user = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        notificationService.deleteAll(user.getId());
+        return ResponseEntity.ok(ApiResponse.success("All notifications cleared", null));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<String>> deleteNotification(
             @AuthenticationPrincipal UserDetails userDetails,
