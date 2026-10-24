@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useSelector } from 'react-redux';
-import { GenderBadge } from '../components/common/UIComponents';
 import api from '../services/api';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
@@ -201,10 +200,10 @@ export default function ChatPage() {
   const visibleContacts = contacts.filter(c => !deletedChats.includes(`${c.id}-${c.rideId}`));
 
   return (
-    <div className="h-[calc(100vh-8rem)] flex gap-4 animate-fade-up">
+    <div className="h-[calc(100dvh-10.5rem)] md:h-[calc(100vh-8rem)] flex md:gap-4 animate-fade-up">
 
       {/* ── Contacts sidebar ── */}
-      <div className="w-64 card overflow-y-auto flex-shrink-0 flex flex-col">
+      <div className={`${selected ? 'hidden md:flex' : 'flex'} w-full md:w-72 card overflow-hidden flex-shrink-0 flex-col`}>
         <div className="p-4 border-b border-aviro-border flex items-center justify-between">
           <h2 className="font-bold text-sm">💬 Messages</h2>
           <div className="flex items-center gap-2">
@@ -254,7 +253,7 @@ export default function ChatPage() {
                 {/* Delete button — shows on hover */}
                 <button
                   onClick={(e) => deleteChat(c, e)}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity text-red-400 hover:text-red-300 p-1 rounded-lg hover:bg-red-500/10 flex-shrink-0"
+                  className="md:opacity-0 md:group-hover:opacity-100 transition-opacity text-red-400 hover:text-red-300 p-2 rounded-lg hover:bg-red-500/10 flex-shrink-0"
                   title="Delete chat">
                   🗑️
                 </button>
@@ -265,42 +264,43 @@ export default function ChatPage() {
       </div>
 
       {/* ── Chat Area ── */}
-      <div className="flex-1 card flex flex-col overflow-hidden">
+      <div className={`${selected ? 'flex' : 'hidden md:flex'} flex-1 min-w-0 card flex-col overflow-hidden`}>
         {selected ? (
           <>
             {/* Header */}
-            <div className="p-4 border-b border-aviro-border flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-aviro-card2 flex items-center justify-center text-lg">
+            <div className="px-3 py-3 md:p-4 border-b border-aviro-border flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 md:gap-3 min-w-0">
+                <button onClick={() => setSelected(null)} aria-label="Back to chats"
+                  className="md:hidden w-9 h-9 -ml-1 rounded-lg flex items-center justify-center text-lg text-aviro-muted hover:text-white flex-shrink-0">
+                  ←
+                </button>
+                <div className="w-10 h-10 rounded-full bg-aviro-card2 flex items-center justify-center text-lg flex-shrink-0">
                   {selected.gender === 'FEMALE' ? '👩' : '👨'}
                 </div>
-                <div>
-                  <p className="font-semibold text-sm">{selected.name}</p>
-                  <div className="flex items-center gap-2">
-                    <GenderBadge gender={selected.gender} />
-                    <span className="text-xs text-aviro-muted">{selected.role}</span>
-                  </div>
+                <div className="min-w-0">
+                  <p className="font-semibold text-sm truncate">{selected.name}</p>
+                  <p className="text-xs text-aviro-muted truncate">{selected.role} · {selected.route}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
                 <div className={`flex items-center gap-1.5 text-xs font-medium
-                  ${connected ? 'text-aviro-green' : 'text-yellow-400'}`}>
+                  ${connected ? 'text-aviro-green' : 'text-yellow-400'}`} title={connected ? 'Real-time' : 'Reconnecting'}>
                   <div className={`w-2 h-2 rounded-full
                     ${connected ? 'bg-aviro-green animate-pulse' : 'bg-yellow-400'}`} />
-                  {connected ? 'Real-time ✅' : 'Polling'}
+                  <span className="hidden sm:inline">{connected ? 'Live' : 'Reconnecting'}</span>
                 </div>
                 {/* Clear this chat */}
                 <button
                   onClick={() => { setMsgs([]); toast.success('Messages cleared'); }}
                   className="text-xs text-aviro-muted hover:text-red-400 transition-colors px-2 py-1 rounded-lg hover:bg-red-500/10"
                   title="Clear messages">
-                  🗑️ Clear
+                  🗑️<span className="hidden sm:inline"> Clear</span>
                 </button>
               </div>
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            <div className="flex-1 overflow-y-auto overscroll-contain p-3 md:p-4 space-y-2 md:space-y-3">
               {msgs.length === 0 && (
                 <div className="text-center text-aviro-muted text-sm py-12">
                   <div className="text-3xl mb-2">👋</div>
@@ -313,20 +313,20 @@ export default function ChatPage() {
                   <div key={`msg-${i}`}
                     className={`group flex ${isMine ? 'justify-end' : 'justify-start'} items-end gap-2`}>
                     {!isMine && (
-                      <div className="w-8 h-8 rounded-full bg-aviro-card2 border border-aviro-border
-                        flex items-center justify-center text-sm flex-shrink-0">
+                      <div className="hidden sm:flex w-8 h-8 rounded-full bg-aviro-card2 border border-aviro-border
+                        items-center justify-center text-sm flex-shrink-0">
                         {selected.gender === 'FEMALE' ? '👩' : '👨'}
                       </div>
                     )}
-                    <div className="flex items-end gap-1">
+                    <div className="flex items-end gap-1 max-w-[85%] sm:max-w-none">
                       {/* Delete message button */}
                       {isMine && (
                         <button onClick={() => deleteMessage(i)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity text-xs text-red-400 hover:text-red-300 mb-1">
+                          className="opacity-50 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-xs text-red-400 hover:text-red-300 mb-1 p-1">
                           ✕
                         </button>
                       )}
-                      <div className={`max-w-xs lg:max-w-sm rounded-2xl px-4 py-2.5 text-sm
+                      <div className={`max-w-full sm:max-w-xs lg:max-w-sm rounded-2xl px-3.5 py-2 md:px-4 md:py-2.5 text-sm break-words
                         ${isMine
                           ? 'bg-aviro-orange text-white rounded-br-sm'
                           : 'bg-aviro-card2 text-white rounded-bl-sm border border-aviro-border'}`}>
@@ -339,8 +339,8 @@ export default function ChatPage() {
                       </div>
                     </div>
                     {isMine && (
-                      <div className="w-8 h-8 rounded-full bg-aviro-orange/20 border border-aviro-orange/30
-                        flex items-center justify-center text-sm flex-shrink-0">
+                      <div className="hidden sm:flex w-8 h-8 rounded-full bg-aviro-orange/20 border border-aviro-orange/30
+                        items-center justify-center text-sm flex-shrink-0">
                         {user?.gender === 'FEMALE' ? '👩' : '👨'}
                       </div>
                     )}
@@ -352,14 +352,16 @@ export default function ChatPage() {
 
             {/* Input */}
             <form onSubmit={handleSend}
-              className="p-4 border-t border-aviro-border flex gap-2 items-center">
+              className="p-2.5 md:p-4 border-t border-aviro-border flex gap-2 items-center">
               <input value={input} onChange={e => setInput(e.target.value)}
                 placeholder="Type a message..."
                 className="input-field flex-1"
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) handleSend(e); }}
-                autoFocus />
-              <button type="submit" disabled={!input.trim()} className="btn-primary px-6 py-2.5 flex-shrink-0">
-                Send →
+                enterKeyHint="send"
+                autoFocus={window.innerWidth >= 768} />
+              <button type="submit" disabled={!input.trim()} aria-label="Send"
+                className="btn-primary px-4 md:px-6 py-2.5 flex-shrink-0">
+                <span className="md:hidden">➤</span><span className="hidden md:inline">Send →</span>
               </button>
             </form>
           </>

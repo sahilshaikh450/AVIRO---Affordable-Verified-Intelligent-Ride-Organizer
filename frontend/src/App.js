@@ -97,8 +97,17 @@ export default function App() {
 
         <Route
           path="/safety"
-          element={<SafetyPage />}
-        />
+          element={
+            <PrivateRoute>
+              <AppLayout />
+            </PrivateRoute>
+          }
+        >
+          <Route
+            index
+            element={<SafetyPage />}
+          />
+        </Route>
 
         <Route
           path="/privacy"
