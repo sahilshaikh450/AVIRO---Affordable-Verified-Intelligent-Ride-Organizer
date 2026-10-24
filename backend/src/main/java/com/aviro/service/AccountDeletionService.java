@@ -9,6 +9,7 @@ import com.aviro.enums.RideStatus;
 import com.aviro.exception.AviroException;
 import com.aviro.repository.BookingRepository;
 import com.aviro.repository.NotificationRepository;
+import com.aviro.repository.PushSubscriptionRepository;
 import com.aviro.repository.RideRepository;
 import com.aviro.repository.UserRepository;
 import com.aviro.repository.VehicleRepository;
@@ -49,6 +50,7 @@ public class AccountDeletionService {
     private final BookingRepository bookingRepository;
     private final VehicleRepository vehicleRepository;
     private final NotificationRepository notificationRepository;
+    private final PushSubscriptionRepository pushSubscriptionRepository;
     private final BookingService bookingService;
     private final PasswordEncoder passwordEncoder;
 
@@ -91,6 +93,7 @@ public class AccountDeletionService {
         }
 
         notificationRepository.deleteByUserId(user.getId());
+        pushSubscriptionRepository.deleteByUserId(user.getId());
         vehicleRepository.findByUserId(user.getId()).ifPresent(vehicleRepository::delete);
         deleteCollegeIdImage(user.getCollegeIdPicUrl());
 
