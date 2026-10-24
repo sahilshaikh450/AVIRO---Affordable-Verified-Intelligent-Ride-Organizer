@@ -15,6 +15,10 @@ public class BookingResponse {
     private Long rideId;
     private String fromLocation;
     private String toLocation;
+    private Double fromLat;
+    private Double fromLng;
+    private Double toLat;
+    private Double toLng;
     private LocalDateTime departureTime;
     private Integer seatsBooked;
     private Double totalAmount;

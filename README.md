@@ -69,6 +69,7 @@
 ### 🗺️ Real-Time Features
 - **Zomato-Style GPS Tracking** — Live driver location on mini map in booking card
 - **Full Tracking Page** — Complete map with ride progress bar (5 steps)
+- **Road Route on the Map** — Before pickup: driver → rider; after pickup: route to the destination with real distance and ETA (OpenStreetMap + OSRM), plus "Navigate in Google Maps" for the driver
 - **WebSocket Chat** — STOMP/SockJS real-time messaging (JWT-authenticated)
 - **Quick Messages** — Pre-set: "I'm here!", "On my way!", "5 min late"
 - **Real-time Notifications** — Live bell with mark-all-read and delete; missed alerts reload when the app comes back
