@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { createRide } from '../store/rideSlice'; 
 import LocationInput from '../components/common/LocationInput'; 
 import toast from 'react-hot-toast'; 
+import { geocodePlace, PUNE_CENTRE } from '../utils/geo';
  
 export default function OfferRidePage() { 
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm({ 
@@ -19,6 +20,7 @@ export default function OfferRidePage() {
  
   const [fromLocation, setFromLocation] = React.useState(''); 
   const [toLocation, setToLocation]     = React.useState(''); 
+  const [locating, setLocating]         = React.useState(false); 
  
   const onSubmit = async (data) => { 
     if (!fromLocation || !toLocation) { 
@@ -31,14 +33,19 @@ export default function OfferRidePage() {
       return; 
     } 
  
+    // Real coordinates so maps and routes point to the right places (Pune centre if not found)
+    setLocating(true);
+    const [from, to] = await Promise.all([geocodePlace(fromLocation), geocodePlace(toLocation)]);
+    setLocating(false);
+
     const payload = { 
       ...data, 
       fromLocation, 
       toLocation, 
-      fromLat: 18.5204, 
-      fromLng: 73.8567, 
-      toLat:   18.5204, 
-      toLng:   73.8567, 
+      fromLat: (from || PUNE_CENTRE).lat, 
+      fromLng: (from || PUNE_CENTRE).lng, 
+      toLat:   (to || PUNE_CENTRE).lat, 
+      toLng:   (to || PUNE_CENTRE).lng, 
       totalSeats:   parseInt(data.totalSeats), 
       pricePerSeat: parseFloat(data.pricePerSeat), 
       womenOnly:    !!data.womenOnly, 
@@ -308,14 +315,14 @@ export default function OfferRidePage() {
  
         <button 
           type="submit" 
-          disabled={loading} 
+          disabled={loading || locating} 
           className="btn-primary w-full flex items-center justify-center gap-2 py-3 text-base" 
         > 
-          {loading && (
+          {(loading || locating) && (
             <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
           )} 
  
-          {loading ? 'Posting...' : '🚀 Post Ride'} 
+          {locating ? 'Finding places...' : loading ? 'Posting...' : '🚀 Post Ride'} 
         </button> 
       </form> 
     </div> 

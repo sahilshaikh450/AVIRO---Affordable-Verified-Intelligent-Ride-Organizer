@@ -55,7 +55,10 @@ export default function TripAlerts() {
   const [popup, setPopup] = useState(null);
   const [busy, setBusy]   = useState(false);
   const pathRef = useRef(location.pathname);
+  // Alerts the user has dealt with (survives a page reload in this tab)
   const shownRef = useRef(readShown());
+  // Alerts being shown right now, so live and catch-up don't show the same one twice
+  const activeRef = useRef(new Set());
 
   useEffect(() => { pathRef.current = location.pathname; }, [location.pathname]);
 
@@ -71,27 +74,39 @@ export default function TripAlerts() {
     return () => navigator.serviceWorker.removeEventListener('message', onMessage);
   }, [navigate]);
 
+  const markDone = (n) => {
+    if (!n?.id) return;
+    activeRef.current.delete(n.id);
+    shownRef.current.add(n.id);
+    rememberShown(shownRef.current);
+  };
+
   useEffect(() => {
     if (!user?.id) return;
 
     const showAlert = async (n) => {
-      if (n.id && shownRef.current.has(n.id)) return;
-      if (n.id) { shownRef.current.add(n.id); rememberShown(shownRef.current); }
+      if (n.id && (shownRef.current.has(n.id) || activeRef.current.has(n.id))) return;
+      const done = () => markDone(n);
 
       // The trip screen for this booking already shows these updates
-      if (n.referenceId && pathRef.current === `/tracking/${n.referenceId}`) return;
+      if (n.referenceId && pathRef.current === `/tracking/${n.referenceId}`) { done(); return; }
 
       const kind = POPUPS[n.type];
       if (kind && n.referenceId) {
+        if (n.id) activeRef.current.add(n.id);
         try {
           const res = await api.get(`/bookings/${n.referenceId}`);
           const booking = res.data.data;
+          // Counts as seen only once closed or answered, so a reload brings it back
           if (stillRelevant(kind, booking, user.id)) setPopup({ kind, notification: n, booking });
+          else done();
         } catch {
           toast(n.title, { icon: '🔔' });
+          done();
         }
-      } else if (TOASTS.includes(n.type)) {
-        toast(`${n.title} — ${n.message}`, { icon: '🔔', duration: 5000 });
+      } else {
+        if (TOASTS.includes(n.type)) toast(`${n.title} — ${n.message}`, { icon: '🔔', duration: 5000 });
+        done();
       }
     };
 
@@ -128,7 +143,7 @@ export default function TripAlerts() {
 
   if (!popup) return null;
   const { kind, notification, booking } = popup;
-  const close = () => setPopup(null);
+  const close = () => { markDone(notification); setPopup(null); };
   const openTrip = () => { close(); navigate(`/tracking/${booking.id}`); };
   const respond = async (status) => {
     setBusy(true);
