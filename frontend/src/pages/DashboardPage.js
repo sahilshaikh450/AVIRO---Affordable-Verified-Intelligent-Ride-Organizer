@@ -2,10 +2,10 @@ import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
 import { fetchNearbyRides } from '../store/rideSlice';
-import { fetchMyBookings, createBooking } from '../store/bookingSlice';
+import { fetchMyBookings } from '../store/bookingSlice';
+import useBookRide from '../hooks/useBookRide';
 import { fetchProfile } from '../store/authSlice';
 import { StatCard, RideCard, EmptyState, Spinner } from '../components/common/UIComponents';
-import toast from 'react-hot-toast';
 
 export default function DashboardPage() {
   const dispatch = useDispatch();
@@ -23,15 +23,7 @@ export default function DashboardPage() {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
-  const handleBook = async (ride) => {
-    const res = await dispatch(createBooking({ rideId: ride.id, seatsBooked: 1 }));
-    if (!res.error) {
-      toast.success('Booking request sent! ✅');
-      navigate('/bookings');
-    } else {
-      toast.error(res.payload || 'Booking failed. Try again!');
-    }
-  };
+  const { bookRide: handleBook } = useBookRide();
 
   return (
     <div className="space-y-6 animate-fade-up">
