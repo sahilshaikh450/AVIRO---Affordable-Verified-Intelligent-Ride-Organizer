@@ -18,4 +18,6 @@ public interface BookingService {
     // OTP endpoints
     ApiResponse<Map<String, String>> getRideOtp(String email, Long bookingId);
     ApiResponse<String> verifyRideOtp(String driverEmail, Long bookingId, String otp);
+
+    ApiResponse<BookingResponse> updateTripStage(String driverEmail, Long bookingId, String stage);
 }

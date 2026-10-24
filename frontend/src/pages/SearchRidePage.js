@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { searchRides } from '../store/rideSlice';
-import { createBooking } from '../store/bookingSlice';
+import useBookRide from '../hooks/useBookRide';
 import { RideCard, EmptyState, Spinner } from '../components/common/UIComponents';
 import LocationInput from '../components/common/LocationInput';
 import toast from 'react-hot-toast';
@@ -38,15 +38,7 @@ export default function SearchRidePage() {
     }));
   };
 
-  const handleBook = async (ride) => {
-    const res = await dispatch(createBooking({ rideId: ride.id, seatsBooked: 1 }));
-    if (!res.error) {
-      toast.success('Booking request sent! ✅');
-      navigate('/bookings');
-    } else {
-      toast.error(res.payload || 'Booking failed');
-    }
-  };
+  const { bookRide: handleBook } = useBookRide();
 
   return (
     <div className="space-y-6 animate-fade-up">

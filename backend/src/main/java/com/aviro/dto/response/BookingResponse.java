@@ -3,6 +3,7 @@ package com.aviro.dto.response;
 import com.aviro.enums.BookingStatus;
 import com.aviro.enums.Gender;
 import com.aviro.enums.PaymentStatus;
+import com.aviro.enums.TripStage;
 import lombok.Builder;
 import lombok.Data;
 import java.time.LocalDateTime;
@@ -22,6 +23,9 @@ public class BookingResponse {
     private String paymentMethod;
     private String paymentReference;
     private String pickupPoint;
+    private Double pickupLat;
+    private Double pickupLng;
+    private TripStage tripStage;
     private RideResponse.DriverInfo driver;
     private RiderInfo rider;
     private LocalDateTime createdAt;

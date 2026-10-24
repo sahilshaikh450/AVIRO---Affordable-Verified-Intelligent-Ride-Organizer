@@ -12,6 +12,13 @@ import toast from 'react-hot-toast';
 
 const TABS = ['ALL', 'REQUESTED', 'CONFIRMED', 'COMPLETED', 'CANCELLED'];
 
+const TRIP_LABELS = {
+  NONE:       'Driver not started yet',
+  ON_THE_WAY: '🚗 Driver on the way',
+  ARRIVED:    '📍 Driver arrived',
+  STARTED:    '🏁 Trip in progress',
+};
+
 export default function BookingsPage() {
   const dispatch = useDispatch();
   const { list, loading } = useSelector(s => s.booking);
@@ -69,17 +76,6 @@ export default function BookingsPage() {
       fetchDriverBookings();
       dispatch(fetchMyBookings());
       if (openReviewFor) setReviewTarget(openReviewFor);
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed');
-    }
-  };
-
-  const handleRiderComplete = async (booking) => {
-    try {
-      await api.patch(`/bookings/${booking.id}/status`, { status: 'COMPLETED' });
-      toast.success('Ride completed! 🏁');
-      dispatch(fetchMyBookings());
-      setPaymentBooking(booking);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed');
     }
@@ -191,29 +187,36 @@ export default function BookingsPage() {
                       )}
                     </div>
                   </div>
-                  <StatusBadge status="CONFIRMED" />
+                  <div className="text-right space-y-1">
+                    <StatusBadge status="CONFIRMED" />
+                    <p className="text-xs text-aviro-muted">{TRIP_LABELS[b.tripStage] || TRIP_LABELS.NONE}</p>
+                  </div>
                 </div>
 
                 {/* ── Driver OTP Verify Card ── */}
-                <div className="mb-3">
-                  <DriverOTPVerifyCard
-                    bookingId={b.id}
-                    onVerified={() => fetchDriverBookings()}
-                  />
-                </div>
+                {b.tripStage !== 'STARTED' && (
+                  <div className="mb-3">
+                    <DriverOTPVerifyCard
+                      bookingId={b.id}
+                      onVerified={() => fetchDriverBookings()}
+                    />
+                  </div>
+                )}
 
                 <div className="flex gap-2">
                   <Link to={`/tracking/${b.id}`}
-                    className="flex-1 bg-aviro-orange/10 border border-aviro-orange/30 text-aviro-orange font-semibold py-2.5 rounded-xl text-sm text-center hover:bg-aviro-orange/20">
-                    🗺️ Track Ride
+                    className="flex-1 bg-aviro-orange text-white font-bold py-2.5 rounded-xl text-sm text-center hover:opacity-90">
+                    🗺️ Open trip
                   </Link>
-                  <button onClick={() => handleDriverComplete(b.id, {
-                      booking: b, revieweeId: b.rider?.id,
-                      revieweeName: b.rider?.fullName || 'Rider',
-                    })}
-                    className="flex-1 bg-aviro-blue text-white font-bold py-2.5 rounded-xl text-sm hover:opacity-90">
-                    🏁 Complete
-                  </button>
+                  {b.tripStage === 'STARTED' && (
+                    <button onClick={() => handleDriverComplete(b.id, {
+                        booking: b, revieweeId: b.rider?.id,
+                        revieweeName: b.rider?.fullName || 'Rider',
+                      })}
+                      className="flex-1 bg-aviro-blue text-white font-bold py-2.5 rounded-xl text-sm hover:opacity-90">
+                      🏁 End trip
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -374,11 +377,19 @@ export default function BookingsPage() {
                   <MiniTrackingCard booking={b} />
                 )}
 
-                {/* Complete button */}
-                {b.status === 'CONFIRMED' && (
-                  <button onClick={() => handleRiderComplete(b)}
-                    className="w-full mt-2 bg-aviro-card2 border border-aviro-border text-white font-semibold py-2 rounded-xl text-sm hover:border-aviro-blue/50 transition-colors">
-                    🏁 Mark as Completed
+                {/* Open the live trip screen */}
+                {['REQUESTED', 'CONFIRMED'].includes(b.status) && (
+                  <Link to={`/tracking/${b.id}`}
+                    className="block w-full mt-2 bg-aviro-orange text-white font-bold py-2.5 rounded-xl text-sm text-center hover:opacity-90">
+                    🗺️ Open ride{b.status === 'CONFIRMED' ? ` · ${TRIP_LABELS[b.tripStage] || TRIP_LABELS.NONE}` : ''}
+                  </Link>
+                )}
+
+                {/* Pay after the driver ends the trip */}
+                {b.status === 'COMPLETED' && !b.paymentMethod && (
+                  <button onClick={() => setPaymentBooking(b)}
+                    className="w-full mt-2 bg-aviro-green text-white font-bold py-2.5 rounded-xl text-sm hover:opacity-90">
+                    💳 Pay ₹{b.totalAmount}
                   </button>
                 )}
 

@@ -98,4 +98,13 @@ public class BookingController {
             @RequestBody Map<String, String> body) {
         return ResponseEntity.ok(bookingService.verifyRideOtp(userDetails.getUsername(), bookingId, body.get("otp")));
     }
+
+    // ── DRIVER: trip progress (ON_THE_WAY, ARRIVED); STARTED comes from the OTP check ──
+    @PatchMapping("/{bookingId}/trip")
+    public ResponseEntity<ApiResponse<BookingResponse>> updateTripStage(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Long bookingId,
+            @RequestBody Map<String, String> body) {
+        return ResponseEntity.ok(bookingService.updateTripStage(userDetails.getUsername(), bookingId, body.get("stage")));
+    }
 }
