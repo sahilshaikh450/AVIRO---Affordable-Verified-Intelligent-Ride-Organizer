@@ -4,6 +4,7 @@ import com.aviro.dto.request.AuthRequest;
 import com.aviro.dto.response.ApiResponse;
 import com.aviro.dto.response.AuthResponse;
 import com.aviro.entity.User;
+import com.aviro.enums.Role;
 import com.aviro.exception.AviroException;
 import com.aviro.repository.UserRepository;
 import com.aviro.security.JwtTokenProvider;
@@ -60,6 +61,11 @@ public class AuthServiceImpl implements AuthService {
 
         if (userRepository.existsByEmailIgnoreCase(email)) {
             throw new AviroException("Email already registered. Please login.");
+        }
+
+        // ADMIN is never self-assigned; admins are set with AVIRO_ADMIN_EMAILS
+        if (request.getRole() == Role.ADMIN) {
+            throw new AviroException("Please choose Rider, Driver or Both.");
         }
 
         User user = User.builder()
