@@ -2,6 +2,7 @@ package com.aviro.entity;
 
 import com.aviro.enums.BookingStatus;
 import com.aviro.enums.PaymentStatus;
+import com.aviro.enums.TripStage;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -56,4 +57,8 @@ private String rideOtp;
     private String pickupPoint;
     private Double pickupLat;
     private Double pickupLng;
+
+    // Set only while the booking is CONFIRMED; null = driver not on the way yet
+    @Enumerated(EnumType.STRING)
+    private TripStage tripStage;
 }

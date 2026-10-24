@@ -1,14 +1,11 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { Client } from '@stomp/stompjs';
-import SockJS from 'sockjs-client';
+import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
-import { WS_URL } from '../../services/websocket';
+import { NOTIFICATION_EVENT } from './TripAlerts';
 
-export default function NotificationBell({ userId }) {
+export default function NotificationBell() {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount]     = useState(0);
   const [isOpen, setIsOpen]               = useState(false);
-  const clientRef = useRef(null);
 
   // ── Fetch notifications ──
   useEffect(() => {
@@ -26,45 +23,15 @@ export default function NotificationBell({ userId }) {
     }
   };
 
-  // ── WebSocket connection ──
+  // ── Live notifications (one app-wide connection in TripAlerts) ──
   useEffect(() => {
-    if (!userId) return;
-    const token = localStorage.getItem('aviro_token');
-    if (!token) return;
-
-    const client = new Client({
-      webSocketFactory: () => new SockJS(WS_URL),
-      connectHeaders: {
-        Authorization: `Bearer ${token}`,
-      },
-      reconnectDelay: 5000,
-      onConnect: () => {
-        console.log('WebSocket connected');
-
-        // Subscribe to notifications
-        client.subscribe('/user/queue/notifications', (frame) => {
-          const notification = JSON.parse(frame.body);
-          setNotifications(prev => [notification, ...prev]);
-          setUnreadCount(prev => prev + 1);
-        });
-      },
-      onDisconnect: () => {
-        console.log('WebSocket disconnected');
-      },
-      onStompError: (frame) => {
-        console.warn('STOMP error:', frame);
-      },
-    });
-
-    client.activate();
-    clientRef.current = client;
-
-    return () => {
-      if (clientRef.current) {
-        clientRef.current.deactivate();
-      }
+    const onNotification = (e) => {
+      setNotifications(prev => [e.detail, ...prev]);
+      setUnreadCount(prev => prev + 1);
     };
-  }, [userId]);
+    window.addEventListener(NOTIFICATION_EVENT, onNotification);
+    return () => window.removeEventListener(NOTIFICATION_EVENT, onNotification);
+  }, []);
 
   // ── Mark all as read ──
   const markAllRead = async () => {

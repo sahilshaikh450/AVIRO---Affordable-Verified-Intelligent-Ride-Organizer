@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../services/api';
 import toast from 'react-hot-toast';
+import { getErrorMessage } from './authSlice';
 
 // ─── BOOKING SLICE ───────────────────────────────────────────────
 export const createBooking = createAsyncThunk('booking/create', async (data, { rejectWithValue }) => {
@@ -8,7 +9,11 @@ export const createBooking = createAsyncThunk('booking/create', async (data, { r
     const res = await api.post('/bookings', data);
     toast.success('Booking request sent! ✅');
     return res.data.data;
-  } catch (err) { toast.error(err.response?.data?.message); return rejectWithValue(err.response?.data?.message); }
+  } catch (err) {
+    const msg = getErrorMessage(err, 'Booking failed');
+    toast.error(msg);
+    return rejectWithValue(msg);
+  }
 });
 
 export const fetchMyBookings = createAsyncThunk('booking/myBookings', async (_, { rejectWithValue }) => {

@@ -11,6 +11,7 @@ import com.aviro.entity.Vehicle;
 import com.aviro.enums.BookingStatus;
 import com.aviro.enums.PaymentStatus;
 import com.aviro.enums.Role;
+import com.aviro.enums.TripStage;
 import com.aviro.exception.AviroException;
 import com.aviro.repository.BookingRepository;
 import com.aviro.repository.RideRepository;
@@ -159,7 +160,12 @@ public class BookingServiceImpl implements BookingService {
                 throw new AviroException("Only confirmed bookings can be marked as completed");
             }
 
+            if (booking.getTripStage() != TripStage.STARTED) {
+                throw new AviroException("Start the trip with the rider's OTP before ending it");
+            }
+
             booking.setStatus(BookingStatus.COMPLETED);
+            booking.setTripStage(null);
             bookingRepository.save(booking);
 
             User driver = booking.getRide().getDriver();
@@ -469,8 +475,62 @@ public class BookingServiceImpl implements BookingService {
             throw new AviroException("Invalid OTP. Please check with the rider.");
         }
 
+        booking.setTripStage(TripStage.STARTED);
+        bookingRepository.save(booking);
+        notifyRider(booking, "Trip Started 🏁", "Your ride to " + booking.getRide().getToLocation() + " has started. Have a safe trip!", "TRIP_STARTED");
+
         log.info("Ride OTP verified: booking={} driver={}", bookingId, driverEmail);
         return ApiResponse.success("OTP verified! Ride has started. 🚗", null);
+    }
+
+    @Override
+    @Transactional
+    public ApiResponse<BookingResponse> updateTripStage(String driverEmail, Long bookingId, String stage) {
+        User driver = getUser(driverEmail);
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new AviroException("Booking not found"));
+
+        if (!booking.getRide().getDriver().getId().equals(driver.getId())) {
+            throw new AviroException("Only the driver can update the trip");
+        }
+        if (booking.getStatus() != BookingStatus.CONFIRMED) {
+            throw new AviroException("Trip can only be updated for a confirmed booking");
+        }
+
+        TripStage next;
+        try {
+            next = TripStage.valueOf(String.valueOf(stage).toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new AviroException("Invalid trip stage");
+        }
+        if (next == TripStage.STARTED) {
+            throw new AviroException("Enter the rider's OTP to start the trip");
+        }
+        if (booking.getTripStage() == TripStage.STARTED) {
+            throw new AviroException("Trip has already started");
+        }
+
+        booking.setTripStage(next);
+        bookingRepository.save(booking);
+
+        if (next == TripStage.ON_THE_WAY) {
+            notifyRider(booking, "Driver on the way 🚗",
+                    driver.getFullName() + " is coming to pick you up. Track them live.", "TRIP_ON_THE_WAY");
+        } else {
+            notifyRider(booking, "Driver has arrived 📍",
+                    driver.getFullName() + " is at your pickup point. Share your ride OTP to start.", "TRIP_ARRIVED");
+        }
+
+        log.info("Trip stage {} for booking {}", next, bookingId);
+        return ApiResponse.success("Trip updated", toResponse(booking));
+    }
+
+    private void notifyRider(Booking booking, String title, String message, String type) {
+        try {
+            notificationService.send(booking.getRider().getId(), title, message, type, String.valueOf(booking.getId()));
+        } catch (Exception e) {
+            log.warn("In-app notification failed: {}", e.getMessage());
+        }
     }
 
     // ══════════════════════════════════════════════════════════
@@ -520,6 +580,9 @@ public class BookingServiceImpl implements BookingService {
                 .paymentMethod(booking.getPaymentMethod())
                 .paymentReference(booking.getPaymentReference())
                 .pickupPoint(booking.getPickupPoint())
+                .pickupLat(booking.getPickupLat())
+                .pickupLng(booking.getPickupLng())
+                .tripStage(booking.getTripStage())
                 .driver(RideResponse.DriverInfo.builder()
                         .id(driver.getId())
                         .fullName(driver.getFullName())

@@ -3,6 +3,7 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { logoutUser } from '../../store/authSlice';
 import NotificationBell from './NotificationBell';
+import TripAlerts from './TripAlerts';
 
 // ── Bottom nav links (mobile) ──
 const bottomLinks = [
@@ -171,6 +172,9 @@ export default function AppLayout() {
 
       {/* Mobile bottom nav */}
       <MobileBottomNav />
+
+      {/* Live notifications and ride request popups */}
+      <TripAlerts />
     </div>
   );
 }
