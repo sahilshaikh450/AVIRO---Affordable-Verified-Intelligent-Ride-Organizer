@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { logoutUser } from '../../store/authSlice';
 import NotificationBell from './NotificationBell';
 import TripAlerts from './TripAlerts';
+import PushPrompt from './PushPrompt';
 
 // ── Bottom nav links (mobile) ──
 const bottomLinks = [
@@ -166,6 +167,7 @@ export default function AppLayout() {
 
         {/* Page content */}
         <main className="flex-1 p-4 md:p-6 overflow-y-auto pb-24 md:pb-6">
+          <PushPrompt />
           <Outlet />
         </main>
       </div>

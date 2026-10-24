@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
-import { NOTIFICATION_EVENT } from './TripAlerts';
+import { NOTIFICATION_EVENT, REALTIME_CONNECTED_EVENT } from './TripAlerts';
 
 export default function NotificationBell() {
   const [notifications, setNotifications] = useState([]);
@@ -29,8 +29,16 @@ export default function NotificationBell() {
       setNotifications(prev => [e.detail, ...prev]);
       setUnreadCount(prev => prev + 1);
     };
+    // Phones drop the connection in the background; reload what was missed when it comes back
+    const onVisible = () => { if (document.visibilityState === 'visible') fetchNotifications(); };
     window.addEventListener(NOTIFICATION_EVENT, onNotification);
-    return () => window.removeEventListener(NOTIFICATION_EVENT, onNotification);
+    window.addEventListener(REALTIME_CONNECTED_EVENT, fetchNotifications);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.removeEventListener(NOTIFICATION_EVENT, onNotification);
+      window.removeEventListener(REALTIME_CONNECTED_EVENT, fetchNotifications);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, []);
 
   // ── Mark all as read ──

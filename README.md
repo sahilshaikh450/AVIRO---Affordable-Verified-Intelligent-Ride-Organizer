@@ -71,7 +71,8 @@
 - **Full Tracking Page** — Complete map with ride progress bar (5 steps)
 - **WebSocket Chat** — STOMP/SockJS real-time messaging (JWT-authenticated)
 - **Quick Messages** — Pre-set: "I'm here!", "On my way!", "5 min late"
-- **Real-time Notifications** — Live bell with mark-all-read and delete
+- **Real-time Notifications** — Live bell with mark-all-read and delete; missed alerts reload when the app comes back
+- **Phone Push Notifications** — WhatsApp-style alerts on the phone even when AVIRO is closed (Web Push); tap opens the right ride
 
 ### 🛡️ Safety Features
 - **SOS Emergency Button** — Double-confirm, sends live location to emergency contacts
@@ -339,6 +340,9 @@ npm start
 | `AVIRO_JWT_EXPIRATION` | | `86400000` | Access token lifetime (ms, 24h) |
 | `AVIRO_JWT_REFRESH_EXPIRATION` | | `604800000` | Refresh token lifetime (ms, 7 days) |
 | `AVIRO_ADMIN_EMAILS` | | empty | Comma-separated emails given the ADMIN role at startup (the only way to create an admin) |
+| `VAPID_PUBLIC_KEY` | | empty | Web Push public key (phone notifications are off unless both keys are set) |
+| `VAPID_PRIVATE_KEY` | | empty | Web Push private key (keep secret) |
+| `VAPID_SUBJECT` | | `mailto:aviro.support@gmail.com` | Contact sent to push services |
 | `GEMINI_API_KEY` | | empty | Gemini key for AI college ID scan |
 | `GEMINI_MODEL` | | `gemini-3.5-flash-lite` | Gemini model name |
 | `SENTRY_DSN` | | empty | Sentry DSN for backend error tracking (empty = off) |
@@ -362,6 +366,7 @@ npm start
 | **Gmail App Password** | myaccount.google.com → Security → App Passwords |
 | **Gemini API Key** | aistudio.google.com/apikey (Free) |
 | **Sentry DSN** | sentry.io → Create project (React / Spring Boot) → Client Keys (DSN) |
+| **VAPID keys (push)** | Run `npx web-push generate-vapid-keys` once and put both keys on Render |
 
 ---
 
@@ -439,6 +444,9 @@ GET    /api/notifications/my                   My notifications
 GET    /api/notifications/unread-count         Unread count
 PATCH  /api/notifications/mark-all-read        Mark all as read
 DELETE /api/notifications/{id}                 Delete a notification
+GET    /api/push/public-key                    Web Push key (and whether push is on)
+POST   /api/push/subscribe                     Save this device's push subscription
+DELETE /api/push/subscribe                     Remove it (on logout)
 
 POST   /api/chat/send                          Send message (REST fallback)
 GET    /api/chat/{rideId}/{otherUserId}        Conversation (?myId=)
