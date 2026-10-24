@@ -88,6 +88,10 @@ public class NotificationService {
         notificationRepository.delete(n);
     }
 
+    public void deleteAll(Long userId) {
+        notificationRepository.deleteAllForUser(userId);
+    }
+
     public void markAllRead(Long userId) {
         notificationRepository.markAllRead(userId);
     }
