@@ -3,6 +3,7 @@ package com.aviro.controller;
 import com.aviro.dto.response.ApiResponse;
 import com.aviro.entity.Booking;
 import com.aviro.entity.User;
+import com.aviro.enums.BookingStatus;
 import com.aviro.repository.BookingRepository;
 import com.aviro.repository.UserRepository;
 import com.aviro.service.NotificationService;
@@ -61,6 +62,32 @@ public class LocationController {
             );
             log.debug("Location update sent: booking={} lat={} lng={}", bookingId, lat, lng);
         });
+    }
+
+    // ── Rider shares location with the driver while a booking is confirmed ──
+    @MessageMapping("/location.rider")
+    public void riderLocation(@Payload Map<String, Object> payload, Principal principal) {
+        Long bookingId = Long.valueOf(payload.get("bookingId").toString());
+        Long userId = principal == null ? null : Long.valueOf(principal.getName());
+        Long riderId  = bookingRepository.findRiderIdByBookingId(bookingId).orElse(null);
+        Long driverId = bookingRepository.findDriverIdByBookingId(bookingId).orElse(null);
+        BookingStatus status = bookingRepository.findById(bookingId).map(Booking::getStatus).orElse(null);
+        if (userId == null || !userId.equals(riderId) || driverId == null || status != BookingStatus.CONFIRMED) {
+            log.warn("Rejected location.rider for booking {} from user {}", bookingId, userId);
+            return;
+        }
+
+        Map<String, Object> locationData = Map.of(
+            "bookingId", bookingId,
+            "lat",       Double.valueOf(payload.get("lat").toString()),
+            "lng",       Double.valueOf(payload.get("lng").toString()),
+            "timestamp", System.currentTimeMillis()
+        );
+        messagingTemplate.convertAndSendToUser(
+            driverId.toString(),
+            "/queue/rider-location",
+            locationData
+        );
     }
 
     // ── Driver sends quick message ──

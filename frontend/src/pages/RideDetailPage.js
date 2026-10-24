@@ -1,11 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import api from '../services/api';
-import { createBooking } from '../store/bookingSlice';
 import { GenderBadge, VehicleIcon, Spinner } from '../components/common/UIComponents';
 import LiveMap from '../components/common/LiveMap';
 import useGeolocation from '../hooks/useGeolocation';
+import useBookRide from '../hooks/useBookRide';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { WS_URL } from '../services/websocket';
@@ -14,13 +14,13 @@ import toast from 'react-hot-toast';
 export default function RideDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const dispatch = useDispatch();
   const { user } = useSelector(s => s.auth);
 
   const [ride, setRide]       = useState(null);
   const [loading, setLoading] = useState(true);
   const [driverLoc, setDriverLoc] = useState(null);
   const [isSharing, setIsSharing] = useState(false);
+  const { bookRide, bookingRideId } = useBookRide();
 
   const clientRef = useRef(null);
   const isDriver  = ride && user && ride.driver?.id === user.id;
@@ -79,16 +79,6 @@ export default function RideDetailPage() {
       setDriverLoc({ lat: position.lat, lng: position.lng });
     }
   }, [position, isSharing, isDriver, ride, user]);
-
-  const handleBook = async () => {
-    const res = await dispatch(createBooking({ rideId: ride.id, seatsBooked: 1 }));
-    if (!res.error) {
-      toast.success('Booking request sent! ✅');
-      navigate('/bookings');
-    } else {
-      toast.error(res.payload || 'Booking failed');
-    }
-  };
 
   const toggleSharing = () => {
     if (!isSharing) {
@@ -243,8 +233,8 @@ export default function RideDetailPage() {
       </div>
 
       {/* Book button */}
-      {!isDriver && ride.status === 'ACTIVE' && (
-        <button onClick={handleBook} className="btn-primary w-full py-3 text-base">
+      {!isDriver && ['PENDING', 'ACTIVE'].includes(ride.status) && ride.availableSeats > 0 && (
+        <button onClick={() => bookRide(ride)} disabled={!!bookingRideId} className="btn-primary w-full py-3 text-base">
           Book This Ride →
         </button>
       )}

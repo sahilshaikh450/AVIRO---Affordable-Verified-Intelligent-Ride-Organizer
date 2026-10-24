@@ -1,751 +1,544 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
+import L from 'leaflet';
 import { WS_URL } from '../services/websocket';
 import api from '../services/api';
+import { getErrorMessage } from '../store/authSlice';
+import PaymentChoiceModal from '../components/common/PaymentChoiceModal';
+import ReviewModal from '../components/common/ReviewModal';
 import toast from 'react-hot-toast';
 
-
 const QUICK_MESSAGES = [
-  { label: "🚗 On my way!", text: "I'm on my way to pickup!" },
-  { label: "📍 I'm here!",  text: "I've arrived at the pickup point!" },
-  { label: "⏰ 5 min late", text: "Running 5 minutes late, sorry!" },
-  { label: "⏰ 10 min late",text: "Running 10 minutes late, sorry!" },
-  { label: "🅿️ At gate",   text: "I'm waiting at the gate!" },
-  { label: "✅ Ready!",     text: "Ready to go, come outside!" },
+  { label: '🚗 On my way!',  text: "I'm on my way!" },
+  { label: '📍 I\'m here!',  text: "I've reached the pickup point!" },
+  { label: '⏰ 5 min late',  text: 'Running 5 minutes late, sorry!' },
+  { label: '🅿️ At gate',     text: "I'm waiting at the gate!" },
+  { label: '👀 Can\'t find you', text: "I can't find you, please call me." },
+  { label: '✅ Coming',      text: 'Coming, 1 minute!' },
 ];
 
-const RIDE_STEPS = [
-  { key: 'CONFIRMED',  label: 'Confirmed',  icon: '✅' },
-  { key: 'ON_THE_WAY', label: 'On the Way', icon: '🚗' },
+// Trip progress shown to both people, like a cab app
+const STEPS = [
+  { key: 'ACCEPTED',   label: 'Accepted',   icon: '✅' },
+  { key: 'ON_THE_WAY', label: 'On the way', icon: '🚗' },
   { key: 'ARRIVED',    label: 'Arrived',    icon: '📍' },
-  { key: 'STARTED',    label: 'Started',    icon: '🏁' },
-  { key: 'COMPLETED',  label: 'Completed',  icon: '🎉' },
+  { key: 'STARTED',    label: 'In trip',    icon: '🏁' },
+  { key: 'COMPLETED',  label: 'Done',       icon: '🎉' },
 ];
 
-// ── Smooth marker animation ──
-function animateMarker(marker, newLat, newLng, map) {
-  if (!marker || !map) return;
-  const startLat = marker.getLatLng().lat;
-  const startLng = marker.getLatLng().lng;
-  const frames = 30;
-  let frame = 0;
-  const step = () => {
-    frame++;
-    const t = frame / frames;
-    const lat = startLat + (newLat - startLat) * t;
-    const lng = startLng + (newLng - startLng) * t;
-    marker.setLatLng([lat, lng]);
-    if (frame < frames) requestAnimationFrame(step);
-  };
-  requestAnimationFrame(step);
-}
+const TRIP_TYPES = ['BOOKING_ACCEPTED', 'BOOKING_REJECTED', 'BOOKING_CANCELLED', 'TRIP_ON_THE_WAY',
+  'TRIP_ARRIVED', 'TRIP_STARTED', 'RIDE_COMPLETED', 'PAYMENT_RECEIVED', 'BOOKING_REQUEST'];
+
+const AVG_CITY_SPEED_KMH = 25;
+const PUBLISH_EVERY_MS = 3000;
+
+// Straight-line distance in km
+const distanceKm = (a, b) => {
+  if (!a || !b) return null;
+  const R = 6371, toRad = d => d * Math.PI / 180;
+  const dLat = toRad(b.lat - a.lat), dLng = toRad(b.lng - a.lng);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+};
+const formatDistance = (km) => km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`;
+const etaMinutes = (km) => Math.max(1, Math.round(km / AVG_CITY_SPEED_KMH * 60));
+
+const pinIcon = (bg, emoji, label) => L.divIcon({
+  html: `<div style="position:relative">
+    <div style="background:${bg};width:34px;height:34px;border-radius:50%;border:3px solid white;
+      box-shadow:0 0 14px ${bg};display:flex;align-items:center;justify-content:center;font-size:17px;">${emoji}</div>
+    ${label ? `<div style="position:absolute;bottom:-14px;left:50%;transform:translateX(-50%);background:${bg};color:white;
+      font-size:9px;font-weight:bold;padding:1px 5px;border-radius:8px;white-space:nowrap;">${label}</div>` : ''}
+  </div>`,
+  iconSize: [34, 34], className: '', iconAnchor: [17, 17],
+});
+const meIcon = () => L.divIcon({
+  html: `<div style="background:#3b82f6;width:18px;height:18px;border-radius:50%;border:3px solid white;
+    box-shadow:0 0 12px rgba(59,130,246,0.9)"></div>`,
+  iconSize: [18, 18], className: '', iconAnchor: [9, 9],
+});
 
 export default function LiveTrackingPage() {
   const { bookingId } = useParams();
   const navigate      = useNavigate();
   const { user }      = useSelector(s => s.auth);
 
-  const [booking, setBooking]           = useState(null);
-  const [rideStatus, setRideStatus]     = useState('CONFIRMED');
-  const [driverLoc, setDriverLoc]       = useState(null);
-  const [myLoc, setMyLoc]               = useState(null);
-  const [messages, setMessages]         = useState([]);
-  const [loading, setLoading]           = useState(true);
-  const [sharing, setSharing]           = useState(false);
-  const [locationLost, setLocationLost] = useState(false);
-  const [showSOS, setShowSOS]           = useState(false);
-  const [sosConfirm, setSosConfirm]     = useState(false);
-  const [mapReady, setMapReady]         = useState(false);
-  const [lastSeen, setLastSeen]         = useState(null);
-  const [accuracy, setAccuracy]         = useState(null);
-  const [gpsStatus, setGpsStatus]       = useState('idle');
-  const [locating, setLocating]         = useState(false); // for "Find Me" button
+  const [booking, setBooking]       = useState(null);
+  const [loading, setLoading]       = useState(true);
+  const [myLoc, setMyLoc]           = useState(null);
+  const [otherLoc, setOtherLoc]     = useState(null);
+  const [otherSeenAt, setOtherSeenAt] = useState(null);
+  const [gpsStatus, setGpsStatus]   = useState('idle');
+  const [otp, setOtp]               = useState('');
+  const [otpInput, setOtpInput]     = useState('');
+  const [busy, setBusy]             = useState(false);
+  const [messages, setMessages]     = useState([]);
+  const [showSOS, setShowSOS]       = useState(false);
+  const [sosConfirm, setSosConfirm] = useState(false);
+  const [showPay, setShowPay]       = useState(false);
+  const [showReview, setShowReview] = useState(false);
+  const [reviewed, setReviewed]     = useState(false);
 
-  const clientRef        = useRef(null);
-  const watchIdRef       = useRef(null);
-  const mapRef           = useRef(null);
-  const mapInstance      = useRef(null);
-  const driverMarkerRef  = useRef(null);
-  const myMarkerRef      = useRef(null);
-  const locationTimerRef = useRef(null);
-  const routeLineRef     = useRef(null);
-  const accuracyCircleRef = useRef(null);
+  const clientRef     = useRef(null);
+  const watchIdRef    = useRef(null);
+  const lastLocRef    = useRef(null);
+  const mapRef        = useRef(null);
+  const mapInstance   = useRef(null);
+  const markersRef    = useRef({});
+  const fittedCountRef = useRef(0);
 
   const isDriver = booking?.driver?.id === user?.id;
   const isRider  = booking?.rider?.id === user?.id;
+  const stage = !booking ? null
+    : booking.status === 'CONFIRMED' ? (booking.tripStage || 'ACCEPTED')
+    : booking.status;
+  const isLive = booking?.status === 'CONFIRMED';
+  const other = isDriver ? booking?.rider : booking?.driver;
+  const pickup = useMemo(() => (booking?.pickupLat && booking?.pickupLng
+    ? { lat: booking.pickupLat, lng: booking.pickupLng } : null), [booking?.pickupLat, booking?.pickupLng]);
+  const showMap = isLive || stage === 'REQUESTED';
 
-  // ── Fetch booking ──
+  // ── Load booking (also called on every trip event) ──
+  const loadBooking = useCallback(async () => {
+    try {
+      const r = await api.get(`/bookings/${bookingId}`);
+      setBooking(r.data.data);
+    } catch {
+      toast.error('Booking not found');
+      navigate('/bookings');
+    } finally {
+      setLoading(false);
+    }
+  }, [bookingId, navigate]);
+
+  useEffect(() => { loadBooking(); }, [loadBooking]);
+
+  // ── Rider's OTP, shown until the trip starts ──
   useEffect(() => {
-    api.get(`/bookings/${bookingId}`)
-      .then(r => { setBooking(r.data.data); setLoading(false); })
-      .catch(() => { toast.error('Booking not found'); navigate('/bookings'); });
-  }, [bookingId]);
+    if (!isRider || !isLive || stage === 'STARTED' || otp) return;
+    api.get(`/bookings/${bookingId}/ride-otp`).then(r => setOtp(r.data.data?.otp || '')).catch(() => {});
+  }, [isRider, isLive, stage, otp, bookingId]);
 
-  // ── Init Leaflet map ──
+  // ── Map ──
   useEffect(() => {
-    if (!booking) return;
+    if (!showMap || !mapRef.current || mapInstance.current) return;
+    const map = L.map(mapRef.current, { zoomControl: true }).setView([18.5204, 73.8567], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap', maxZoom: 19,
+    }).addTo(map);
+    mapRef.current.style.filter = 'invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9)';
+    mapInstance.current = map;
+    setTimeout(() => map.invalidateSize(), 300);
+    return () => { map.remove(); mapInstance.current = null; markersRef.current = {}; fittedCountRef.current = 0; };
+  }, [booking?.id, showMap]);
 
-    const initMap = () => {
-      if (!window.L || !mapRef.current || mapInstance.current) return;
-      const L = window.L;
-
-      // Default: Pune center
-      const map = L.map(mapRef.current, {
-        zoomControl: true,
-        attributionControl: true,
-      }).setView([18.5204, 73.8567], 15);
-
-      mapInstance.current = map;
-
-      // ── FREE tile — no API key needed ──
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        maxZoom: 19,
-      }).addTo(map);
-
-      // Dark overlay for AVIRO theme feel
-      // (OSM tiles are light but we add a CSS filter on the map container)
-      if (mapRef.current) {
-        mapRef.current.style.filter = 'invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9)';
-      }
-
-      setMapReady(true);
-      setTimeout(() => map.invalidateSize(), 300);
-
-      // ── Auto-detect current location on map load ──
-      if (navigator.geolocation) {
-        setLocating(true);
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            const { latitude: lat, longitude: lng, accuracy: acc } = pos.coords;
-            map.setView([lat, lng], 16);
-            addMyLocationMarker(lat, lng, L, map, acc);
-            setMyLoc({ lat, lng });
-            setLocating(false);
-          },
-          (err) => {
-            setLocating(false);
-            console.warn('Location error:', err.message);
-          },
-          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-        );
-      }
-    };
-
-    if (!document.getElementById('leaflet-css')) {
-      const link = document.createElement('link');
-      link.id = 'leaflet-css'; link.rel = 'stylesheet';
-      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-      document.head.appendChild(link);
+  const placeMarker = useCallback((key, loc, icon, popup) => {
+    const map = mapInstance.current;
+    if (!map) return;
+    const existing = markersRef.current[key];
+    if (!loc) {
+      if (existing) { map.removeLayer(existing); delete markersRef.current[key]; }
+      return;
     }
-    if (window.L) initMap();
-    else {
-      const s = document.createElement('script');
-      s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-      s.onload = initMap;
-      document.head.appendChild(s);
-    }
-
-    return () => {
-      if (mapInstance.current) { mapInstance.current.remove(); mapInstance.current = null; }
-    };
-  }, [booking]);
-
-  // ── Add "my location" blue dot marker with accuracy circle ──
-  const addMyLocationMarker = (lat, lng, L, map, acc) => {
-    const icon = L.divIcon({
-      html: `<div style="position:relative;width:20px;height:20px">
-        <div style="background:#3b82f6;width:16px;height:16px;border-radius:50%;border:3px solid white;
-          box-shadow:0 0 12px rgba(59,130,246,0.9);position:absolute;top:2px;left:2px"></div>
-        <div style="position:absolute;top:-2px;left:-2px;width:24px;height:24px;border-radius:50%;
-          background:rgba(59,130,246,0.25);animation:pulse 2s infinite"></div>
-      </div>`,
-      iconSize: [20, 20], className: '', iconAnchor: [10, 10]
-    });
-
-    if (myMarkerRef.current) {
-      myMarkerRef.current.setLatLng([lat, lng]);
-    } else {
-      myMarkerRef.current = L.marker([lat, lng], { icon })
-        .addTo(map)
-        .bindPopup('📍 Your Location');
-    }
-
-    // Accuracy circle
-    if (acc) {
-      if (accuracyCircleRef.current) {
-        accuracyCircleRef.current.setLatLng([lat, lng]).setRadius(acc);
-      } else {
-        accuracyCircleRef.current = L.circle([lat, lng], {
-          radius: acc,
-          color: '#3b82f6',
-          fillColor: '#3b82f6',
-          fillOpacity: 0.08,
-          weight: 1,
-        }).addTo(map);
-      }
-    }
-  };
-
-  // ── "Find Me" button — re-center map to user's current location ──
-  const findMe = () => {
-    if (!navigator.geolocation || !mapInstance.current) return;
-    setLocating(true);
-    toast('📡 Getting your location...', { icon: '⏳', duration: 1500 });
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude: lat, longitude: lng, accuracy: acc } = pos.coords;
-        mapInstance.current.setView([lat, lng], 17, { animate: true });
-        addMyLocationMarker(lat, lng, window.L, mapInstance.current, acc);
-        setMyLoc({ lat, lng });
-        setLocating(false);
-        toast.success('📍 Location found!');
-      },
-      (err) => {
-        setLocating(false);
-        if (err.code === 1) toast.error('Allow location access in browser settings');
-        else toast.error('Could not get location');
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    );
-  };
-
-  // ── Draw route line between driver and rider ──
-  const drawRoute = useCallback((dLat, dLng, rLat, rLng) => {
-    if (!mapInstance.current || !window.L) return;
-    const L = window.L;
-    if (routeLineRef.current) {
-      mapInstance.current.removeLayer(routeLineRef.current);
-    }
-    routeLineRef.current = L.polyline(
-      [[dLat, dLng], [rLat, rLng]],
-      { color: '#f97316', weight: 3, opacity: 0.7, dashArray: '8, 6' }
-    ).addTo(mapInstance.current);
+    if (existing) existing.setLatLng([loc.lat, loc.lng]);
+    else markersRef.current[key] = L.marker([loc.lat, loc.lng], { icon }).addTo(map).bindPopup(popup);
   }, []);
 
-  // ── Fit map to show both markers ──
-  const fitBothMarkers = useCallback((dLat, dLng, rLat, rLng) => {
-    if (!mapInstance.current || !window.L) return;
-    const bounds = window.L.latLngBounds([[dLat, dLng], [rLat, rLng]]);
-    mapInstance.current.fitBounds(bounds, { padding: [50, 50], animate: true });
-  }, []);
+  const fitAll = useCallback(() => {
+    const map = mapInstance.current;
+    const points = [myLoc, otherLoc, pickup].filter(Boolean).map(p => [p.lat, p.lng]);
+    if (!map || points.length === 0) return;
+    map.invalidateSize();
+    if (points.length === 1) map.setView(points[0], 16, { animate: true });
+    else map.fitBounds(points, { padding: [50, 50], animate: true, maxZoom: 17 });
+  }, [myLoc, otherLoc, pickup]);
 
-  // ── WebSocket connection ──
+  // Keep markers in sync with locations
+  useEffect(() => {
+    if (!booking || !mapInstance.current) return;
+    placeMarker('me', myLoc, meIcon(), '📍 You');
+    placeMarker('other', otherLoc, isDriver
+      ? pinIcon('#22c55e', '🙋', other?.fullName?.split(' ')[0] || 'Rider')
+      : pinIcon('#f97316', booking.driver?.vehicleType === 'CAR' ? '🚗' : '🏍️', other?.fullName?.split(' ')[0] || 'Driver'),
+      isDriver ? `🙋 ${other?.fullName || 'Rider'}` : `🚗 ${other?.fullName || 'Driver'}`);
+    placeMarker('pickup', pickup, pinIcon('#a855f7', '📌'), '📌 Pickup point');
+    // Reframe when someone new appears on the map; otherwise let the user move it freely
+    const known = [myLoc, otherLoc, pickup].filter(Boolean).length;
+    if (known > fittedCountRef.current) { fitAll(); fittedCountRef.current = known; }
+  }, [booking, myLoc, otherLoc, pickup, isDriver, other, placeMarker, fitAll]);
+
+  // ── WebSocket: locations, trip events, quick messages ──
   useEffect(() => {
     if (!booking || !user) return;
-    const token = localStorage.getItem('aviro_token');
-
     const client = new Client({
       webSocketFactory: () => new SockJS(WS_URL),
-      connectHeaders: { Authorization: `Bearer ${token}` },
+      connectHeaders: { Authorization: `Bearer ${localStorage.getItem('aviro_token')}` },
       reconnectDelay: 3000,
       onConnect: () => {
-        if (isRider) {
-          client.subscribe('/user/queue/location', (frame) => {
-            const data = JSON.parse(frame.body);
+        const onLoc = (frame) => {
+          const d = JSON.parse(frame.body);
+          if (String(d.bookingId) !== String(bookingId)) return;
+          if (d.lat && d.lng) { setOtherLoc({ lat: d.lat, lng: d.lng }); setOtherSeenAt(Date.now()); }
+        };
+        if (isRider) client.subscribe('/user/queue/location', onLoc);
+        if (isDriver) client.subscribe('/user/queue/rider-location', onLoc);
 
-            if (data.status === 'LOCATION_LOST') {
-              setLocationLost(true);
-              setGpsStatus('lost');
-              toast('⚠️ Driver location signal lost!', { icon: '🔴', duration: 5000 });
-              return;
-            }
-
-            if (data.status) setRideStatus(data.status);
-
-            if (data.lat && data.lng) {
-              const newLoc = { lat: data.lat, lng: data.lng };
-              setDriverLoc(newLoc);
-              setLastSeen(Date.now());
-              setLocationLost(false);
-              setGpsStatus('active');
-
-              if (!mapInstance.current || !window.L) return;
-              const L = window.L;
-
-              const icon = L.divIcon({
-                html: `<div style="position:relative">
-                  <div style="background:#f97316;width:36px;height:36px;border-radius:50%;border:3px solid white;
-                    box-shadow:0 0 16px rgba(249,115,22,0.9);display:flex;align-items:center;justify-content:center;font-size:18px;">
-                    ${booking?.driver?.gender === 'FEMALE' ? '🛵' : '🏍️'}
-                  </div>
-                  <div style="position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);
-                    background:#f97316;color:white;font-size:9px;font-weight:bold;padding:1px 5px;border-radius:8px;white-space:nowrap;">
-                    ${booking?.driver?.fullName?.split(' ')[0] || 'Driver'}
-                  </div>
-                </div>`,
-                iconSize: [36, 42], className: '', iconAnchor: [18, 42]
-              });
-
-              if (driverMarkerRef.current) {
-                animateMarker(driverMarkerRef.current, data.lat, data.lng, mapInstance.current);
-                driverMarkerRef.current.setIcon(icon);
-              } else {
-                driverMarkerRef.current = L.marker([data.lat, data.lng], { icon })
-                  .addTo(mapInstance.current)
-                  .bindPopup(`🏍️ ${booking?.driver?.fullName || 'Driver'}`);
-              }
-
-              // If both locations known: fit map to show both
-              if (myLoc) {
-                fitBothMarkers(data.lat, data.lng, myLoc.lat, myLoc.lng);
-                drawRoute(data.lat, data.lng, myLoc.lat, myLoc.lng);
-              } else {
-                mapInstance.current.panTo([data.lat, data.lng], { animate: true, duration: 0.5 });
-              }
-
-              clearTimeout(locationTimerRef.current);
-              locationTimerRef.current = setTimeout(() => {
-                setLocationLost(true);
-                setGpsStatus('lost');
-                toast('⚠️ Driver location signal lost!', { icon: '🔴', duration: 5000 });
-              }, 30000);
-            }
-          });
-        }
+        client.subscribe('/user/queue/notifications', (frame) => {
+          const n = JSON.parse(frame.body);
+          if (String(n.referenceId) === String(bookingId) && TRIP_TYPES.includes(n.type)) {
+            toast(n.title, { icon: '🔔' });
+            loadBooking();
+          }
+        });
 
         client.subscribe('/user/queue/quick-message', (frame) => {
-          const data = JSON.parse(frame.body);
-          setMessages(prev => [...prev, { ...data, received: true }]);
-          toast(data.message, { icon: '💬', duration: 4000 });
+          const d = JSON.parse(frame.body);
+          if (String(d.bookingId) !== String(bookingId)) return;
+          setMessages(prev => [...prev, { ...d, received: true }]);
+          toast(d.message, { icon: '💬', duration: 4000 });
         });
       },
     });
-
     client.activate();
     clientRef.current = client;
-    return () => { client.deactivate(); clearTimeout(locationTimerRef.current); };
-  }, [booking, user, myLoc, drawRoute, fitBothMarkers]);
+    return () => client.deactivate();
+  }, [booking?.id, user, isRider, isDriver, bookingId, loadBooking]);
 
-  // ── Driver: Start GPS sharing ──
-  const startSharing = () => {
-    if (!navigator.geolocation) { toast.error('GPS not supported on this device'); return; }
-
+  // ── GPS: both people share automatically while the booking is confirmed ──
+  useEffect(() => {
+    if (!isLive || !navigator.geolocation) return;
     setGpsStatus('acquiring');
-    toast('📡 Acquiring GPS signal...', { icon: '⏳', duration: 2000 });
-
     watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
-        const { latitude: lat, longitude: lng, accuracy: acc } = pos.coords;
-        setSharing(true);
+        const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        lastLocRef.current = loc;
+        setMyLoc(loc);
         setGpsStatus('active');
-        setAccuracy(Math.round(acc));
-        setMyLoc({ lat, lng });
-
-        if (mapInstance.current && window.L) {
-          const L = window.L;
-          const icon = L.divIcon({
-            html: `<div style="background:#22c55e;width:20px;height:20px;border-radius:50%;border:3px solid white;
-              box-shadow:0 0 12px rgba(34,197,94,0.9)"></div>`,
-            iconSize: [20, 20], className: '', iconAnchor: [10, 10]
-          });
-          if (myMarkerRef.current) {
-            animateMarker(myMarkerRef.current, lat, lng, mapInstance.current);
-          } else {
-            myMarkerRef.current = L.marker([lat, lng], { icon })
-              .addTo(mapInstance.current)
-              .bindPopup('📍 You (Driver)');
-          }
-          mapInstance.current.setView([lat, lng], 16, { animate: true });
-        }
-
-        if (clientRef.current?.connected) {
-          clientRef.current.publish({
-            destination: '/app/location.update',
-            body: JSON.stringify({
-              bookingId: parseInt(bookingId),
-              lat, lng,
-              accuracy: acc,
-              status: rideStatus,
-            }),
-          });
-        }
       },
       (err) => {
-        setGpsStatus('lost');
-        let msg = 'GPS error';
-        if (err.code === 1) msg = 'GPS permission denied! Please allow location access.';
-        if (err.code === 2) msg = 'GPS signal unavailable. Try outdoors.';
-        if (err.code === 3) msg = 'GPS timeout. Retrying...';
-        toast.error(msg);
-
-        if (clientRef.current?.connected) {
-          clientRef.current.publish({
-            destination: '/app/location.update',
-            body: JSON.stringify({ bookingId: parseInt(bookingId), status: 'LOCATION_LOST' }),
-          });
-        }
+        setGpsStatus(err.code === 1 ? 'denied' : 'lost');
       },
-      { enableHighAccuracy: true, maximumAge: 2000, timeout: 15000 }
+      { enableHighAccuracy: true, maximumAge: 3000, timeout: 20000 }
     );
-  };
-
-  const markArrived = async () => {
-    try {
-      await api.post(`/location/arrived/${bookingId}`);
-      setRideStatus('ARRIVED');
-      if (clientRef.current?.connected) {
-        clientRef.current.publish({
-          destination: '/app/location.update',
-          body: JSON.stringify({ bookingId: parseInt(bookingId), status: 'ARRIVED' }),
-        });
-      }
-      toast.success('📍 Rider notified — you arrived!');
-    } catch { toast.error('Failed'); }
-  };
-
-  const markStarted = () => {
-    setRideStatus('STARTED');
-    if (clientRef.current?.connected) {
+    // A phone that is standing still reports no new positions, so resend the last one regularly
+    const heartbeat = setInterval(() => {
+      if (!lastLocRef.current || !clientRef.current?.connected) return;
       clientRef.current.publish({
-        destination: '/app/location.update',
-        body: JSON.stringify({ bookingId: parseInt(bookingId), status: 'STARTED' }),
+        destination: isDriver ? '/app/location.update' : '/app/location.rider',
+        body: JSON.stringify({ bookingId: Number(bookingId), ...lastLocRef.current, status: booking?.tripStage || 'ACCEPTED' }),
       });
-    }
-    toast.success('🏁 Ride started!');
-  };
+    }, PUBLISH_EVERY_MS);
+    return () => {
+      clearInterval(heartbeat);
+      if (watchIdRef.current != null) navigator.geolocation.clearWatch(watchIdRef.current);
+    };
+  }, [isLive, isDriver, bookingId, booking?.tripStage]);
 
-  const sendSOS = async () => {
-    try {
-      navigator.geolocation.getCurrentPosition(async (pos) => {
-        const { latitude: lat, longitude: lng } = pos.coords;
-        const mapsLink = `https://maps.google.com/?q=${lat},${lng}`;
-        await api.post('/safety/sos', {
-          bookingId: parseInt(bookingId), lat, lng,
-          message: `🆘 SOS ALERT from ${user.fullName}! Location: ${mapsLink}`,
-        });
-        if (clientRef.current?.connected) {
-          clientRef.current.publish({
-            destination: '/app/location.message',
-            body: JSON.stringify({
-              bookingId: parseInt(bookingId),
-              message: `🆘 EMERGENCY! ${user.fullName} needs help! 📍 ${mapsLink}`,
-              senderId: user.id,
-            }),
-          });
-        }
-        toast.error('🆘 SOS sent! Emergency contacts notified.', { duration: 6000 });
-        setShowSOS(false); setSosConfirm(false);
-      }, () => { toast.error('Could not get location. Call 112 directly!'); });
-    } catch { toast.error('SOS failed — Call 112!'); }
+  // ── Actions ──
+  const run = async (fn, ok) => {
+    setBusy(true);
+    try { await fn(); if (ok) toast.success(ok); await loadBooking(); }
+    catch (err) { toast.error(getErrorMessage(err, 'Something went wrong')); }
+    setBusy(false);
   };
+  const accept   = () => run(() => api.patch(`/bookings/${bookingId}/status`, { status: 'CONFIRMED' }), 'Ride accepted ✅');
+  const decline  = () => run(() => api.patch(`/bookings/${bookingId}/status`, { status: 'REJECTED' }), 'Request declined');
+  const setTrip  = (s, msg) => run(() => api.patch(`/bookings/${bookingId}/trip`, { stage: s }), msg);
+  const startTrip = () => {
+    if (otpInput.length !== 4) { toast.error('Enter the 4-digit OTP from the rider'); return; }
+    run(() => api.post(`/bookings/${bookingId}/verify-ride-otp`, { otp: otpInput }), 'Trip started 🏁');
+  };
+  const endTrip  = () => run(() => api.patch(`/bookings/${bookingId}/status`, { status: 'COMPLETED' }), 'Trip completed 🎉');
+  const cancelRequest = () => {
+    if (!window.confirm('Cancel this booking?')) return;
+    run(() => api.delete(`/bookings/${bookingId}`), 'Booking cancelled');
+  };
+  const confirmCash = () => run(() => api.post(`/bookings/${bookingId}/confirm-cash`), 'Cash payment confirmed 💰');
 
   const sendQuickMsg = (text) => {
     if (!clientRef.current?.connected) { toast.error('Not connected'); return; }
-    clientRef.current.publish({
-      destination: '/app/location.message',
-      body: JSON.stringify({ bookingId: parseInt(bookingId), message: text, senderId: user.id }),
-    });
+    clientRef.current.publish({ destination: '/app/location.message', body: JSON.stringify({ bookingId: Number(bookingId), message: text }) });
     setMessages(prev => [...prev, { message: text, received: false, timestamp: Date.now() }]);
-    toast.success('✅ Sent!');
   };
 
-  const stepIndex = RIDE_STEPS.findIndex(s => s.key === rideStatus);
+  const sendSOS = () => {
+    const send = async (lat, lng) => {
+      const link = lat ? `https://maps.google.com/?q=${lat},${lng}` : 'location unavailable';
+      try {
+        await api.post('/safety/sos', { bookingId: Number(bookingId), lat, lng, message: `🆘 SOS ALERT from ${user.fullName}! Location: ${link}` });
+        sendQuickMsg(`🆘 EMERGENCY! ${user.fullName} needs help! 📍 ${link}`);
+        toast.error('🆘 SOS sent! Emergency contacts notified.', { duration: 6000 });
+      } catch { toast.error('SOS failed — call 112!'); }
+      setShowSOS(false); setSosConfirm(false);
+    };
+    if (myLoc) send(myLoc.lat, myLoc.lng);
+    else navigator.geolocation?.getCurrentPosition(p => send(p.coords.latitude, p.coords.longitude), () => send(null, null));
+  };
 
-  if (loading) return (
-    <div className="flex justify-center items-center min-h-screen">
-      <div className="w-8 h-8 border-2 border-aviro-orange/30 border-t-aviro-orange rounded-full animate-spin"/>
+  if (loading || !booking) return (
+    <div className="flex justify-center items-center min-h-[60vh]">
+      <div className="w-8 h-8 border-2 border-aviro-orange/30 border-t-aviro-orange rounded-full animate-spin" />
     </div>
   );
 
+  if (!isDriver && !isRider) return <p className="text-center text-aviro-muted py-20">This trip is not yours.</p>;
+
+  // Distance between driver and the rider (live, else pickup point)
+  const driverLoc = isDriver ? myLoc : otherLoc;
+  const riderLoc  = isDriver ? (otherLoc || pickup) : (myLoc || pickup);
+  const gap = distanceKm(driverLoc, riderLoc);
+  const stepIndex = STEPS.findIndex(s => s.key === stage);
+  const otherStale = otherSeenAt && Date.now() - otherSeenAt > 60000;
+
   return (
     <div className="max-w-2xl mx-auto space-y-4 pb-10 animate-fade-up">
-
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-display font-bold text-xl">Live Tracking 🗺️</h1>
-          <p className="text-aviro-muted text-sm">{booking?.fromLocation} → {booking?.toLocation}</p>
+          <h1 className="font-display font-bold text-xl">{isDriver ? 'Your Trip 🚗' : 'Your Ride 🗺️'}</h1>
+          <p className="text-aviro-muted text-sm">{booking.fromLocation} → {booking.toLocation}</p>
         </div>
         <button onClick={() => navigate('/bookings')}
           className="text-aviro-muted text-sm border border-aviro-border px-3 py-1.5 rounded-lg hover:text-white">
-          ← Back
+          ← Bookings
         </button>
       </div>
 
-      {/* SOS Button */}
-      <button onClick={() => setShowSOS(true)}
-        className="w-full bg-red-500 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-red-600 transition-colors">
-        🆘 SOS Emergency Alert
-      </button>
-
-      {/* SOS Modal */}
-      {showSOS && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-aviro-card border border-red-500/50 rounded-2xl w-full max-w-sm p-6 space-y-4">
-            <div className="text-center">
-              <p className="text-4xl mb-3">🆘</p>
-              <h3 className="font-bold text-xl text-red-400">Emergency Alert</h3>
-              <p className="text-aviro-muted text-sm mt-2">
-                Sends your live location to emergency contacts and {isDriver ? 'rider' : 'driver'}.
-              </p>
-            </div>
-            {!sosConfirm ? (
-              <div className="space-y-2">
-                <button onClick={() => setSosConfirm(true)} className="w-full bg-red-500 text-white font-bold py-3 rounded-xl">🆘 Yes, Send SOS Alert</button>
-                <button onClick={() => setShowSOS(false)} className="w-full bg-aviro-card2 text-aviro-muted font-semibold py-3 rounded-xl">Cancel</button>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <p className="text-red-400 text-sm font-semibold text-center">Confirm — real emergency?</p>
-                <button onClick={sendSOS} className="w-full bg-red-600 text-white font-bold py-3 rounded-xl">🆘 YES — SEND NOW</button>
-                <button onClick={() => { setShowSOS(false); setSosConfirm(false); }} className="w-full bg-aviro-card2 text-aviro-muted font-semibold py-3 rounded-xl">Cancel</button>
-              </div>
-            )}
-            <p className="text-xs text-aviro-muted text-center">Emergency: <span className="text-red-400 font-bold">112</span></p>
-          </div>
-        </div>
-      )}
-
-      {/* Location Lost Warning */}
-      {locationLost && isRider && (
-        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex items-center gap-3">
-          <span className="text-2xl">⚠️</span>
-          <div>
-            <p className="text-red-400 font-bold text-sm">Driver location signal lost!</p>
-            <p className="text-xs text-aviro-muted">
-              Last seen: {lastSeen ? new Date(lastSeen).toLocaleTimeString() : 'Unknown'} · Press SOS if unsafe.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Ride Progress Bar */}
-      <div className="card p-4">
-        <div className="flex items-center justify-between relative">
-          <div className="absolute top-5 left-0 right-0 h-0.5 bg-aviro-border z-0"/>
-          <div className="absolute top-5 left-0 h-0.5 bg-aviro-orange z-0 transition-all duration-700"
-            style={{ width: `${(stepIndex / (RIDE_STEPS.length - 1)) * 100}%` }}/>
-          {RIDE_STEPS.map((step, i) => (
-            <div key={step.key} className="flex flex-col items-center gap-1 z-10">
-              <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center text-lg transition-all
-                ${i <= stepIndex ? 'bg-aviro-orange border-aviro-orange' : 'bg-aviro-card2 border-aviro-border'}`}>
-                {step.icon}
-              </div>
-              <span className={`text-xs font-medium text-center w-14 ${i <= stepIndex ? 'text-aviro-orange' : 'text-aviro-muted'}`}>
-                {step.label}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Live Map */}
-      <div className="card overflow-hidden rounded-2xl relative">
-        <div ref={mapRef} style={{ height: '340px', width: '100%', background: '#1a1a2e' }}/>
-
-        {/* GPS accuracy badge */}
-        {isDriver && sharing && accuracy && (
-          <div className="absolute top-2 right-2 z-[1000] bg-black/80 backdrop-blur rounded-lg px-2 py-1">
-            <p className="text-xs text-aviro-green font-semibold">📡 ±{accuracy}m</p>
-          </div>
-        )}
-
-        {/* Find Me button */}
-        {mapReady && (
-          <button
-            onClick={findMe}
-            disabled={locating}
-            className="absolute bottom-14 right-2 z-[1000] bg-white text-gray-800 font-bold px-3 py-2 rounded-xl shadow-lg text-xs flex items-center gap-1.5 hover:bg-gray-100 disabled:opacity-60 transition-all">
-            {locating
-              ? <><div className="w-3 h-3 border-2 border-gray-400 border-t-gray-800 rounded-full animate-spin"/>Finding...</>
-              : <>📍 Find Me</>}
-          </button>
-        )}
-
-        {/* Legend */}
-        {mapReady && (
-          <div className="absolute bottom-2 left-2 z-[1000] bg-black/80 backdrop-blur rounded-lg px-3 py-2 flex items-center gap-3">
-            <div className="flex items-center gap-1">
-              <div className="w-3 h-3 rounded-full bg-aviro-orange border border-white"/>
-              <span className="text-xs text-white">Driver</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <div className="w-3 h-3 rounded-full bg-blue-500 border border-white"/>
-              <span className="text-xs text-white">You</span>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Driver Controls */}
-      {isDriver && (
-        <div className="card p-4 space-y-3">
-          <h3 className="font-bold text-sm">🚗 Driver Controls</h3>
-
-          {/* GPS Status */}
-          <div className={`rounded-xl px-3 py-2.5 flex items-center gap-2
-            ${gpsStatus === 'active' ? 'bg-aviro-green/10 border border-aviro-green/20' :
-              gpsStatus === 'acquiring' ? 'bg-yellow-500/10 border border-yellow-500/20' :
-              gpsStatus === 'lost' ? 'bg-red-500/10 border border-red-500/20' :
-              'bg-aviro-card2 border border-aviro-border'}`}>
-            <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0
-              ${gpsStatus === 'active' ? 'bg-aviro-green animate-pulse' :
-                gpsStatus === 'acquiring' ? 'bg-yellow-400 animate-pulse' :
-                gpsStatus === 'lost' ? 'bg-red-400' : 'bg-aviro-muted'}`}/>
-            <div>
-              <p className={`text-xs font-semibold
-                ${gpsStatus === 'active' ? 'text-aviro-green' :
-                  gpsStatus === 'acquiring' ? 'text-yellow-400' :
-                  gpsStatus === 'lost' ? 'text-red-400' : 'text-aviro-muted'}`}>
-                {gpsStatus === 'active'     ? `📡 Live GPS Active ${accuracy ? `(±${accuracy}m)` : ''}` :
-                 gpsStatus === 'acquiring'  ? '📡 Acquiring GPS signal...' :
-                 gpsStatus === 'lost'       ? '⚠️ GPS signal lost! Retrying...' :
-                 '📡 GPS not started'}
-              </p>
-              {gpsStatus === 'idle' && (
-                <p className="text-xs text-aviro-muted">Press "Share Location" to start</p>
-              )}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            {!sharing ? (
-              <button onClick={startSharing}
-                className="bg-aviro-green text-white font-bold py-3 rounded-xl text-sm hover:opacity-90 flex items-center justify-center gap-2">
-                📍 Share Location
-              </button>
-            ) : (
-              <div className="flex items-center justify-center gap-2 bg-aviro-green/10 border border-aviro-green/20 rounded-xl px-3 py-3">
-                <span className="w-2 h-2 bg-aviro-green rounded-full animate-pulse"/>
-                <span className="text-xs text-aviro-green font-medium">Broadcasting Live</span>
-              </div>
-            )}
-
-            {rideStatus === 'CONFIRMED' || rideStatus === 'ON_THE_WAY' ? (
-              <button onClick={markArrived}
-                className="bg-aviro-blue text-white font-bold py-3 rounded-xl text-sm hover:opacity-90">
-                📍 Arrived at Pickup
-              </button>
-            ) : rideStatus === 'ARRIVED' ? (
-              <button onClick={markStarted}
-                className="bg-aviro-orange text-white font-bold py-3 rounded-xl text-sm hover:opacity-90">
-                🏁 Start Ride
-              </button>
-            ) : (
-              <div className="bg-aviro-card2 rounded-xl flex items-center justify-center text-xs text-aviro-muted py-3 px-2 text-center">
-                {rideStatus === 'STARTED' ? '🚗 Ride in progress' : '✅ Done'}
-              </div>
-            )}
-          </div>
-
-          <p className="text-xs text-yellow-400 text-center">
-            🔒 Location broadcasts automatically — rider can track you in real-time
-          </p>
-        </div>
-      )}
-
-      {/* Rider: Driver Status */}
-      {isRider && (
+      {/* Progress */}
+      {stepIndex >= 0 && (
         <div className="card p-4">
-          <h3 className="font-bold text-sm mb-2">📍 Driver Location</h3>
-          {driverLoc ? (
-            <div className="space-y-2">
-              <div className="flex items-center gap-3 bg-aviro-green/10 border border-aviro-green/20 rounded-xl px-4 py-3">
-                <span className="w-3 h-3 bg-aviro-green rounded-full animate-pulse"/>
-                <div>
-                  <p className="text-sm font-semibold text-aviro-green">Driver is live on map!</p>
-                  <p className="text-xs text-aviro-muted">
-                    Last update: {lastSeen ? new Date(lastSeen).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : ''}
-                  </p>
-                </div>
-                <div className="ml-auto text-right">
-                  <p className="text-xs text-aviro-muted">Coords</p>
-                  <p className="text-xs font-mono text-aviro-orange">
-                    {driverLoc.lat.toFixed(4)}, {driverLoc.lng.toFixed(4)}
-                  </p>
-                </div>
+          <div className="flex items-center justify-between relative">
+            <div className="absolute top-5 left-0 right-0 h-0.5 bg-aviro-border" />
+            <div className="absolute top-5 left-0 h-0.5 bg-aviro-orange transition-all duration-700"
+              style={{ width: `${(stepIndex / (STEPS.length - 1)) * 100}%` }} />
+            {STEPS.map((s, i) => (
+              <div key={s.key} className="flex flex-col items-center gap-1 z-10">
+                <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center text-lg transition-all
+                  ${i <= stepIndex ? 'bg-aviro-orange border-aviro-orange' : 'bg-aviro-card2 border-aviro-border'}`}>{s.icon}</div>
+                <span className={`text-xs font-medium text-center w-14 ${i <= stepIndex ? 'text-aviro-orange' : 'text-aviro-muted'}`}>{s.label}</span>
               </div>
-              <a
-                href={`https://maps.google.com/?q=${driverLoc.lat},${driverLoc.lng}`}
-                target="_blank" rel="noreferrer"
-                className="w-full flex items-center justify-center gap-2 bg-aviro-card2 border border-aviro-border text-sm text-aviro-muted py-2 rounded-xl hover:text-white hover:border-aviro-orange/50 transition-all">
-                🗺️ Open in Google Maps
-              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Main status card */}
+      <div className="card p-5 space-y-4" data-testid="trip-status">
+        {/* ── REQUESTED ── */}
+        {stage === 'REQUESTED' && isRider && (
+          <div className="text-center space-y-3">
+            <div className="w-12 h-12 mx-auto border-4 border-aviro-orange/30 border-t-aviro-orange rounded-full animate-spin" />
+            <p className="font-bold text-lg">Waiting for {booking.driver?.fullName?.split(' ')[0] || 'the driver'} to accept…</p>
+            <p className="text-sm text-aviro-muted">You'll get a notification as soon as they respond.</p>
+            <button onClick={cancelRequest} disabled={busy} className="text-sm text-red-400 hover:underline">Cancel request</button>
+          </div>
+        )}
+        {stage === 'REQUESTED' && isDriver && (
+          <div className="space-y-3">
+            <p className="font-bold text-lg">🔔 New ride request</p>
+            <p className="text-sm text-aviro-muted">{booking.rider?.fullName} wants {booking.seatsBooked} seat{booking.seatsBooked > 1 ? 's' : ''} · ₹{booking.totalAmount}</p>
+            <div className="grid grid-cols-2 gap-3">
+              <button onClick={accept} disabled={busy} className="bg-aviro-green text-white font-bold py-3 rounded-xl">✅ Accept</button>
+              <button onClick={decline} disabled={busy} className="bg-red-500/10 text-red-400 border border-red-500/30 font-bold py-3 rounded-xl">Decline</button>
             </div>
-          ) : (
-            <div className="flex items-center gap-3 bg-aviro-card2 border border-aviro-border rounded-xl px-4 py-3">
-              <span className="text-xl">⏳</span>
-              <div>
-                <p className="text-sm font-semibold">Waiting for driver location...</p>
-                <p className="text-xs text-aviro-muted">Driver will share location when on the way</p>
+          </div>
+        )}
+
+        {/* ── LIVE TRIP ── */}
+        {isLive && (
+          <>
+            <div>
+              <p className="font-bold text-lg">
+                {isRider ? {
+                  ACCEPTED:   `✅ ${other?.fullName?.split(' ')[0]} accepted your ride`,
+                  ON_THE_WAY: `🚗 ${other?.fullName?.split(' ')[0]} is on the way`,
+                  ARRIVED:    `📍 ${other?.fullName?.split(' ')[0]} has arrived!`,
+                  STARTED:    `🏁 On the way to ${booking.toLocation}`,
+                }[stage] : {
+                  ACCEPTED:   'Head to the pickup when you\'re ready',
+                  ON_THE_WAY: `Picking up ${other?.fullName?.split(' ')[0]}`,
+                  ARRIVED:    `Ask ${other?.fullName?.split(' ')[0]} for the ride OTP`,
+                  STARTED:    `Drop ${other?.fullName?.split(' ')[0]} at ${booking.toLocation}`,
+                }[stage]}
+              </p>
+              {gap != null && stage !== 'STARTED' && (
+                <p className="text-sm text-aviro-muted mt-1">
+                  {isDriver ? 'Rider' : 'Driver'} is <span className="text-white font-semibold">{formatDistance(gap)}</span> away
+                  {gap > 0.05 && <> · about <span className="text-white font-semibold">{etaMinutes(gap)} min</span></>}
+                </p>
+              )}
+              {otherStale && <p className="text-xs text-yellow-400 mt-1">⚠️ {isDriver ? 'Rider' : 'Driver'}'s location hasn't updated for a minute</p>}
+            </div>
+
+            {/* Rider: OTP to share at pickup */}
+            {isRider && stage !== 'STARTED' && otp && (
+              <div className={`rounded-xl p-4 text-center border ${stage === 'ARRIVED' ? 'bg-aviro-orange/10 border-aviro-orange' : 'bg-aviro-card2 border-aviro-border'}`}>
+                <p className="text-xs text-aviro-muted mb-1">Share this OTP with your driver at pickup</p>
+                <p className="font-mono font-bold text-3xl tracking-[0.4em] text-aviro-orange" data-testid="rider-otp">{otp}</p>
               </div>
+            )}
+
+            {/* Driver controls */}
+            {isDriver && stage === 'ACCEPTED' && (
+              <button onClick={() => setTrip('ON_THE_WAY', 'Rider notified that you are on the way')} disabled={busy}
+                className="w-full bg-aviro-orange text-white font-bold py-3 rounded-xl">🚗 Start heading to pickup</button>
+            )}
+            {isDriver && stage === 'ON_THE_WAY' && (
+              <button onClick={() => setTrip('ARRIVED', 'Rider notified that you arrived')} disabled={busy}
+                className="w-full bg-aviro-blue text-white font-bold py-3 rounded-xl">📍 I've arrived at pickup</button>
+            )}
+            {isDriver && stage === 'ARRIVED' && (
+              <div className="space-y-2">
+                <input value={otpInput} onChange={e => setOtpInput(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                  inputMode="numeric" placeholder="Rider's 4-digit OTP" aria-label="Rider OTP"
+                  className="input-field text-center font-mono text-2xl tracking-[0.4em]" />
+                <button onClick={startTrip} disabled={busy}
+                  className="w-full bg-aviro-green text-white font-bold py-3 rounded-xl">🏁 Verify OTP & start trip</button>
+              </div>
+            )}
+            {isDriver && stage === 'STARTED' && (
+              <button onClick={() => window.confirm('End this trip?') && endTrip()} disabled={busy}
+                className="w-full bg-aviro-blue text-white font-bold py-3 rounded-xl">🏁 End trip</button>
+            )}
+            {isRider && ['ACCEPTED', 'ON_THE_WAY'].includes(stage) && (
+              <button onClick={cancelRequest} disabled={busy} className="w-full text-xs text-red-400 hover:underline">Cancel booking</button>
+            )}
+
+            {gpsStatus === 'denied' && (
+              <p className="text-xs text-red-400">Location permission is off — allow it in the browser so {isDriver ? 'the rider' : 'the driver'} can see you.</p>
+            )}
+          </>
+        )}
+
+        {/* ── COMPLETED ── */}
+        {stage === 'COMPLETED' && (
+          <div className="space-y-3 text-center">
+            <p className="text-4xl">🎉</p>
+            <p className="font-bold text-lg">Trip completed · ₹{booking.totalAmount}</p>
+            {isRider && booking.paymentStatus !== 'COMPLETED' && !booking.paymentMethod && (
+              <button onClick={() => setShowPay(true)} className="w-full bg-aviro-green text-white font-bold py-3 rounded-xl">💳 Pay ₹{booking.totalAmount}</button>
+            )}
+            {booking.paymentMethod === 'CASH' && booking.paymentStatus !== 'COMPLETED' && (
+              isDriver
+                ? <button onClick={confirmCash} disabled={busy} className="w-full bg-aviro-green text-white font-bold py-3 rounded-xl">✅ I received the cash</button>
+                : <p className="text-sm text-yellow-400">💵 Waiting for the driver to confirm your cash payment</p>
+            )}
+            {isDriver && !booking.paymentMethod && <p className="text-sm text-aviro-muted">Waiting for the rider to pay…</p>}
+            {booking.paymentStatus === 'COMPLETED' && <p className="text-sm text-aviro-green">✅ Payment complete</p>}
+            {!reviewed && (
+              <button onClick={() => setShowReview(true)} className="w-full bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 font-semibold py-2.5 rounded-xl">
+                ⭐ Rate {other?.fullName?.split(' ')[0] || (isDriver ? 'rider' : 'driver')}
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* ── REJECTED / CANCELLED ── */}
+        {['REJECTED', 'CANCELLED'].includes(stage) && (
+          <div className="text-center space-y-3">
+            <p className="text-4xl">{stage === 'REJECTED' ? '😕' : '🚫'}</p>
+            <p className="font-bold">{stage === 'REJECTED' ? 'The driver could not take this ride' : 'This booking was cancelled'}</p>
+            {isRider && <Link to="/search" className="btn-primary inline-block">Find another ride</Link>}
+          </div>
+        )}
+      </div>
+
+      {/* Map */}
+      {showMap && (
+        <div className="card overflow-hidden rounded-2xl relative">
+          <div ref={mapRef} style={{ height: '320px', width: '100%', background: '#1a1a2e' }} />
+          <button onClick={fitAll} className="absolute bottom-12 right-2 z-[1000] bg-white text-gray-800 font-bold px-3 py-2 rounded-xl shadow-lg text-xs">
+            🎯 Recenter
+          </button>
+          <div className="absolute bottom-2 left-2 z-[1000] bg-black/80 rounded-lg px-3 py-1.5 flex items-center gap-3 text-xs text-white">
+            <span>🔵 You</span>
+            <span>{isDriver ? '🟢 Rider' : '🟠 Driver'}</span>
+            {pickup && <span>📌 Pickup</span>}
+            {isLive && <span className={gpsStatus === 'active' ? 'text-aviro-green' : 'text-aviro-muted'}>
+              {gpsStatus === 'active' ? '● Sharing live' : gpsStatus === 'acquiring' ? '○ Getting GPS…' : '○ GPS off'}
+            </span>}
+          </div>
+        </div>
+      )}
+
+      {/* Person card */}
+      <div className="card p-4 flex items-center gap-3">
+        <div className="w-12 h-12 rounded-full bg-aviro-card2 flex items-center justify-center text-2xl">
+          {other?.gender === 'FEMALE' ? '👩' : '👨'}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-bold text-sm">{other?.fullName}</p>
+          <p className="text-xs text-aviro-muted">{isDriver ? 'Your rider' : 'Your driver'} · ⭐ {other?.rating?.toFixed(1) || '5.0'}</p>
+          {isRider && booking.driver?.vehicleModel && (
+            <p className="text-xs text-aviro-muted truncate">
+              {booking.driver.vehicleModel} · {booking.driver.vehicleColor}
+              {booking.driver.vehicleRegistrationNumber && <> · <span className="text-white font-semibold">{booking.driver.vehicleRegistrationNumber}</span></>}
+            </p>
+          )}
+        </div>
+        <div className="flex gap-2">
+          {other?.phone && <a href={`tel:${other.phone}`} className="w-10 h-10 rounded-full bg-aviro-green/15 flex items-center justify-center" aria-label="Call">📞</a>}
+          {isLive && <Link to="/chat" className="w-10 h-10 rounded-full bg-aviro-orange/15 flex items-center justify-center" aria-label="Chat">💬</Link>}
+        </div>
+      </div>
+
+      {/* Quick messages */}
+      {isLive && (
+        <div className="card p-4 space-y-3">
+          <h3 className="font-bold text-sm">💬 Quick messages</h3>
+          <div className="grid grid-cols-3 gap-2">
+            {QUICK_MESSAGES.map(m => (
+              <button key={m.label} onClick={() => sendQuickMsg(m.text)}
+                className="bg-aviro-card2 border border-aviro-border text-xs font-medium py-2.5 px-2 rounded-xl hover:border-aviro-orange/50">
+                {m.label}
+              </button>
+            ))}
+          </div>
+          {messages.length > 0 && (
+            <div className="space-y-2 max-h-40 overflow-y-auto">
+              {messages.map((m, i) => (
+                <div key={i} className={`flex ${m.received ? 'justify-start' : 'justify-end'}`}>
+                  <div className={`text-xs px-3 py-2 rounded-xl max-w-xs ${m.received ? 'bg-aviro-card2 border border-aviro-border' : 'bg-aviro-orange text-white'}`}>{m.message}</div>
+                </div>
+              ))}
             </div>
           )}
         </div>
       )}
 
-      {/* Quick Messages */}
-      <div className="card p-4 space-y-3">
-        <h3 className="font-bold text-sm">💬 Quick Messages</h3>
-        <div className="grid grid-cols-3 gap-2">
-          {QUICK_MESSAGES.map((msg, i) => (
-            <button key={i} onClick={() => sendQuickMsg(msg.text)}
-              className="bg-aviro-card2 border border-aviro-border text-xs font-medium py-2.5 px-2 rounded-xl hover:border-aviro-orange/50 hover:bg-aviro-orange/5 transition-all text-center">
-              {msg.label}
-            </button>
-          ))}
-        </div>
-        {messages.length > 0 && (
-          <div className="space-y-2 max-h-40 overflow-y-auto mt-2">
-            {messages.map((m, i) => (
-              <div key={i} className={`flex ${m.received ? 'justify-start' : 'justify-end'}`}>
-                <div className={`text-xs px-3 py-2 rounded-xl max-w-xs
-                  ${m.received ? 'bg-aviro-card2 text-white border border-aviro-border' : 'bg-aviro-orange text-white'}`}>
-                  {m.message}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Rider/Driver Info */}
-      <div className="card p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-aviro-card2 flex items-center justify-center text-2xl">
-              {isDriver
-                ? (booking?.rider?.gender === 'FEMALE' ? '👩' : '👨')
-                : (booking?.driver?.gender === 'FEMALE' ? '👩' : '👨')}
-            </div>
-            <div>
-              <p className="font-bold text-sm">
-                {isDriver ? booking?.rider?.fullName : booking?.driver?.fullName}
-              </p>
-              <p className="text-xs text-aviro-muted">{isDriver ? 'Your Rider' : 'Your Driver'}</p>
-              <p className="text-xs text-aviro-muted">
-                ⭐ {isDriver ? booking?.rider?.rating?.toFixed(1) : booking?.driver?.rating?.toFixed(1)}
-              </p>
-              {isRider && booking?.driver?.phone && (
-                <a href={`tel:${booking.driver.phone}`} className="text-xs text-aviro-orange">
-                  📞 {booking.driver.phone}
-                </a>
-              )}
-              {isDriver && booking?.rider?.phone && (
-                <a href={`tel:${booking.rider.phone}`} className="text-xs text-aviro-orange">
-                  📞 {booking.rider.phone}
-                </a>
-              )}
-            </div>
-          </div>
-          <div className="text-right">
-            <p className="text-aviro-green font-bold text-lg">₹{booking?.totalAmount}</p>
-            <p className="text-xs text-aviro-muted">{booking?.seatsBooked} seat{booking?.seatsBooked > 1 ? 's' : ''}</p>
+      {/* SOS */}
+      {isLive && (
+        <button onClick={() => setShowSOS(true)} className="w-full bg-red-500 text-white font-bold py-3 rounded-xl hover:bg-red-600">
+          🆘 SOS Emergency
+        </button>
+      )}
+      {showSOS && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+          <div className="bg-aviro-card border border-red-500/50 rounded-2xl w-full max-w-sm p-6 space-y-3 text-center">
+            <p className="text-4xl">🆘</p>
+            <h3 className="font-bold text-xl text-red-400">Emergency alert</h3>
+            <p className="text-aviro-muted text-sm">Sends your live location to your emergency contacts and the {isDriver ? 'rider' : 'driver'}.</p>
+            {!sosConfirm
+              ? <button onClick={() => setSosConfirm(true)} className="w-full bg-red-500 text-white font-bold py-3 rounded-xl">Yes, send SOS</button>
+              : <button onClick={sendSOS} className="w-full bg-red-600 text-white font-bold py-3 rounded-xl">Confirm — SEND NOW</button>}
+            <button onClick={() => { setShowSOS(false); setSosConfirm(false); }} className="w-full bg-aviro-card2 text-aviro-muted font-semibold py-3 rounded-xl">Cancel</button>
+            <p className="text-xs text-aviro-muted">Emergency: <span className="text-red-400 font-bold">112</span></p>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Safety Tips */}
-      <div className="bg-aviro-card2 border border-aviro-border rounded-xl p-4">
-        <p className="text-xs text-aviro-muted font-semibold mb-2">🛡️ Safety Tips</p>
-        <p className="text-xs text-aviro-muted">• Share this trip with a trusted contact before riding</p>
-        <p className="text-xs text-aviro-muted">• Press SOS if you feel unsafe at any point</p>
-        <p className="text-xs text-aviro-muted">• For emergencies, call <span className="text-red-400 font-bold">112</span></p>
-      </div>
+      {showPay && (
+        <PaymentChoiceModal booking={booking} onClose={() => setShowPay(false)}
+          onPaid={() => { setShowPay(false); loadBooking(); }} />
+      )}
+      {showReview && (
+        <ReviewModal booking={booking} revieweeId={other?.id} revieweeName={other?.fullName}
+          revieweeGender={other?.gender}
+          onClose={() => setShowReview(false)} onSubmitted={() => setReviewed(true)} />
+      )}
     </div>
   );
 }
