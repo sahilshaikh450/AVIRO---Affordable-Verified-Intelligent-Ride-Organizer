@@ -338,6 +338,7 @@ npm start
 | `AVIRO_JWT_SECRET` | ✅ | — | JWT signing secret (at least 32 bytes) |
 | `AVIRO_JWT_EXPIRATION` | | `86400000` | Access token lifetime (ms, 24h) |
 | `AVIRO_JWT_REFRESH_EXPIRATION` | | `604800000` | Refresh token lifetime (ms, 7 days) |
+| `AVIRO_ADMIN_EMAILS` | | empty | Comma-separated emails given the ADMIN role at startup (the only way to create an admin) |
 | `GEMINI_API_KEY` | | empty | Gemini key for AI college ID scan |
 | `GEMINI_MODEL` | | `gemini-3.5-flash-lite` | Gemini model name |
 | `SENTRY_DSN` | | empty | Sentry DSN for backend error tracking (empty = off) |

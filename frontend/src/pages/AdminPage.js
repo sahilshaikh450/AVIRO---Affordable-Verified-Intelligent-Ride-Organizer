@@ -80,6 +80,7 @@ export default function AdminPage() {
   const [processingId, setProcessingId]     = useState(null);
   const [tab, setTab]                       = useState('college');
   const [expandedImg, setExpandedImg]       = useState(null); // fullscreen image
+  const [forbidden, setForbidden]           = useState(false);
 
   useEffect(() => { loadData(); }, []);
 
@@ -95,7 +96,8 @@ export default function AdminPage() {
       setStats(sRes.data.data);
       setPendingVehicles(vRes.data.data || []);
     } catch (err) {
-      toast.error('Failed to load admin data');
+      if (err.response?.status === 403) setForbidden(true);
+      else toast.error('Failed to load admin data');
     }
     setLoading(false);
   };
@@ -141,6 +143,16 @@ export default function AdminPage() {
   };
 
   if (loading) return <div className="flex justify-center py-20"><Spinner size="lg" /></div>;
+
+  if (forbidden) return (
+    <div className="max-w-md mx-auto text-center py-20 space-y-3">
+      <div className="text-5xl">🔒</div>
+      <h1 className="font-display font-bold text-xl">Admin access only</h1>
+      <p className="text-aviro-muted text-sm">
+        Your account does not have admin rights. Ask the project admin to add your email to AVIRO_ADMIN_EMAILS.
+      </p>
+    </div>
+  );
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 animate-fade-up">
