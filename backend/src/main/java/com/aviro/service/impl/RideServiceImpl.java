@@ -3,6 +3,7 @@ package com.aviro.service.impl;
 import com.aviro.dto.request.RideRequest;
 import com.aviro.dto.response.ApiResponse;
 import com.aviro.dto.response.RideResponse;
+import com.aviro.entity.Booking;
 import com.aviro.entity.Ride;
 import com.aviro.entity.User;
 import com.aviro.entity.Vehicle;
@@ -14,6 +15,7 @@ import com.aviro.repository.BookingRepository;
 import com.aviro.repository.RideRepository;
 import com.aviro.repository.UserRepository;
 import com.aviro.repository.VehicleRepository;
+import com.aviro.service.NotificationService;
 import com.aviro.service.RideService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,6 +37,14 @@ public class RideServiceImpl implements RideService {
     private final UserRepository    userRepository;
     private final BookingRepository bookingRepository;
     private final VehicleRepository vehicleRepository;
+    private final NotificationService notificationService;
+
+    // Status changes a driver may make; cancelled and completed rides are final
+    private static final Map<RideStatus, Set<RideStatus>> ALLOWED_MOVES = Map.of(
+        RideStatus.PENDING,     Set.of(RideStatus.ACTIVE, RideStatus.IN_PROGRESS, RideStatus.COMPLETED, RideStatus.CANCELLED),
+        RideStatus.ACTIVE,      Set.of(RideStatus.IN_PROGRESS, RideStatus.COMPLETED, RideStatus.CANCELLED),
+        RideStatus.IN_PROGRESS, Set.of(RideStatus.COMPLETED)
+    );
 
     // ── CREATE RIDE ──────────────────────────────────
     @Override
@@ -90,9 +100,11 @@ public class RideServiceImpl implements RideService {
             throw new AviroException("📍 Pickup and drop locations cannot be the same.");
         }
 
-        // 8. No duplicate active ride on same route
+        // 8. No duplicate upcoming ride on same route (yesterday's ride doesn't block today's)
+        LocalDateTime now = LocalDateTime.now();
         List<Ride> existingRides = rideRepository.findByDriverAndStatus(driver.getId(), RideStatus.PENDING);
         boolean duplicate = existingRides.stream().anyMatch(r ->
+            r.getDepartureTime() != null && r.getDepartureTime().isAfter(now) &&
             r.getFromLocation().equalsIgnoreCase(request.getFromLocation().trim()) &&
             r.getToLocation().equalsIgnoreCase(request.getToLocation().trim())
         );
@@ -132,8 +144,10 @@ public class RideServiceImpl implements RideService {
         // ✅ correct field: seatsNeeded
         int seatsNeeded = request.getSeatsNeeded() != null ? request.getSeatsNeeded() : 1;
 
-        LocalDateTime from = request.getDepartureTime() != null
-            ? request.getDepartureTime().minusHours(2) : LocalDateTime.now();
+        // Never show rides that have already left
+        LocalDateTime now  = LocalDateTime.now();
+        LocalDateTime from = request.getDepartureTime() != null && request.getDepartureTime().minusHours(2).isAfter(now)
+            ? request.getDepartureTime().minusHours(2) : now;
         LocalDateTime to   = request.getDepartureTime() != null
             ? request.getDepartureTime().plusHours(2)  : LocalDateTime.now().plusDays(7);
 
@@ -194,15 +208,21 @@ public class RideServiceImpl implements RideService {
             throw new AviroException("🚫 You are not authorized to update this ride.");
         }
 
-        RideStatus newStatus = RideStatus.valueOf(status.toUpperCase());
+        RideStatus newStatus;
+        try {
+            newStatus = RideStatus.valueOf(status.trim().toUpperCase());
+        } catch (IllegalArgumentException | NullPointerException e) {
+            throw new AviroException("Invalid ride status: " + status);
+        }
+
+        if (!ALLOWED_MOVES.getOrDefault(ride.getStatus(), Set.of()).contains(newStatus)) {
+            throw new AviroException("A " + ride.getStatus().name().toLowerCase() + " ride can't be marked "
+                    + newStatus.name().toLowerCase());
+        }
 
         if (newStatus == RideStatus.CANCELLED) {
-            long confirmed = bookingRepository.countByRideIdAndStatus(rideId, BookingStatus.CONFIRMED);
-            if (confirmed > 0) {
-                throw new AviroException(
-                    "❌ Cannot cancel — " + confirmed + " confirmed booking(s) exist. Contact riders first."
-                );
-            }
+            cancelRide(email, rideId);
+            return ApiResponse.success("Ride status updated", toResponse(ride, getVehicleForDriver(driver.getId())));
         }
 
         ride.setStatus(newStatus);
@@ -222,6 +242,10 @@ public class RideServiceImpl implements RideService {
             throw new AviroException("🚫 You are not authorized to cancel this ride.");
         }
 
+        if (ride.getStatus() == RideStatus.CANCELLED || ride.getStatus() == RideStatus.COMPLETED) {
+            throw new AviroException("This ride is already " + ride.getStatus().name().toLowerCase());
+        }
+
         long confirmed = bookingRepository.countByRideIdAndStatus(rideId, BookingStatus.CONFIRMED);
         if (confirmed > 0) {
             throw new AviroException("❌ Cannot cancel — " + confirmed + " confirmed booking(s) exist.");
@@ -229,6 +253,25 @@ public class RideServiceImpl implements RideService {
 
         ride.setStatus(RideStatus.CANCELLED);
         rideRepository.save(ride);
+
+        // Pending requests can't go anywhere now: close them and tell the riders
+        for (Booking booking : bookingRepository.findActiveBookingsForRide(rideId)) {
+            booking.setStatus(BookingStatus.CANCELLED);
+            booking.setTripStage(null);
+            bookingRepository.save(booking);
+            try {
+                notificationService.send(
+                        booking.getRider().getId(),
+                        "Ride Cancelled",
+                        driver.getFullName() + " cancelled the ride from " + ride.getFromLocation() +
+                                " to " + ride.getToLocation() + ". Try finding another ride!",
+                        "BOOKING_CANCELLED",
+                        String.valueOf(booking.getId())
+                );
+            } catch (Exception e) {
+                log.warn("In-app notification failed: {}", e.getMessage());
+            }
+        }
         log.info("Ride cancelled: rideId={} driver={}", rideId, email);
         return ApiResponse.success("Ride cancelled successfully", null);
     }
@@ -307,7 +350,7 @@ public class RideServiceImpl implements RideService {
                         .yearOfStudy(driver.getYearOfStudy())
                         .profilePicUrl(driver.getProfilePicUrl())
                         .isCollegeVerified(driver.getIsCollegeVerified())
-                        .vehicleType(vehicle != null ? vehicle.getVehicleType().name() : null)
+                        .vehicleType(vehicle != null && vehicle.getVehicleType() != null ? vehicle.getVehicleType().name() : null)
                         .vehicleModel(vehicle != null ? vehicle.getModel() : null)
                         .vehicleColor(vehicle != null ? vehicle.getColor() : null)
                         .vehicleRegistrationNumber(vehicle != null ? vehicle.getRegistrationNumber() : null)

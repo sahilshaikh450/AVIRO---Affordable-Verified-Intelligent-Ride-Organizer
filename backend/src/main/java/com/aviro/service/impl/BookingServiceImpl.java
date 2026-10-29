@@ -9,7 +9,9 @@ import com.aviro.entity.Ride;
 import com.aviro.entity.User;
 import com.aviro.entity.Vehicle;
 import com.aviro.enums.BookingStatus;
+import com.aviro.enums.Gender;
 import com.aviro.enums.PaymentStatus;
+import com.aviro.enums.RideStatus;
 import com.aviro.enums.Role;
 import com.aviro.enums.TripStage;
 import com.aviro.exception.AviroException;
@@ -26,6 +28,8 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -44,6 +48,16 @@ public class BookingServiceImpl implements BookingService {
     private final EmailService emailService;
     private final NotificationService notificationService;
 
+    private static final Set<BookingStatus> ACTIVE_STATUSES = EnumSet.of(BookingStatus.REQUESTED, BookingStatus.CONFIRMED);
+
+    private static BookingStatus parseStatus(String status) {
+        try {
+            return BookingStatus.valueOf(status.trim().toUpperCase());
+        } catch (IllegalArgumentException | NullPointerException e) {
+            throw new AviroException("Invalid booking status: " + status);
+        }
+    }
+
     @Override
     @Transactional
     public ApiResponse<BookingResponse> createBooking(String email, BookingRequest.Create request) {
@@ -60,16 +74,33 @@ public class BookingServiceImpl implements BookingService {
             throw new AviroException("You cannot book your own ride");
         }
 
+        if (ride.getStatus() != RideStatus.PENDING && ride.getStatus() != RideStatus.ACTIVE) {
+            throw new AviroException("This ride is no longer taking bookings");
+        }
+
+        if (ride.getDepartureTime() != null && ride.getDepartureTime().isBefore(LocalDateTime.now())) {
+            throw new AviroException("This ride has already left");
+        }
+
         if (ride.getAvailableSeats() < request.getSeatsBooked()) {
             throw new AviroException("Not enough seats available");
         }
 
-        if (bookingRepository.findByRideIdAndRiderId(ride.getId(), rider.getId()).isPresent()) {
+        // A cancelled or declined request doesn't stop the rider from asking again
+        if (bookingRepository.existsByRideIdAndRiderIdAndStatusIn(ride.getId(), rider.getId(), ACTIVE_STATUSES)) {
             throw new AviroException("You have already booked this ride");
         }
 
-        if (ride.getWomenOnly() && rider.getGender() != com.aviro.enums.Gender.FEMALE) {
+        if (Boolean.TRUE.equals(ride.getWomenOnly()) && rider.getGender() != Gender.FEMALE) {
             throw new AviroException("This is a women-only ride");
+        }
+
+        if (ride.getAllowedGender() != null && rider.getGender() != ride.getAllowedGender()) {
+            throw new AviroException("This ride is only for " + ride.getAllowedGender().name().toLowerCase() + " riders");
+        }
+
+        if (rideRepository.reserveSeats(ride.getId(), request.getSeatsBooked()) == 0) {
+            throw new AviroException("Not enough seats available");
         }
 
         double total = ride.getPricePerSeat() * request.getSeatsBooked();
@@ -86,9 +117,6 @@ public class BookingServiceImpl implements BookingService {
                 .build();
 
         bookingRepository.save(booking);
-
-        ride.setAvailableSeats(ride.getAvailableSeats() - request.getSeatsBooked());
-        rideRepository.save(ride);
 
         try {
             emailService.sendRideRequestNotification(
@@ -146,7 +174,7 @@ public class BookingServiceImpl implements BookingService {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new AviroException("Booking not found"));
 
-        BookingStatus newStatus = BookingStatus.valueOf(status.toUpperCase());
+        BookingStatus newStatus = parseStatus(status);
 
         boolean isDriver = booking.getRide().getDriver().getId().equals(actingUser.getId());
         boolean isRider = booking.getRider().getId().equals(actingUser.getId());
@@ -199,8 +227,21 @@ public class BookingServiceImpl implements BookingService {
             throw new AviroException("Only the driver can update booking status");
         }
 
+        // The driver only answers new requests here; cancelling has its own endpoint
+        if (newStatus != BookingStatus.CONFIRMED && newStatus != BookingStatus.REJECTED) {
+            throw new AviroException("A booking can only be accepted or declined");
+        }
+
+        if (booking.getStatus() != BookingStatus.REQUESTED) {
+            throw new AviroException("This request was already answered");
+        }
+
         booking.setStatus(newStatus);
         bookingRepository.save(booking);
+
+        if (newStatus == BookingStatus.REJECTED) {
+            rideRepository.releaseSeats(booking.getRide().getId(), booking.getSeatsBooked());
+        }
 
         if (newStatus == BookingStatus.CONFIRMED) {
             try {
@@ -256,6 +297,14 @@ public class BookingServiceImpl implements BookingService {
 
         User rider = booking.getRider();
         User driver = booking.getRide().getDriver();
+
+        if (booking.getStatus() != BookingStatus.COMPLETED) {
+            throw new AviroException("Payment opens after the trip is completed");
+        }
+
+        if (booking.getPaymentStatus() == PaymentStatus.COMPLETED) {
+            throw new AviroException("This ride is already paid");
+        }
 
         // ── CASH: Driver confirms cash received ──
         if (isDriver) {
@@ -381,12 +430,20 @@ public class BookingServiceImpl implements BookingService {
             throw new AviroException("You are not authorized to cancel this booking");
         }
 
+        if (!ACTIVE_STATUSES.contains(booking.getStatus())) {
+            throw new AviroException("This booking is already " + booking.getStatus().name().toLowerCase());
+        }
+
+        if (booking.getTripStage() == TripStage.STARTED) {
+            throw new AviroException("The trip has already started");
+        }
+
         booking.setStatus(BookingStatus.CANCELLED);
+        booking.setTripStage(null);
         bookingRepository.save(booking);
 
         Ride ride = booking.getRide();
-        ride.setAvailableSeats(ride.getAvailableSeats() + booking.getSeatsBooked());
-        rideRepository.save(ride);
+        rideRepository.releaseSeats(ride.getId(), booking.getSeatsBooked());
 
         try {
             Long notifyUserId = isRider ? ride.getDriver().getId() : booking.getRider().getId();
