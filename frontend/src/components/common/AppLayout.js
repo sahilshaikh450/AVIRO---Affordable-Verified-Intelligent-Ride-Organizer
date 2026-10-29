@@ -5,6 +5,7 @@ import { logoutUser } from '../../store/authSlice';
 import NotificationBell from './NotificationBell';
 import TripAlerts from './TripAlerts';
 import PushPrompt from './PushPrompt';
+import Logo from './Logo';
 
 // ── Bottom nav links (mobile) ──
 const bottomLinks = [
@@ -35,7 +36,7 @@ function MobileTopBar() {
   return (
     <header className="md:hidden h-14 border-b border-aviro-border bg-aviro-card/90 backdrop-blur sticky top-0 z-20 flex items-center justify-between px-4">
       <div className="flex items-center gap-2">
-        <div className="w-7 h-7 bg-aviro-orange rounded-lg flex items-center justify-center text-white font-bold text-xs">A</div>
+        <Logo size={30} />
         <span className="font-display font-bold text-aviro-orange text-base">AVIRO</span>
       </div>
       <div className="flex items-center gap-2">
@@ -84,7 +85,7 @@ function DesktopSidebar() {
     <aside className="hidden md:flex w-60 flex-col bg-aviro-card border-r border-aviro-border h-screen sticky top-0">
       {/* Logo */}
       <div className="p-4 border-b border-aviro-border flex items-center gap-3 h-16">
-        <div className="w-8 h-8 bg-aviro-orange rounded-lg flex items-center justify-center text-white font-bold text-sm">A</div>
+        <Logo size={34} />
         <span className="font-display font-bold text-aviro-orange text-lg">AVIRO</span>
       </div>
 

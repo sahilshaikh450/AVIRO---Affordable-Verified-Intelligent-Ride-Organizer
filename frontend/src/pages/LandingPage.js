@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import Logo from '../components/common/Logo';
 
 const features = [
   { icon:'🧠', title:'AI Route Matching',      desc:'Smart matching for students on the same Pune college routes.' },
@@ -26,7 +27,7 @@ export default function LandingPage() {
     <div className="min-h-screen bg-aviro-dark text-white">
       {/* Nav */}
       <nav className="fixed top-0 inset-x-0 z-50 bg-aviro-dark/80 backdrop-blur border-b border-aviro-border px-6 py-4 flex items-center justify-between">
-        <span className="font-display font-bold text-2xl text-aviro-orange">AVIRO</span>
+        <span className="flex items-center gap-2"><Logo size={36} /><span className="font-display font-bold text-2xl text-aviro-orange">AVIRO</span></span>
         <div className="flex gap-3">
           <Link to="/login"    className="btn-secondary text-sm py-2">Sign In</Link>
           <Link to="/register" className="btn-primary  text-sm py-2">Join Free 🚀</Link>

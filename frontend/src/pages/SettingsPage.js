@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { logoutUser, logout } from '../store/authSlice';
 import api from '../services/api';
 import toast from 'react-hot-toast';
+import Logo from '../components/common/Logo';
 
 // ── Help Chatbot ──
 const HELP_RESPONSES = {
@@ -223,7 +224,7 @@ function InfoModal({ type, onClose }) {
       body: (
         <div className="space-y-4 text-sm text-aviro-muted">
           <div className="text-center py-4">
-            <div className="w-16 h-16 bg-aviro-orange rounded-2xl flex items-center justify-center text-white font-bold text-3xl mx-auto mb-3">A</div>
+            <Logo size={64} className="mx-auto mb-3" />
             <p className="font-bold text-white text-xl">AVIRO</p>
             <p className="text-aviro-orange text-xs mt-1">Affordable · Verified · Intelligent · Ride Organizer</p>
             <p className="text-xs mt-2">Version 1.0.0</p>
