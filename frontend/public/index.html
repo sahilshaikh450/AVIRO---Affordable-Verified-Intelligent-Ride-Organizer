@@ -3,7 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#f97316" />
+    <!-- Dark bars, matching the app header and bottom nav -->
+    <meta name="theme-color" content="#161A22" />
     <meta name="description" content="AVIRO - Affordable Verified Intelligent Ride Organizer. Pune's #1 College Ride Sharing Platform." />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -12,7 +13,8 @@
 
     <!-- PWA -->
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/icon-192.png" />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/apple-touch-icon.png" />
+    <link rel="icon" type="image/svg+xml" href="%PUBLIC_URL%/favicon.svg" />
     <link rel="icon" type="image/png" href="%PUBLIC_URL%/icon-192.png" />
 
     <title>AVIRO — College Ride Sharing Pune</title>
@@ -20,7 +22,7 @@
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
       body {
-        background-color: #0f0f1a;
+        background-color: #0D0F14;
         color: #f0f2f8;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         -webkit-font-smoothing: antialiased;
@@ -34,20 +36,13 @@
         align-items: center;
         justify-content: center;
         min-height: 100vh;
-        background: #0f0f1a;
+        background: #0D0F14;
         gap: 16px;
       }
       .app-loading-logo {
-        width: 64px;
-        height: 64px;
-        background: #f97316;
-        border-radius: 16px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 28px;
-        font-weight: 900;
-        color: white;
+        width: 88px;
+        height: 88px;
+        border-radius: 20px;
         animation: pulse 1.5s ease-in-out infinite;
       }
       .app-loading p {
@@ -65,7 +60,7 @@
     <div id="root">
       <!-- Initial loading screen before React loads -->
       <div class="app-loading">
-        <div class="app-loading-logo">A</div>
+        <img class="app-loading-logo" src="%PUBLIC_URL%/icon-192.png" alt="AVIRO" />
         <p>Loading AVIRO...</p>
       </div>
     </div>
