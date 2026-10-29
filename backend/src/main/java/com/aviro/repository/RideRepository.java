@@ -4,6 +4,7 @@ import com.aviro.entity.Ride;
 import com.aviro.enums.Gender;
 import com.aviro.enums.RideStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -63,4 +64,17 @@ public interface RideRepository extends JpaRepository<Ride, Long> {
 
     @Query("SELECT COUNT(r) FROM Ride r WHERE r.driver.id = :driverId AND r.status = 'COMPLETED'")
     Long countCompletedByDriver(@Param("driverId") Long driverId);
+
+    // Takes seats only if enough are left, in one statement, so two riders can't book the last seat
+    @Modifying(flushAutomatically = true)
+    @Query("UPDATE Ride r SET r.availableSeats = r.availableSeats - :seats WHERE r.id = :rideId AND r.availableSeats >= :seats")
+    int reserveSeats(@Param("rideId") Long rideId, @Param("seats") Integer seats);
+
+    @Modifying(flushAutomatically = true)
+    @Query("""
+        UPDATE Ride r SET r.availableSeats =
+            CASE WHEN r.availableSeats + :seats > r.totalSeats THEN r.totalSeats ELSE r.availableSeats + :seats END
+        WHERE r.id = :rideId
+        """)
+    int releaseSeats(@Param("rideId") Long rideId, @Param("seats") Integer seats);
 }
