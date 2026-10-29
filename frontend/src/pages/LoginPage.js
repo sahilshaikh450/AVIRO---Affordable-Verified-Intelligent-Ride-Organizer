@@ -176,11 +176,9 @@ export default function LoginPage() {
 
         <div className="text-center mb-8">
 
-          <Logo size={72} className="mx-auto mb-4 drop-shadow-[0_8px_24px_rgba(255,107,43,0.35)]" />
+          <Logo size={96} className="mx-auto mb-3 ring-1 ring-white/10 shadow-lg shadow-aviro-orange/20" />
 
-          <h1 className="font-display font-bold text-3xl text-white">
-            AVIRO
-          </h1>
+          <h1 className="sr-only">AVIRO</h1>
 
           <p className="text-aviro-muted text-sm mt-1">
             Pune's College Ride Network

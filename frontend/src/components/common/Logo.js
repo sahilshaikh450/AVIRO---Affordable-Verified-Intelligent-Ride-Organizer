@@ -1,30 +1,29 @@
 import React, { useId } from 'react';
 
-// AVIRO mark: a location pin on top of an "A" drawn as a road (same art as the app icon)
-export default function Logo({ size = 32, className = '' }) {
-  // Unique gradient ids, so several logos on one page don't clash
+// "aviro" wordmark; the dot of the i is a location pin. Letters are Inter Black outlines.
+const LETTERS = 'M31.939453125 1.388671875C43.1259765625 1.388671875 51.53515625 -2.46875 56.78125 -12.189453125H57.3984375V0.0H86.40625V-59.095703125C86.40625 -74.98828125 70.66796875 -87.33203125 46.134765625 -87.33203125C21.91015625 -87.33203125 8.7177734375 -75.5283203125 6.326171875 -61.1015625L34.25390625 -58.32421875C35.2568359375 -63.5703125 39.80859375 -66.0390625 45.671875 -66.0390625C51.6123046875 -66.0390625 55.392578125 -63.4931640625 55.392578125 -59.095703125V-58.787109375C55.392578125 -53.7724609375 49.9150390625 -52.2294921875 35.48828125 -51.2265625C17.6669921875 -49.9150390625 3.857421875 -42.6630859375 3.857421875 -23.76171875C3.857421875 -6.634765625 15.3525390625 1.388671875 31.939453125 1.388671875ZM41.96875 -18.20703125C36.72265625 -18.20703125 33.01953125 -20.7529296875 33.01953125 -25.61328125C33.01953125 -30.0107421875 36.10546875 -33.4052734375 43.357421875 -34.5625C48.2177734375 -35.333984375 52.3837890625 -36.3369140625 55.701171875 -37.6484375V-30.55078125C55.701171875 -22.681640625 48.9892578125 -18.20703125 41.96875 -18.20703125Z M119.90625 0.0H156.3203125L187.1796875 -86.251953125H155.0859375L144.2080078125 -46.90625C142.0478515625 -39.037109375 140.2734375 -31.16796875 138.6533203125 -22.52734375C136.9560546875 -31.16796875 135.181640625 -39.037109375 132.9443359375 -46.90625L121.7578125 -86.251953125H89.201171875Z M189.974609375 0.0H220.98828125V-86.251953125H189.974609375Z M230.7265625 0.0H261.740234375V-44.900390625C261.740234375 -54.775390625 268.4521484375 -61.255859375 277.6328125 -61.255859375C280.7958984375 -61.255859375 285.96484375 -60.79296875 289.05078125 -59.712890625V-86.09765625C286.58203125 -86.869140625 283.8818359375 -87.33203125 281.181640625 -87.33203125C272.0009765625 -87.33203125 264.826171875 -81.931640625 261.740234375 -69.7421875H260.814453125V-86.251953125H230.7265625Z M334.8173828125 1.54296875C362.822265625 1.54296875 379.33203125 -16.35546875 379.33203125 -42.89453125C379.33203125 -69.3564453125 362.822265625 -87.33203125 334.8173828125 -87.33203125C306.658203125 -87.33203125 290.1484375 -69.3564453125 290.1484375 -42.89453125C290.1484375 -16.35546875 306.658203125 1.54296875 334.8173828125 1.54296875ZM334.8173828125 -21.6015625C326.6396484375 -21.6015625 321.779296875 -29.5478515625 321.779296875 -43.048828125C321.779296875 -56.626953125 326.6396484375 -64.1875 334.8173828125 -64.1875C342.8408203125 -64.1875 347.701171875 -56.626953125 347.701171875 -43.048828125C347.701171875 -29.5478515625 342.8408203125 -21.6015625 334.8173828125 -21.6015625Z';
+const PIN = 'M205.48 -98.25C197.61 -116.02 183 -127.26 183 -139.62A22.48 22.48 0 1 1 227.97 -139.62C227.97 -127.26 213.35 -116.02 205.48 -98.25Z M205.48 -149.06a9.44 9.44 0 1 0 0.01 0Z';
+
+export function Wordmark({ height = 28, className = '' }) {
+  // Unique gradient id, so several wordmarks on one page don't clash
   const id = useId().replace(/:/g, '');
   return (
-    <svg viewBox="0 0 512 512" width={size} height={size} className={`flex-shrink-0 ${className}`}
-      role="img" aria-label="AVIRO logo">
+    <svg viewBox="0 -164.11 384.12 166.11" height={height} className={`flex-shrink-0 ${className}`} role="img" aria-label="AVIRO">
       <defs>
-        <linearGradient id={`${id}bg`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#262B3B" /><stop offset="1" stopColor="#0D0F14" />
+        <linearGradient id={id} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#FF9A3C" /><stop offset="1" stopColor="#FF4D1A" />
         </linearGradient>
-        <linearGradient id={`${id}or`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#FFA24C" /><stop offset="1" stopColor="#FF5A1F" />
-        </linearGradient>
-        <radialGradient id={`${id}glow`} cx="0.5" cy="0.3" r="0.65">
-          <stop offset="0" stopColor="#FF6B2B" stopOpacity="0.32" /><stop offset="1" stopColor="#FF6B2B" stopOpacity="0" />
-        </radialGradient>
       </defs>
-      <rect width="512" height="512" rx="112" fill={`url(#${id}bg)`} />
-      <rect width="512" height="512" rx="112" fill={`url(#${id}glow)`} />
-      <rect x="4" y="4" width="504" height="504" rx="108" fill="none" stroke="#FF6B2B" strokeOpacity="0.25" strokeWidth="8" />
-      <path d="M256 196 L156 408 M256 196 L356 408" stroke={`url(#${id}or)`} strokeWidth="60" strokeLinecap="round" fill="none" />
-      <path d="M214 334 H298" stroke="#fff" strokeWidth="18" strokeLinecap="round" strokeDasharray="20 22" fill="none" />
-      <path d="M256 74c-37 0-66 29-66 66 0 48 66 108 66 108s66-60 66-108c0-37-29-66-66-66z" fill="#fff" />
-      <circle cx="256" cy="140" r="25" fill="#FF6B2B" />
+      <path d={LETTERS} fill="#fff" />
+      <path d={PIN} fill={`url(#${id})`} fillRule="evenodd" />
     </svg>
+  );
+}
+
+// The app icon, for places that show the logo as a tile
+export default function Logo({ size = 32, className = '' }) {
+  return (
+    <img src="/icon-192.png" width={size} height={size} alt="AVIRO"
+      className={`flex-shrink-0 ${className}`} style={{ borderRadius: size * 0.22 }} />
   );
 }
