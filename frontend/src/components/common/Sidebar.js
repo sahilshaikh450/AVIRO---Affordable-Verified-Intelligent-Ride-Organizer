@@ -2,6 +2,7 @@ import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { logoutUser } from '../../store/authSlice';
+import Logo from './Logo';
 
 const links = [
   { to: '/dashboard',  icon: '🏠', label: 'Dashboard'   },
@@ -24,7 +25,7 @@ export default function Sidebar({ open }) {
     <aside className={`${open ? 'w-60' : 'w-16'} transition-all duration-300 flex flex-col bg-aviro-card border-r border-aviro-border h-screen sticky top-0 overflow-hidden`}>
       {/* Logo */}
       <div className="p-4 border-b border-aviro-border flex items-center gap-3 h-16">
-        <div className="w-8 h-8 bg-aviro-orange rounded-lg flex items-center justify-center text-white font-display font-bold text-sm flex-shrink-0">A</div>
+        <Logo size={32} />
         {open && <span className="font-display font-bold text-aviro-orange text-lg tracking-tight">AVIRO</span>}
       </div>
 

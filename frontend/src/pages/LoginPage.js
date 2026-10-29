@@ -4,6 +4,7 @@ import { useDispatch } from 'react-redux';
 import { loginUser } from '../store/authSlice';
 import api from '../services/api';
 import toast from 'react-hot-toast';
+import Logo from '../components/common/Logo';
 
 export default function LoginPage() {
 
@@ -175,9 +176,7 @@ export default function LoginPage() {
 
         <div className="text-center mb-8">
 
-          <div className="w-16 h-16 bg-aviro-orange rounded-2xl flex items-center justify-center text-white font-display font-bold text-3xl mx-auto mb-4 shadow-lg shadow-aviro-orange/30">
-            A
-          </div>
+          <Logo size={72} className="mx-auto mb-4 drop-shadow-[0_8px_24px_rgba(255,107,43,0.35)]" />
 
           <h1 className="font-display font-bold text-3xl text-white">
             AVIRO
