@@ -3,6 +3,7 @@ package com.aviro.controller;
 import com.aviro.dto.response.ApiResponse;
 import com.aviro.entity.ChatMessage;
 import com.aviro.exception.AviroException;
+import com.aviro.repository.BookingRepository;
 import com.aviro.repository.UserRepository;
 import com.aviro.service.ChatService;
 import lombok.Data;
@@ -29,6 +30,7 @@ public class ChatController {
     private final ChatService chatService;
     private final SimpMessagingTemplate messagingTemplate;
     private final UserRepository userRepository;
+    private final BookingRepository bookingRepository;
 
     // WebSocket handler - /app/chat.send
     // Sender always comes from the authenticated session, never from the payload
@@ -94,6 +96,11 @@ public class ChatController {
     }
 
     private ChatMessage saveAndDeliver(Long senderId, ChatSocketMessage message) {
+        // Only the driver and a rider of the same ride can message each other
+        if (message.getRideId() == null || message.getReceiverId() == null
+                || !bookingRepository.sharesRide(message.getRideId(), senderId, message.getReceiverId())) {
+            throw new AccessDeniedException("You can only message people on your rides");
+        }
         ChatMessage saved = chatService.saveMessage(
                 senderId,
                 message.getReceiverId(),

@@ -80,7 +80,7 @@ export default function MiniTrackingCard({ booking }) {
         .addTo(map).bindPopup('📍 Your Pickup');
 
       setMapReady(true);
-      setTimeout(() => map.invalidateSize(), 200);
+      setTimeout(() => { if (mapInstance.current === map) map.invalidateSize(); }, 200);
     };
 
     if (!document.getElementById('leaflet-css')) {

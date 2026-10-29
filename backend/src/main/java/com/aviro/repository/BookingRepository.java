@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,6 +29,8 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     Optional<Booking> findByRideIdAndRiderId(Long rideId, Long riderId);
 
+    boolean existsByRideIdAndRiderIdAndStatusIn(Long rideId, Long riderId, Collection<BookingStatus> statuses);
+
     // ✅ Added — used in RideServiceImpl to check confirmed bookings before cancel/delete
     long countByRideIdAndStatus(Long rideId, BookingStatus status);
 
@@ -36,6 +39,14 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     @Query("SELECT SUM(b.totalAmount) FROM Booking b WHERE b.rider.id = :riderId AND b.paymentStatus = 'COMPLETED'")
     Double totalSpentByRider(@Param("riderId") Long riderId);
+
+    // True when one of the two users drives this ride and the other has booked it
+    @Query("""
+        SELECT COUNT(b) > 0 FROM Booking b
+        WHERE b.ride.id = :rideId
+        AND ((b.rider.id = :userA AND b.ride.driver.id = :userB) OR (b.rider.id = :userB AND b.ride.driver.id = :userA))
+        """)
+    boolean sharesRide(@Param("rideId") Long rideId, @Param("userA") Long userA, @Param("userB") Long userB);
 
     @Query("SELECT b FROM Booking b WHERE b.ride.id = :rideId AND b.status IN ('REQUESTED', 'CONFIRMED')")
     List<Booking> findActiveBookingsForRide(@Param("rideId") Long rideId);

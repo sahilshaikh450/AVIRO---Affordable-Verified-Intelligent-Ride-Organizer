@@ -15,10 +15,10 @@ const recentlyDismissed = () => {
   }
 };
 
-// Asks once to turn on phone notifications, so ride alerts arrive like WhatsApp messages
 // Full-screen pages where the banner would take space from the content
 const HIDDEN_ON = ['/chat', '/tracking'];
 
+// Asks once to turn on phone notifications, so ride alerts arrive like WhatsApp messages
 export default function PushPrompt() {
   const { pathname } = useLocation();
   const [mode, setMode] = useState(null); // 'ask' | 'ios-install'

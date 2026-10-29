@@ -59,7 +59,7 @@ const rideSlice = createSlice({
     builder.addCase(createRide.rejected,       s => { s.loading = false; });
     builder.addCase(fetchMyRides.fulfilled,    (s, a) => { s.myRides = a.payload || []; });
     builder.addCase(fetchNearbyRides.fulfilled,(s, a) => { s.nearby  = a.payload || []; });
-    builder.addCase(cancelRide.fulfilled,      (s, a) => { s.myRides = s.myRides.filter(r => r.id !== a.payload); });
+    builder.addCase(cancelRide.fulfilled,      (s, a) => { s.myRides = s.myRides.map(r => r.id === a.payload ? { ...r, status: 'CANCELLED' } : r); });
   }
 });
 export const { setSelected } = rideSlice.actions;
