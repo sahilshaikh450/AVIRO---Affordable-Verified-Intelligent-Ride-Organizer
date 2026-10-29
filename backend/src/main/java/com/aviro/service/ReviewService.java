@@ -5,6 +5,7 @@ import com.aviro.dto.response.ApiResponse;
 import com.aviro.entity.Booking;
 import com.aviro.entity.Review;
 import com.aviro.entity.User;
+import com.aviro.enums.BookingStatus;
 import com.aviro.exception.AviroException;
 import com.aviro.repository.BookingRepository;
 import com.aviro.repository.ReviewRepository;
@@ -39,6 +40,10 @@ public class ReviewService {
         boolean driverReviewsRider = reviewer.getId().equals(driverId) && reviewee.getId().equals(riderId);
         if (!riderReviewsDriver && !driverReviewsRider) {
             throw new AviroException("You can only review the other person on your own ride");
+        }
+
+        if (booking.getStatus() != BookingStatus.COMPLETED) {
+            throw new AviroException("You can review after the ride is completed");
         }
 
         if (reviewRepository.existsByReviewerIdAndBookingId(reviewer.getId(), booking.getId())) {

@@ -146,8 +146,11 @@ export default function LiveTrackingPage() {
     }).addTo(map);
     mapRef.current.style.filter = 'invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9)';
     mapInstance.current = map;
-    setTimeout(() => map.invalidateSize(), 300);
+    // Cleared on unmount: resizing a removed map throws
+    const resizeTimer = setTimeout(() => map.invalidateSize(), 300);
     return () => {
+      clearTimeout(resizeTimer);
+      map.stop();
       map.remove(); mapInstance.current = null; markersRef.current = {}; fittedCountRef.current = 0;
       routeLineRef.current = null; fittedRouteRef.current = null;
     };
