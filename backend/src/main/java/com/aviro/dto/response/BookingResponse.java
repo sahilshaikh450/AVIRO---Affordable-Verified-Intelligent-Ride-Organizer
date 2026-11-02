@@ -26,6 +26,8 @@ public class BookingResponse {
     private PaymentStatus paymentStatus;
     private String paymentMethod;
     private String paymentReference;
+    // Only filled in for an accepted or finished ride, so the rider can pay the driver
+    private String driverUpiId;
     private String pickupPoint;
     private Double pickupLat;
     private Double pickupLng;

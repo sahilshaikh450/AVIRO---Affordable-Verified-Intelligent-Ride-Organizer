@@ -9,6 +9,7 @@ import java.util.List;
 public class ProfileUpdateRequest {
     private String fullName;
     private String phone;
+    private String upiId;
     private String locality;
     private Double homeLat;
     private Double homeLng;
