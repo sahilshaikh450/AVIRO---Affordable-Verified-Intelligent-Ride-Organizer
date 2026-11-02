@@ -78,13 +78,16 @@ export default function LoginPage() {
 
     try {
 
-      await api.post(
+      const cleanEmail = email.trim().toLowerCase();
+      setEmail(cleanEmail);
+      const res = await api.post(
         '/auth/forgot-password',
-        { email }
+        { email: cleanEmail }
       );
 
       toast.success(
-        'Password reset OTP sent! 📧'
+        res.data?.message || 'Code sent! Check your email 📧',
+        { duration: 6000 }
       );
 
       setStep(4);
@@ -93,7 +96,7 @@ export default function LoginPage() {
 
       toast.error(
         err.response?.data?.message ||
-        'Email not found'
+        'Could not send the code. Please try again.'
       );
 
     } finally {
@@ -135,7 +138,7 @@ export default function LoginPage() {
 
     try {
 
-      await api.post(
+      const res = await api.post(
         '/auth/reset-password',
         {
           email,
@@ -145,7 +148,7 @@ export default function LoginPage() {
       );
 
       toast.success(
-        'Password reset successfully! Please login. 🎉'
+        res.data?.message || 'Password changed. Please sign in. 🎉'
       );
 
       setStep(1);
@@ -269,7 +272,7 @@ export default function LoginPage() {
                       onChange={e =>
                         setPassword(e.target.value)
                       }
-                      placeholder="Min. 6 characters"
+                      placeholder="Your password"
                       className="input-field pr-10"
                     />
 
@@ -443,10 +446,13 @@ export default function LoginPage() {
                   </h2>
 
                   <p className="text-aviro-muted text-sm mt-2">
-                    OTP sent to{' '}
+                    Enter the 6-digit code sent to{' '}
                     <span className="text-aviro-orange font-semibold">
                       {email}
                     </span>
+                  </p>
+                  <p className="text-aviro-muted text-xs mt-1">
+                    Not in your inbox? Check the Spam folder.
                   </p>
 
                 </div>
@@ -504,7 +510,7 @@ export default function LoginPage() {
                       onChange={e =>
                         setNewPassword(e.target.value)
                       }
-                      placeholder="Min. 6 characters"
+                      placeholder="8+ characters, a letter and a number"
                       className="input-field pr-10"
                     />
 

@@ -2,6 +2,7 @@ package com.aviro.security;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -22,6 +23,11 @@ import java.util.HexFormat;
 public class TokenBlacklistService {
 
     private static final String PREFIX = "aviro:revoked:";
+    // Tokens issued before this time (epoch ms) are no longer accepted for that user
+    private static final String BEFORE_PREFIX = "aviro:revoked-before:";
+
+    @Value("${aviro.jwt.refresh-expiration:604800000}")
+    private long refreshExpirationMs;
 
     private final StringRedisTemplate redisTemplate;
     private final JwtTokenProvider jwtTokenProvider;
@@ -41,9 +47,22 @@ public class TokenBlacklistService {
         }
     }
 
+    // Ends every session of this user (e.g. after a password reset)
+    public void revokeAllFor(String email) {
+        try {
+            long nowSecondsMs = System.currentTimeMillis() / 1000 * 1000; // token times are whole seconds
+            redisTemplate.opsForValue().set(BEFORE_PREFIX + email, String.valueOf(nowSecondsMs), Duration.ofMillis(refreshExpirationMs));
+        } catch (Exception e) {
+            log.warn("Could not end sessions for {}: {}", email, e.getMessage());
+        }
+    }
+
     public boolean isRevoked(String token) {
         try {
-            return Boolean.TRUE.equals(redisTemplate.hasKey(PREFIX + hash(token)));
+            if (Boolean.TRUE.equals(redisTemplate.hasKey(PREFIX + hash(token)))) return true;
+            String before = redisTemplate.opsForValue().get(BEFORE_PREFIX + jwtTokenProvider.getEmailFromToken(token));
+            Date issued = jwtTokenProvider.getIssuedAtFromToken(token);
+            return before != null && issued != null && issued.getTime() < Long.parseLong(before);
         } catch (Exception e) {
             // Redis down: don't lock everyone out
             log.warn("Token blacklist check failed: {}", e.getMessage());
