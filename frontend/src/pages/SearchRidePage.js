@@ -58,6 +58,7 @@ export default function SearchRidePage() {
             placeholder="Kothrud, Shivajinagar..."
             value={form.fromLocation}
             onChange={val => setForm({ ...form, fromLocation: val })}
+            allowCurrentLocation
             required
           />
           <LocationInput

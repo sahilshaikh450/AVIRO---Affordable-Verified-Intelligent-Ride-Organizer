@@ -8,12 +8,13 @@ export default function CollegeEmailVerify({ user, onVerified }) {
   const [otp, setOtp]               = useState('');
   const [loading, setLoading]       = useState(false);
 
-  const isEduIn = (email) => email.toLowerCase().trim().endsWith('.edu.in');
+  // Same domains the server accepts as college email
+  const isCollegeEmail = (email) => /\.(edu\.in|ac\.in|edu)$/.test(email.toLowerCase().trim());
 
   const handleSendOtp = async () => {
     if (!collegeEmail) { toast.error('Enter your college email'); return; }
-    if (!isEduIn(collegeEmail)) {
-      toast.error('Only .edu.in emails allowed (e.g. name@college.edu.in)');
+    if (!isCollegeEmail(collegeEmail)) {
+      toast.error('Use your college email (ending in .edu.in, .ac.in or .edu)');
       return;
     }
     setLoading(true);
@@ -62,7 +63,7 @@ export default function CollegeEmailVerify({ user, onVerified }) {
     <div className="card p-5">
       <h3 className="font-semibold mb-1">🎓 College Email Verification</h3>
       <p className="text-aviro-muted text-sm mb-4">
-        Verify using your <span className="text-aviro-orange font-medium">.edu.in</span> college email
+        Verify using your <span className="text-aviro-orange font-medium">college email</span>
       </p>
 
       {step === 1 && (
@@ -79,7 +80,7 @@ export default function CollegeEmailVerify({ user, onVerified }) {
               className="input-field"
             />
             <p className="text-xs text-aviro-muted mt-1">
-              Only <span className="text-aviro-orange">.edu.in</span> emails accepted
+              Emails ending in <span className="text-aviro-orange">.edu.in, .ac.in or .edu</span>
             </p>
           </div>
           <button

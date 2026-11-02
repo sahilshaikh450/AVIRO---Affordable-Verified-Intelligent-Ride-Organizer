@@ -1,6 +1,7 @@
 package com.aviro.config;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -19,6 +20,8 @@ import com.aviro.security.JwtAuthFilter;
 import com.aviro.security.RateLimitFilter;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -31,6 +34,10 @@ public class SecurityConfig {
     private final AuthenticationProvider authenticationProvider;
     private final StringRedisTemplate stringRedisTemplate;
 
+    // More allowed sites, comma separated (e.g. a custom domain)
+    @Value("${AVIRO_ALLOWED_ORIGINS:}")
+    private String extraOrigins;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -41,8 +48,6 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                     "/auth/**",       // context path '/api' already stripped by Spring Security
-                    "/setup/**",
-                    "/actuator/**",
                     "/health",
                     "/ws/**",
                     "/error"
@@ -60,14 +65,14 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of(
+        // Only AVIRO's own sites (and its Vercel previews), not every *.vercel.app app
+        List<String> origins = new ArrayList<>(List.of(
             "http://localhost:3000",
             "http://localhost:3001",
-            "https://aviro-ride-sharing.vercel.app",
-            "https://aviro-affordable-verified-intellige.vercel.app",
-            "https://aviro-affordable-verified-intelligent.vercel.app",
-            "https://*.vercel.app"
+            "https://aviro-*.vercel.app"
         ));
+        Arrays.stream(extraOrigins.split(",")).map(String::trim).filter(o -> !o.isEmpty()).forEach(origins::add);
+        config.setAllowedOriginPatterns(origins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);

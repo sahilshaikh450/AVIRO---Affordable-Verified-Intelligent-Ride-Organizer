@@ -20,6 +20,11 @@ export default function OfferRidePage() {
  
   const [fromLocation, setFromLocation] = React.useState(''); 
   const [toLocation, setToLocation]     = React.useState(''); 
+  // Exact spots when picked with GPS; otherwise looked up from the name on submit
+  const [fromPoint, setFromPoint] = React.useState(null);
+  const [toPoint, setToPoint]     = React.useState(null);
+  const pickFrom = (name, point = null) => { setFromLocation(name); setFromPoint(point); };
+  const pickTo   = (name, point = null) => { setToLocation(name); setToPoint(point); };
   const [locating, setLocating]         = React.useState(false); 
  
   const onSubmit = async (data) => { 
@@ -35,8 +40,12 @@ export default function OfferRidePage() {
  
     // Real coordinates so maps and routes point to the right places (Pune centre if not found)
     setLocating(true);
-    const [from, to] = await Promise.all([geocodePlace(fromLocation), geocodePlace(toLocation)]);
+    const [from, to] = await Promise.all([fromPoint || geocodePlace(fromLocation), toPoint || geocodePlace(toLocation)]);
     setLocating(false);
+    const missing = [!from && fromLocation, !to && toLocation].filter(Boolean);
+    if (missing.length) {
+      toast(`Couldn't find ${missing.join(' and ')} on the map, so its pin may be off. Pick from the list for an exact spot.`, { icon: '📍', duration: 6000 });
+    }
 
     const payload = { 
       ...data, 
@@ -96,7 +105,8 @@ export default function OfferRidePage() {
             icon="🟠" 
             placeholder="Your home / starting point..." 
             value={fromLocation} 
-            onChange={setFromLocation} 
+            onChange={pickFrom} 
+            allowCurrentLocation
             required 
           /> 
  
@@ -105,9 +115,10 @@ export default function OfferRidePage() {
             <button 
               type="button" 
               onClick={() => { 
-                const t = fromLocation; 
-                setFromLocation(toLocation); 
-                setToLocation(t); 
+ 
+                const [name, point] = [fromLocation, fromPoint];
+                pickFrom(toLocation, toPoint);
+                pickTo(name, point);
               }} 
               className="flex items-center gap-2 text-xs text-aviro-muted hover:text-aviro-orange transition-colors bg-aviro-card2 border border-aviro-border px-3 py-1.5 rounded-full" 
             > 
@@ -120,7 +131,8 @@ export default function OfferRidePage() {
             icon="🟢" 
             placeholder="College / destination..." 
             value={toLocation} 
-            onChange={setToLocation} 
+            onChange={pickTo} 
+            allowCurrentLocation
             required 
           /> 
  
