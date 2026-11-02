@@ -33,6 +33,10 @@ public class User extends BaseEntity {
 
     private String phone;
 
+    // Where riders send UPI payments for this driver's rides, e.g. name@okaxis
+    @Column(length = 100)
+    private String upiId;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Gender gender;
