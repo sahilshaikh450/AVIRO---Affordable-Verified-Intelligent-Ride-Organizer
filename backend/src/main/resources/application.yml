@@ -1,5 +1,10 @@
 server:
   port: ${PORT:10000}
+  # JSON lists shrink 5-10x when gzipped, which matters on mobile data
+  compression:
+    enabled: true
+    mime-types: application/json,text/plain,text/html
+    min-response-size: 1024
   servlet:
     context-path: /api
 
@@ -14,7 +19,8 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     # Cloud MySQL closes idle connections; refresh them before that happens
     hikari:
-      maximum-pool-size: ${DB_POOL_SIZE:5}
+      # Requests wait for a free connection when all are busy; 10 is well within the database's limit
+      maximum-pool-size: ${DB_POOL_SIZE:10}
       minimum-idle: 1
       max-lifetime: 300000
       keepalive-time: 120000

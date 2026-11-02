@@ -22,21 +22,39 @@ public interface RideRepository extends JpaRepository<Ride, Long> {
 
     List<Ride> findByStatus(RideStatus status);
 
-    @Query("""
-        SELECT r FROM Ride r
+    // Newest drivers' rides first in their own list; the cap keeps old history from growing the response
+    List<Ride> findTop100ByDriverIdOrderByDepartureTimeDesc(Long driverId);
+
+    // Filtering happens in the database and only the next `limit` rides come back.
+    // Places match ignoring case, spaces and symbols, either way round ("Karve Nagar" ~ "Karvenagar").
+    @Query(value = """
+        SELECT r.* FROM rides r
+        JOIN users u ON u.id = r.driver_id
         WHERE r.status = 'PENDING'
-        AND r.availableSeats >= :seatsNeeded
-        AND r.departureTime BETWEEN :from AND :to
-        AND (:womenOnly = false OR r.womenOnly = true)
-        AND (:gender IS NULL OR r.driver.gender = :gender)
-        ORDER BY r.departureTime ASC
-        """)
+        AND r.available_seats >= :seatsNeeded
+        AND r.departure_time BETWEEN :from AND :to
+        AND (:womenOnly = false OR r.women_only = true)
+        AND (:gender IS NULL OR u.gender = :gender)
+        AND (:maxPrice IS NULL OR r.price_per_seat <= :maxPrice)
+        AND (:fromQ = ''
+             OR REGEXP_REPLACE(LOWER(r.from_location), '[^a-z0-9]', '') LIKE CONCAT('%', :fromQ, '%')
+             OR :fromQ LIKE CONCAT('%', REGEXP_REPLACE(LOWER(r.from_location), '[^a-z0-9]', ''), '%'))
+        AND (:toQ = ''
+             OR REGEXP_REPLACE(LOWER(r.to_location), '[^a-z0-9]', '') LIKE CONCAT('%', :toQ, '%')
+             OR :toQ LIKE CONCAT('%', REGEXP_REPLACE(LOWER(r.to_location), '[^a-z0-9]', ''), '%'))
+        ORDER BY r.departure_time ASC
+        LIMIT :limit
+        """, nativeQuery = true)
     List<Ride> searchRides(
         @Param("seatsNeeded") Integer seatsNeeded,
         @Param("from") LocalDateTime from,
         @Param("to") LocalDateTime to,
         @Param("womenOnly") Boolean womenOnly,
-        @Param("gender") Gender gender
+        @Param("gender") String gender,
+        @Param("maxPrice") Double maxPrice,
+        @Param("fromQ") String fromQ,
+        @Param("toQ") String toQ,
+        @Param("limit") int limit
     );
 
     @Query(value = """
