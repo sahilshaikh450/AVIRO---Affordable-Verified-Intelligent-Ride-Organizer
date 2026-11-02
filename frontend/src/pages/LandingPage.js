@@ -1,158 +1,114 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Wordmark } from '../components/common/Logo';
+import { Link } from 'react-router-dom';
+import Logo, { Wordmark } from '../components/common/Logo';
 
-const features = [
-  { icon:'🧠', title:'AI Route Matching',      desc:'Smart matching for students on the same Pune college routes.' },
-  { icon:'👫', title:'Gender Badge on Rides',   desc:'See clearly if the driver is Male or Female before booking.' },
-  { icon:'🚺', title:'Women-Only Mode',         desc:'Female students can filter to only female drivers anytime.' },
-  { icon:'📡', title:'Live GPS Tracking',       desc:'Real-time location shared with family for full safety.' },
-  { icon:'💰', title:'Auto Fare Split',         desc:'Split fare equally via UPI — zero booking fees.' },
-  { icon:'🔁', title:'Recurring Rides',         desc:'Schedule your weekly college commute just once.' },
-  { icon:'🆘', title:'SOS Emergency Button',    desc:'One tap alerts 3 emergency contacts with your live location.' },
-  { icon:'🏆', title:'College Leaderboards',    desc:'Compete with other colleges on rides shared & CO₂ saved.' },
+const STEPS = [
+  { n: '1', title: 'Verify your college', desc: 'Sign up with your college email or ID card. Only verified students can ride.' },
+  { n: '2', title: 'Find or offer a ride', desc: 'Search rides on your route, or post your own trip and fill the empty seats.' },
+  { n: '3', title: 'Ride and split the cost', desc: 'Meet at the pickup, start with an OTP and pay the driver by UPI or cash.' },
 ];
 
-const colleges = ['MIT-WPU','COEP','PICT','VIT Pune','Cummins','PCCOE','Symbiosis','Fergusson','DYPIU','Bharati Vidyapeeth','NIBM','Pune University'];
+const SAFETY = [
+  { icon: '🎓', title: 'Students only', desc: 'Every rider and driver is a verified college student.' },
+  { icon: '🔑', title: 'OTP to start', desc: 'The trip starts only when the driver enters your code.' },
+  { icon: '📍', title: 'Live trip tracking', desc: 'Follow the ride on the map and share it with family.' },
+  { icon: '🚺', title: 'Women-only rides', desc: 'Female students can choose rides with women only.' },
+  { icon: '🆘', title: 'SOS button', desc: 'Alert your emergency contacts with your location in one tap.' },
+];
 
+const COLLEGES = ['MIT-WPU', 'COEP', 'PICT', 'VIT', 'Cummins', 'PCCOE', 'Symbiosis', 'Fergusson', 'SPPU', 'DY Patil'];
+
+// Built for phones: on a wide screen the page stays a centred phone-width column
 export default function LandingPage() {
-  const navigate = useNavigate();
-
-  // Any action that requires login → redirect to register/login
-  const handleProtectedAction = (destination = '/register') => {
-    navigate(destination);
-  };
-
   return (
     <div className="min-h-screen bg-aviro-dark text-white">
-      {/* Nav */}
-      <nav className="fixed top-0 inset-x-0 z-50 bg-aviro-dark/80 backdrop-blur border-b border-aviro-border px-6 py-4 flex items-center justify-between">
-        <Wordmark height={34} />
-        <div className="flex gap-3">
-          <Link to="/login"    className="btn-secondary text-sm py-2">Sign In</Link>
-          <Link to="/register" className="btn-primary  text-sm py-2">Join Free 🚀</Link>
-        </div>
-      </nav>
+      <div className="max-w-md mx-auto min-h-screen flex flex-col">
 
-      {/* Hero */}
-      <section className="pt-32 pb-20 px-6 text-center max-w-4xl mx-auto">
-        <div className="inline-flex items-center gap-2 bg-aviro-orange/10 border border-aviro-orange/30 rounded-full px-4 py-1.5 text-aviro-orange text-xs font-bold mb-6 animate-fade-up">
-          <span className="w-1.5 h-1.5 bg-aviro-orange rounded-full animate-pulse-dot" />
-          Pune's #1 College Ride Platform · Only for verified students
-        </div>
-        <h1 className="font-display font-bold text-5xl md:text-7xl leading-none tracking-tight mb-6 animate-fade-up">
-          Ride Smart.<br />
-          <span className="text-aviro-orange">Save More.</span><br />
-          Go Together.
-        </h1>
-        <p className="text-aviro-muted text-lg max-w-xl mx-auto mb-8 animate-fade-up">
-          AVIRO connects Pune college students on the same routes. Share rides, split costs, stay safe — together.
-        </p>
+        <header className="sticky top-0 z-20 bg-aviro-dark/90 backdrop-blur px-5 h-14 flex items-center justify-between border-b border-aviro-border">
+          <Wordmark height={26} />
+          <Link to="/login" className="text-sm font-semibold text-aviro-orange">Sign in</Link>
+        </header>
 
-        {/* ⚠️ NOTE: these buttons go to register/login, NOT directly to rides */}
-        <div className="flex gap-3 justify-center flex-wrap animate-fade-up">
-          <Link to="/register" className="btn-primary text-base px-8 py-3">🚀 Join as Student</Link>
-          <Link to="/login"    className="btn-secondary text-base px-8 py-3">Sign In →</Link>
-        </div>
-
-        {/* Preview cards — clicking them prompts to sign up */}
-        <div className="mt-14 grid grid-cols-4 gap-4 max-w-2xl mx-auto animate-fade-up">
-          {[
-            {e:'🏍️',l:'Bike',s:'1 seat',r:'FC Road'},
-            {e:'🚗',l:'Car Pool',s:'3 seats',r:'Hinjewadi'},
-            {e:'🛵',l:'Scooty',s:'1 seat',r:'Kothrud'},
-            {e:'🚐',l:'Van',s:'5 seats',r:'Wakad'}
-          ].map((v,i) => (
-            <div
-              key={i}
-              onClick={() => handleProtectedAction('/register')}
-              className="card p-4 text-center hover:border-aviro-orange/50 hover:-translate-y-1 transition-all cursor-pointer group relative"
-            >
-              <div className="text-3xl mb-2">{v.e}</div>
-              <p className="text-xs font-bold text-white">{v.l}</p>
-              <p className="text-xs text-aviro-green font-semibold mt-1">{v.s}</p>
-              <p className="text-xs text-aviro-orange mt-0.5">{v.r}</p>
-              {/* Hover tooltip */}
-              <div className="absolute inset-0 bg-aviro-dark/90 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <span className="text-xs text-aviro-orange font-bold">Sign up to view →</span>
-              </div>
+        <main className="flex-1 px-5">
+          {/* Hero */}
+          <section className="pt-10 pb-8 text-center">
+            <Logo size={76} className="mx-auto mb-6 ring-1 ring-white/10" />
+            <h1 className="font-display font-bold text-[2rem] leading-tight">
+              Share rides with students from <span className="text-aviro-orange">your college</span>
+            </h1>
+            <p className="text-aviro-muted text-[15px] mt-4 leading-relaxed">
+              AVIRO connects verified Pune college students going the same way, so the daily commute costs less and feels safer.
+            </p>
+            <div className="mt-7 space-y-3">
+              <Link to="/register" className="btn-primary block w-full text-center py-3.5 text-base">Create free account</Link>
+              <Link to="/login" className="block w-full text-center py-3.5 text-base rounded-xl border border-aviro-border text-white font-semibold">
+                I already have an account
+              </Link>
             </div>
-          ))}
-        </div>
+          </section>
 
-        {/* College-only badge */}
-        <div className="mt-8 inline-flex items-center gap-2 bg-aviro-card border border-aviro-border rounded-full px-4 py-2 text-sm text-aviro-muted">
-          🎓 <span>Exclusively for students with <span className="text-aviro-orange font-semibold">verified</span> college IDs or emails</span>
-        </div>
-      </section>
+          {/* How it works */}
+          <section className="py-8 border-t border-aviro-border">
+            <h2 className="font-display font-bold text-xl mb-5">How it works</h2>
+            <ol className="space-y-4">
+              {STEPS.map(s => (
+                <li key={s.n} className="flex gap-4">
+                  <span className="w-8 h-8 rounded-full bg-aviro-orange/15 text-aviro-orange font-bold text-sm flex items-center justify-center flex-shrink-0">{s.n}</span>
+                  <div>
+                    <p className="font-semibold">{s.title}</p>
+                    <p className="text-sm text-aviro-muted mt-0.5 leading-relaxed">{s.desc}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </section>
 
-      {/* Stats */}
-      <section className="py-12 border-y border-aviro-border">
-        <div className="max-w-3xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-          {[{n:'12K+',l:'Students'},{n:'40+',l:'Colleges'},{n:'₹85',l:'Avg Savings/Ride'},{n:'4.8★',l:'Safety Rating'}].map(s => (
-            <div key={s.l}>
-              <p className="font-display font-bold text-3xl text-aviro-orange">{s.n}</p>
-              <p className="text-aviro-muted text-sm mt-1">{s.l}</p>
+          {/* Safety */}
+          <section className="py-8 border-t border-aviro-border">
+            <h2 className="font-display font-bold text-xl mb-1">Safe by design</h2>
+            <p className="text-sm text-aviro-muted mb-5">Built for students who ride with people they haven't met yet.</p>
+            <div className="card divide-y divide-aviro-border">
+              {SAFETY.map(f => (
+                <div key={f.title} className="flex gap-3 p-4">
+                  <span className="text-xl flex-shrink-0" aria-hidden="true">{f.icon}</span>
+                  <div>
+                    <p className="font-semibold text-sm">{f.title}</p>
+                    <p className="text-xs text-aviro-muted mt-0.5 leading-relaxed">{f.desc}</p>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </section>
+          </section>
 
-      {/* Features */}
-      <section className="py-20 px-6 max-w-5xl mx-auto">
-        <div className="text-center mb-12">
-          <span className="section-tag mb-3 block w-fit mx-auto">⚡ Features</span>
-          <h2 className="font-display font-bold text-4xl">Built for College Life</h2>
-        </div>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {features.map(f => (
-            <div
-              key={f.title}
-              onClick={() => handleProtectedAction('/register')}
-              className="card p-5 hover:border-aviro-orange/40 hover:-translate-y-1 transition-all cursor-pointer"
-            >
-              <div className="text-2xl mb-3">{f.icon}</div>
-              <p className="font-bold text-sm mb-1">{f.title}</p>
-              <p className="text-aviro-muted text-xs leading-relaxed">{f.desc}</p>
+          {/* Colleges */}
+          <section className="py-8 border-t border-aviro-border">
+            <h2 className="font-display font-bold text-xl mb-1">For Pune colleges</h2>
+            <p className="text-sm text-aviro-muted mb-4">Students from any Pune college can join.</p>
+            <div className="flex flex-wrap gap-2">
+              {COLLEGES.map(c => (
+                <span key={c} className="bg-aviro-card2 border border-aviro-border rounded-full px-3 py-1 text-xs text-aviro-muted">{c}</span>
+              ))}
+              <span className="bg-aviro-card2 border border-aviro-border rounded-full px-3 py-1 text-xs text-aviro-muted">and more</span>
             </div>
-          ))}
-        </div>
-      </section>
+          </section>
 
-      {/* Colleges */}
-      <section className="py-16 px-6 text-center bg-aviro-card border-y border-aviro-border">
-        <h2 className="font-display font-bold text-3xl mb-2">Serving Pune's Best Colleges 🎓</h2>
-        <p className="text-aviro-muted text-sm mb-8">Sign up and verify with your <span className="text-aviro-orange">college email or ID card</span> to get started</p>
-        <div className="flex flex-wrap gap-3 justify-center max-w-2xl mx-auto">
-          {colleges.map(c => (
-            <span key={c} className="bg-aviro-card2 border border-aviro-border rounded-full px-4 py-1.5 text-sm text-aviro-muted">{c}</span>
-          ))}
-          <span className="bg-aviro-card2 border border-aviro-border rounded-full px-4 py-1.5 text-sm text-aviro-muted">+ 30 more</span>
-        </div>
-      </section>
+          {/* Closing call to action */}
+          <section className="py-8 border-t border-aviro-border text-center">
+            <h2 className="font-display font-bold text-xl">Ready for your next ride?</h2>
+            <p className="text-sm text-aviro-muted mt-2 mb-5">It's free to join. You only pay your share of the trip.</p>
+            <Link to="/register" className="btn-primary block w-full text-center py-3.5 text-base">Get started</Link>
+          </section>
+        </main>
 
-      {/* CTA */}
-      <section className="py-20 px-6 text-center">
-        <h2 className="font-display font-bold text-4xl mb-4">Start Riding Smarter Today</h2>
-        <p className="text-aviro-muted mb-2">Join 12,000+ Pune students already saving money on their daily commute.</p>
-        <p className="text-aviro-orange text-sm font-semibold mb-8">🔒 Only for students with a verified college email or ID</p>
-        <div className="flex gap-3 justify-center flex-wrap">
-          <Link to="/register" className="btn-primary text-base px-10 py-3">🚀 Join AVIRO Free</Link>
-          <Link to="/login"    className="btn-secondary text-base px-8 py-3">Already a member? Sign In</Link>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="border-t border-aviro-border py-8 text-center text-aviro-muted text-sm">
-        <p className="font-display font-bold text-aviro-orange text-xl mb-2">AVIRO</p>
-        <p>Affordable · Verified · Intelligent · Ride Organizer</p>
-        <p className="mt-2 text-xs">
-          <Link to="/privacy" className="hover:text-white">Privacy Policy</Link>
-          {' · '}
-          <Link to="/terms" className="hover:text-white">Terms of Service</Link>
-        </p>
-        <p className="mt-2 text-xs">© 2026 AVIRO · Made for Pune's College Students 🏍️</p>
-      </footer>
+        <footer className="px-5 py-6 border-t border-aviro-border text-center text-xs text-aviro-muted space-y-2">
+          <p>
+            <Link to="/privacy" className="hover:text-white">Privacy Policy</Link>
+            {' · '}
+            <Link to="/terms" className="hover:text-white">Terms of Service</Link>
+          </p>
+          <p>© 2026 AVIRO · Affordable Verified Intelligent Ride Organizer</p>
+        </footer>
+      </div>
     </div>
   );
 }
