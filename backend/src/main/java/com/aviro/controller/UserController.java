@@ -50,7 +50,7 @@ public class UserController {
     @PutMapping("/profile")
     public ResponseEntity<ApiResponse<UserResponse>> updateProfile(
             @AuthenticationPrincipal UserDetails userDetails,
-            @RequestBody ProfileUpdateRequest request) {
+            @Valid @RequestBody ProfileUpdateRequest request) {
         return ResponseEntity.ok(userService.updateProfile(userDetails.getUsername(), request));
     }
 

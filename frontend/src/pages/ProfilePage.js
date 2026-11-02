@@ -167,7 +167,7 @@ export default function ProfilePage() {
         <h2 className="font-bold text-xl">{user?.fullName}</h2>
         <p className="text-aviro-muted text-sm mt-0.5">{user?.collegeName} · {user?.department}</p>
         <div className="flex items-center justify-center gap-3 mt-3 flex-wrap">
-          <GenderBadge gender={user?.gender} />
+          <GenderBadge gender={user?.gender} label="" />
           {user?.isCollegeVerified && <span className="text-xs bg-green-500/10 text-green-400 px-2.5 py-1 rounded-full font-semibold">✓ College Verified</span>}
           {user?.isVerified && <span className="text-xs bg-blue-500/10 text-blue-400 px-2.5 py-1 rounded-full font-semibold">✓ Email Verified</span>}
         </div>

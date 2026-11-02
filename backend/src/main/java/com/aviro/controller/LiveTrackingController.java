@@ -1,5 +1,7 @@
 package com.aviro.controller;
 
+import com.aviro.enums.BookingStatus;
+import com.aviro.repository.BookingRepository;
 import com.aviro.repository.RideRepository;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +12,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.security.Principal;
+import java.util.EnumSet;
 
 @RestController
 @RequiredArgsConstructor
@@ -18,6 +21,7 @@ public class LiveTrackingController {
 
     private final SimpMessagingTemplate messagingTemplate;
     private final RideRepository rideRepository;
+    private final BookingRepository bookingRepository;
 
     // Driver sends location updates via WebSocket
     @MessageMapping("/track.update")
@@ -40,8 +44,16 @@ public class LiveTrackingController {
     @MessageMapping("/sos.alert")
     public void sosAlert(@Payload SosPayload sos, Principal principal) {
         Long userId = principalId(principal);
-        if (userId == null) {
+        if (userId == null || sos.getRideId() == null) {
             log.warn("Rejected SOS from unauthenticated WebSocket session");
+            return;
+        }
+        // Only people on this ride can raise an alert on its channel
+        boolean isDriver = userId.equals(rideRepository.findDriverIdByRideId(sos.getRideId()).orElse(null));
+        boolean isRider = bookingRepository.existsByRideIdAndRiderIdAndStatusIn(sos.getRideId(), userId,
+                EnumSet.of(BookingStatus.REQUESTED, BookingStatus.CONFIRMED, BookingStatus.COMPLETED));
+        if (!isDriver && !isRider) {
+            log.warn("Rejected SOS for ride {} from user {}", sos.getRideId(), userId);
             return;
         }
         sos.setUserId(userId);

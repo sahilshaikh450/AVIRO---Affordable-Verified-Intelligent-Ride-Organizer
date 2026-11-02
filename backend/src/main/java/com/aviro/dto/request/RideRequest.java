@@ -12,16 +12,18 @@ public class RideRequest {
     @Data
     public static class Create {
         @NotBlank(message = "From location is required")
+        @Size(max = 200)
         private String fromLocation;
 
-        @NotNull private Double fromLat;
-        @NotNull private Double fromLng;
+        @NotNull @DecimalMin("-90") @DecimalMax("90") private Double fromLat;
+        @NotNull @DecimalMin("-180") @DecimalMax("180") private Double fromLng;
 
         @NotBlank(message = "To location is required")
+        @Size(max = 200)
         private String toLocation;
 
-        @NotNull private Double toLat;
-        @NotNull private Double toLng;
+        @NotNull @DecimalMin("-90") @DecimalMax("90") private Double toLat;
+        @NotNull @DecimalMin("-180") @DecimalMax("180") private Double toLng;
 
         @NotNull(message = "Departure time is required")
         @Future(message = "Departure time must be in the future")
@@ -37,9 +39,11 @@ public class RideRequest {
         private Double pricePerSeat;
 
         private Boolean isRecurring = false;
+        @Size(max = 60)
         private String recurringDays;
         private Boolean womenOnly = false;
         private Gender allowedGender;
+        @Size(max = 500, message = "Notes can be at most 500 characters")
         private String notes;
     }
 

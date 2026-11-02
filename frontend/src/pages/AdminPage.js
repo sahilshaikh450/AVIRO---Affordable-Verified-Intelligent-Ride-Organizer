@@ -241,7 +241,7 @@ export default function AdminPage() {
                         <p className="text-xs text-aviro-muted">{u.collegeName}</p>
                       </div>
                     </div>
-                    <GenderBadge gender={u.gender} />
+                    <GenderBadge gender={u.gender} label="" />
                   </div>
 
                   {/* College ID image (loaded with the admin's token) */}

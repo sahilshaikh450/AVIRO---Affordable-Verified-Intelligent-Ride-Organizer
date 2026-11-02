@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 import java.util.Map;
 
 @RestController
@@ -30,6 +31,9 @@ public class SafetyController {
     private final BookingRepository bookingRepository;
     private final NotificationService notificationService;
     private final EmailService emailService;
+
+    private static final int MAX_CONTACTS = 5;
+    private static final Pattern EMAIL = Pattern.compile("^[\\w.+-]+@[\\w-]+(\\.[\\w-]+)+$");
 
     @Value("${aviro.frontend-url:https://aviro-affordable-verified-intellige.vercel.app}")
     private String frontendUrl;
@@ -63,6 +67,15 @@ public class SafetyController {
             }
         }
 
+        if (contactList.size() > MAX_CONTACTS) {
+            throw new AviroException("You can save up to " + MAX_CONTACTS + " emergency contacts");
+        }
+        for (String c : contactList) {
+            if (!EMAIL.matcher(c).matches()) {
+                throw new AviroException("Not a valid email: " + c);
+            }
+        }
+
         // ✅ setEmergencyContacts expects List<String>
         user.setEmergencyContacts(contactList);
         userRepository.save(user);
@@ -84,6 +97,7 @@ public class SafetyController {
 
         Long   bookingId = body.get("bookingId") != null
                 ? Long.valueOf(body.get("bookingId").toString()) : null;
+        if (bookingId != null) requireParticipant(user, bookingId);
         Double lat = body.get("lat") != null ? Double.valueOf(body.get("lat").toString()) : null;
         Double lng = body.get("lng") != null ? Double.valueOf(body.get("lng").toString()) : null;
 
@@ -154,7 +168,7 @@ public class SafetyController {
         String shareEmail    = body.get("email");
         String trackingLink  = frontendUrl + "/tracking/" + bookingId;
 
-        if (shareEmail == null || !shareEmail.contains("@")) {
+        if (shareEmail == null || !EMAIL.matcher(shareEmail.trim()).matches()) {
             return ResponseEntity.badRequest().body(ApiResponse.error("Invalid email address"));
         }
 
@@ -189,7 +203,8 @@ public class SafetyController {
 
         requireParticipant(reporter, bookingId);
 
-        String reason = body.getOrDefault("reason", "No reason provided");
+        String given = body.getOrDefault("reason", "No reason provided");
+        String reason = given.length() > 1000 ? given.substring(0, 1000) : given;
 
         bookingRepository.findById(bookingId).ifPresent(booking -> {
             try {

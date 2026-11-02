@@ -32,6 +32,8 @@ public class ChatController {
     private final UserRepository userRepository;
     private final BookingRepository bookingRepository;
 
+    private static final int MAX_MESSAGE_LENGTH = 1000;
+
     // WebSocket handler - /app/chat.send
     // Sender always comes from the authenticated session, never from the payload
     @MessageMapping("/chat.send")
@@ -101,6 +103,11 @@ public class ChatController {
                 || !bookingRepository.sharesRide(message.getRideId(), senderId, message.getReceiverId())) {
             throw new AccessDeniedException("You can only message people on your rides");
         }
+        String content = message.getContent() == null ? "" : message.getContent().trim();
+        if (content.isEmpty() || content.length() > MAX_MESSAGE_LENGTH) {
+            throw new AviroException("Messages must be 1 to " + MAX_MESSAGE_LENGTH + " characters");
+        }
+        message.setContent(content);
         ChatMessage saved = chatService.saveMessage(
                 senderId,
                 message.getReceiverId(),

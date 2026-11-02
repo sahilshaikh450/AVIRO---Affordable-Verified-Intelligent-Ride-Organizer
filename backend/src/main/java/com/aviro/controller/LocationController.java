@@ -94,7 +94,8 @@ public class LocationController {
     @MessageMapping("/location.message")
     public void sendQuickMessage(@Payload Map<String, Object> payload, Principal principal) {
         Long bookingId = Long.valueOf(payload.get("bookingId").toString());
-        String message = payload.get("message").toString();
+        String message = String.valueOf(payload.get("message")).trim();
+        if (message.isEmpty() || message.length() > 300) return;
         // Sender comes from the authenticated session, not the payload
         Long senderId  = principal == null ? null : Long.valueOf(principal.getName());
 

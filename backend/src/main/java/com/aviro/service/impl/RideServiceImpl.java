@@ -161,10 +161,8 @@ public class RideServiceImpl implements RideService {
 
         List<Ride> matched = rides.stream()
             // ✅ correct field: fromLocation / toLocation
-            .filter(r -> request.getFromLocation() == null ||
-                r.getFromLocation().toLowerCase().contains(request.getFromLocation().toLowerCase()))
-            .filter(r -> request.getToLocation() == null ||
-                r.getToLocation().toLowerCase().contains(request.getToLocation().toLowerCase()))
+            .filter(r -> placeMatches(r.getFromLocation(), request.getFromLocation()))
+            .filter(r -> placeMatches(r.getToLocation(), request.getToLocation()))
             // Price filter
             .filter(r -> request.getMaxPrice() == null ||
                 r.getPricePerSeat() <= request.getMaxPrice())
@@ -356,6 +354,18 @@ public class RideServiceImpl implements RideService {
                         .vehicleRegistrationNumber(vehicle != null ? vehicle.getRegistrationNumber() : null)
                         .build())
                 .build();
+    }
+
+    // "Karve Nagar" finds "Karvenagar" and "MIT College - Kothrud" finds "Kothrud": spaces and symbols are ignored
+    private static boolean placeMatches(String ridePlace, String query) {
+        if (query == null || query.isBlank()) return true;
+        if (ridePlace == null) return false;
+        String place = squash(ridePlace), q = squash(query);
+        return !q.isEmpty() && (place.contains(q) || q.contains(place));
+    }
+
+    private static String squash(String s) {
+        return s.toLowerCase().replaceAll("[^a-z0-9]", "");
     }
 
     private User getUser(String email) {

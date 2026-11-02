@@ -25,24 +25,39 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     private record Rule(int maxRequests, Duration window) {}
 
-    private static final Map<String, Rule> RULES = Map.of(
-            "/auth/login",                    new Rule(10, Duration.ofMinutes(1)),
-            "/auth/register",                 new Rule(5,  Duration.ofMinutes(10)),
-            "/auth/forgot-password",          new Rule(3,  Duration.ofMinutes(10)),
-            "/auth/resend-otp",               new Rule(3,  Duration.ofMinutes(10)),
-            "/auth/send-college-email-otp",   new Rule(3,  Duration.ofMinutes(10)),
-            "/auth/reset-password",           new Rule(10, Duration.ofMinutes(10)),
-            "/auth/verify-otp",               new Rule(10, Duration.ofMinutes(10)),
-            "/auth/login-verify-otp",         new Rule(10, Duration.ofMinutes(10)),
-            "/auth/verify-college-email-otp", new Rule(10, Duration.ofMinutes(10)),
-            "/auth/refresh-token",            new Rule(30, Duration.ofMinutes(1))
+    private static final Map<String, Rule> RULES = Map.ofEntries(
+            Map.entry("/auth/login",                    new Rule(10, Duration.ofMinutes(1))),
+            Map.entry("/auth/register",                 new Rule(5,  Duration.ofMinutes(10))),
+            Map.entry("/auth/forgot-password",          new Rule(3,  Duration.ofMinutes(10))),
+            Map.entry("/auth/resend-otp",               new Rule(3,  Duration.ofMinutes(10))),
+            Map.entry("/auth/send-college-email-otp",   new Rule(3,  Duration.ofMinutes(10))),
+            Map.entry("/auth/reset-password",           new Rule(10, Duration.ofMinutes(10))),
+            Map.entry("/auth/verify-otp",               new Rule(10, Duration.ofMinutes(10))),
+            Map.entry("/auth/login-verify-otp",         new Rule(10, Duration.ofMinutes(10))),
+            Map.entry("/auth/verify-college-email-otp", new Rule(10, Duration.ofMinutes(10))),
+            Map.entry("/auth/refresh-token",            new Rule(30, Duration.ofMinutes(1))),
+            // Signed-in actions: counted per account, generous enough for normal use
+            Map.entry("/rides",                         new Rule(20, Duration.ofHours(1))),
+            Map.entry("/bookings",                      new Rule(30, Duration.ofHours(1))),
+            Map.entry("/chat/send",                     new Rule(60, Duration.ofMinutes(1))),
+            Map.entry("/reviews",                       new Rule(20, Duration.ofHours(1))),
+            Map.entry("/users/upload-college-id",       new Rule(10, Duration.ofHours(1)))
     );
+
+    // Every /safety/... call (SOS, share link, report) sends emails, so it shares one budget
+    private static final String SAFETY_PREFIX = "/safety/";
+    private static final Rule SAFETY_RULE = new Rule(10, Duration.ofMinutes(10));
 
     private final StringRedisTemplate redisTemplate;
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return !"POST".equalsIgnoreCase(request.getMethod()) || !RULES.containsKey(path(request));
+        return !"POST".equalsIgnoreCase(request.getMethod()) || ruleFor(path(request)) == null;
+    }
+
+    private Rule ruleFor(String path) {
+        Rule rule = RULES.get(path);
+        return rule != null ? rule : path.startsWith(SAFETY_PREFIX) ? SAFETY_RULE : null;
     }
 
     @Override
@@ -50,10 +65,11 @@ public class RateLimitFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
         String path = path(request);
-        Rule rule = RULES.get(path);
+        Rule rule = ruleFor(path);
+        String bucket = path.startsWith(SAFETY_PREFIX) ? SAFETY_PREFIX : path;
         long windowMs = rule.window().toMillis();
         long windowStart = System.currentTimeMillis() / windowMs;
-        String key = "aviro:rl:" + path + ":" + clientIp(request) + ":" + windowStart;
+        String key = "aviro:rl:" + bucket + ":" + caller(request) + ":" + windowStart;
 
         try {
             Long count = redisTemplate.opsForValue().increment(key);
@@ -83,6 +99,15 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     private String path(HttpServletRequest request) {
         return request.getRequestURI().substring(request.getContextPath().length());
+    }
+
+    // Signed-in calls count per token, so students sharing college Wi-Fi don't block each other
+    private String caller(HttpServletRequest request) {
+        String auth = request.getHeader("Authorization");
+        if (auth != null && auth.startsWith("Bearer ") && auth.length() > 40) {
+            return "t" + Integer.toHexString(auth.hashCode()) + auth.substring(auth.length() - 12);
+        }
+        return clientIp(request);
     }
 
     private String clientIp(HttpServletRequest request) {

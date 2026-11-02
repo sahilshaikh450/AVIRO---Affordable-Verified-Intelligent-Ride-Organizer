@@ -1,5 +1,8 @@
 package com.aviro.config;
 
+import com.aviro.enums.BookingStatus;
+import com.aviro.repository.BookingRepository;
+import com.aviro.repository.RideRepository;
 import com.aviro.repository.UserRepository;
 import com.aviro.security.JwtTokenProvider;
 import com.aviro.security.TokenBlacklistService;
@@ -14,6 +17,10 @@ import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.stereotype.Component;
 
 import java.security.Principal;
+import java.util.EnumSet;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Reads the JWT from the STOMP CONNECT frame and sets the session user.
@@ -28,13 +35,28 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
     private final JwtTokenProvider jwtTokenProvider;
     private final UserRepository userRepository;
     private final TokenBlacklistService tokenBlacklistService;
+    private final RideRepository rideRepository;
+    private final BookingRepository bookingRepository;
+
+    // Ride topics carry live location and SOS alerts: only that ride's driver and riders may listen
+    private static final Pattern RIDE_TOPIC = Pattern.compile("^/topic/(track|sos)/(\\d+)$");
+    private static final Set<BookingStatus> TRACKING_STATUSES = EnumSet.of(BookingStatus.CONFIRMED);
+    private static final Set<BookingStatus> SOS_STATUSES =
+            EnumSet.of(BookingStatus.REQUESTED, BookingStatus.CONFIRMED, BookingStatus.COMPLETED);
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
         StompHeaderAccessor accessor =
                 MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
-        if (accessor == null || !StompCommand.CONNECT.equals(accessor.getCommand())) {
+        if (accessor == null) return message;
+
+        if (StompCommand.SUBSCRIBE.equals(accessor.getCommand())) {
+            // Returning null drops the subscription without closing the connection
+            return canSubscribe(accessor.getUser(), accessor.getDestination()) ? message : null;
+        }
+
+        if (!StompCommand.CONNECT.equals(accessor.getCommand())) {
             return message;
         }
 
@@ -59,5 +81,21 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
         });
 
         return message;
+    }
+
+    private boolean canSubscribe(Principal user, String destination) {
+        if (destination == null || !destination.startsWith("/topic/")) return true; // /user/queue/... is per-user already
+        Matcher m = RIDE_TOPIC.matcher(destination);
+        if (user == null || !m.matches()) {
+            log.warn("Rejected subscription to {} by {}", destination, user == null ? "anonymous" : user.getName());
+            return false;
+        }
+        Long userId = Long.valueOf(user.getName());
+        Long rideId = Long.valueOf(m.group(2));
+        if (userId.equals(rideRepository.findDriverIdByRideId(rideId).orElse(null))) return true;
+        Set<BookingStatus> allowed = "track".equals(m.group(1)) ? TRACKING_STATUSES : SOS_STATUSES;
+        boolean ok = bookingRepository.existsByRideIdAndRiderIdAndStatusIn(rideId, userId, allowed);
+        if (!ok) log.warn("Rejected subscription to {} by user {}", destination, userId);
+        return ok;
     }
 }
