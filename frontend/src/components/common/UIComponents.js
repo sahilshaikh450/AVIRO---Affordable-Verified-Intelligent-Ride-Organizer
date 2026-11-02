@@ -1,13 +1,14 @@
 import React from 'react';
 
 // ─── GENDER BADGE ─────────────────────────────────────────────────
-export const GenderBadge = ({ gender }) => {
+// label: who the badge describes ("driver" on ride cards); empty for a person's own gender
+export const GenderBadge = ({ gender, label = 'driver' }) => {
   if (gender === 'MALE') return (
     <span className="gender-male">
       <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
         <path d="M12 2a5 5 0 1 0 0 10A5 5 0 0 0 12 2zm0 12c-5.33 0-8 2.67-8 4v2h16v-2c0-1.33-2.67-4-8-4z"/>
       </svg>
-      Male driver
+      {label ? `Male ${label}` : 'Male'}
     </span>
   );
   if (gender === 'FEMALE') return (
@@ -15,7 +16,7 @@ export const GenderBadge = ({ gender }) => {
       <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
         <path d="M12 2a5 5 0 1 0 0 10A5 5 0 0 0 12 2zm0 12c-5.33 0-8 2.67-8 4v2h16v-2c0-1.33-2.67-4-8-4z"/>
       </svg>
-      Female driver
+      {label ? `Female ${label}` : 'Female'}
     </span>
   );
   return null;

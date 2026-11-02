@@ -9,6 +9,7 @@ public class BookingRequest {
     public static class Create {
         @NotNull private Long rideId;
         @NotNull @Min(1) @Max(4) private Integer seatsBooked = 1;
+        @Size(max = 200)
         private String pickupPoint;
         private Double pickupLat;
         private Double pickupLng;

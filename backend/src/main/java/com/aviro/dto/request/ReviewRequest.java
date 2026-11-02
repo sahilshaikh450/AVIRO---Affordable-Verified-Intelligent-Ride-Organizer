@@ -10,5 +10,6 @@ public class ReviewRequest {
     @NotNull private Long revieweeId;
     @NotNull @DecimalMin("1.0") @DecimalMax("5.0")
     private Double rating;
+    @Size(max = 500, message = "Review can be at most 500 characters")
     private String comment;
 }

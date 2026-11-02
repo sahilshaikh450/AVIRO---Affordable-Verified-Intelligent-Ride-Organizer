@@ -1,13 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { searchLocations, getPopularLocations } from '../../utils/puneLocations';
+import { currentPosition, placeName } from '../../utils/geo';
 
 export default function LocationInput({
-  label, placeholder, value, onChange, icon = '📍', required = false,
+  label, placeholder, value, onChange, icon = '📍', required = false, allowCurrentLocation = false,
 }) {
+  // onChange(name) when typed or picked from the list, onChange(name, { lat, lng }) for the phone's GPS spot
   const [query, setQuery]     = useState(value || '');
   const [results, setResults] = useState([]);
   const [showDrop, setShowDrop] = useState(false);
   const [focused, setFocused]   = useState(false);
+  const [locating, setLocating] = useState(false);
   const wrapRef = useRef(null);
 
   useEffect(() => { setQuery(value || ''); }, [value]);
@@ -42,6 +46,20 @@ export default function LocationInput({
     setShowDrop(false);
   };
 
+  const useMyLocation = async () => {
+    setShowDrop(false);
+    setLocating(true);
+    try {
+      const point = await currentPosition();
+      const name = (await placeName(point)) || 'My current location';
+      setQuery(name);
+      onChange(name, point);
+    } catch (err) {
+      toast.error(err.message);
+    }
+    setLocating(false);
+  };
+
   const handleFocus = () => {
     setFocused(true);
     if (query.length >= 1) {
@@ -68,7 +86,8 @@ export default function LocationInput({
           value={query}
           onChange={handleChange}
           onFocus={handleFocus}
-          placeholder={placeholder || 'Search college or area...'}
+          placeholder={locating ? 'Finding your location…' : (placeholder || 'Search college or area...')}
+          disabled={locating}
           required={required}
           autoComplete="off"
           className="flex-1 bg-transparent text-sm text-white placeholder-aviro-muted outline-none"
@@ -83,7 +102,7 @@ export default function LocationInput({
       </div>
 
       {/* Dropdown */}
-      {showDrop && results.length > 0 && (
+      {showDrop && (results.length > 0 || allowCurrentLocation) && (
         <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-aviro-card border border-aviro-border rounded-xl shadow-2xl overflow-hidden">
           <div className="px-3 py-2 border-b border-aviro-border flex items-center justify-between">
             <p className="text-xs text-aviro-muted font-medium">
@@ -95,6 +114,16 @@ export default function LocationInput({
             </div>
           </div>
           <div className="max-h-64 overflow-y-auto">
+            {allowCurrentLocation && (
+              <button type="button" onClick={useMyLocation}
+                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-aviro-card2 transition-colors text-left border-b border-aviro-border/40">
+                <span className="text-lg flex-shrink-0">🎯</span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm text-aviro-orange font-semibold">Use my current location</p>
+                  <p className="text-xs text-aviro-muted">From your phone's GPS</p>
+                </div>
+              </button>
+            )}
             {results.map((loc, i) => (
               <button key={i} type="button" onClick={() => handleSelect(loc)}
                 className="w-full flex items-center gap-3 px-4 py-3 hover:bg-aviro-card2 transition-colors text-left border-b border-aviro-border/40 last:border-0">

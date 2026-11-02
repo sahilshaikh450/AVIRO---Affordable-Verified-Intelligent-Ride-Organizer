@@ -52,7 +52,8 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(
                 ApiResponse.<Map<String, String>>builder()
                         .success(false)
-                        .message("Validation failed")
+                        // The first problem in plain words, so the app can show it as is
+                        .message(errors.isEmpty() ? "Validation failed" : errors.values().iterator().next())
                         .data(errors)
                         .build()
         );
