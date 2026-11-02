@@ -640,6 +640,7 @@ public class BookingServiceImpl implements BookingService {
                 .paymentStatus(booking.getPaymentStatus())
                 .paymentMethod(booking.getPaymentMethod())
                 .paymentReference(booking.getPaymentReference())
+                .driverUpiId(showPhone ? driver.getUpiId() : null)
                 .pickupPoint(booking.getPickupPoint())
                 .pickupLat(booking.getPickupLat())
                 .pickupLng(booking.getPickupLng())

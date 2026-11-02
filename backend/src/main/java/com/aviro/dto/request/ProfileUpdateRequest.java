@@ -14,6 +14,9 @@ public class ProfileUpdateRequest {
     private String fullName;
     @Pattern(regexp = "^$|^(\\+91)?[6-9]\\d{9}$", message = "Enter a valid 10-digit mobile number")
     private String phone;
+    // Format is checked in UserServiceImpl (blank clears it)
+    @Size(max = 100)
+    private String upiId;
     @Size(max = 150)
     private String locality;
     private Double homeLat;
