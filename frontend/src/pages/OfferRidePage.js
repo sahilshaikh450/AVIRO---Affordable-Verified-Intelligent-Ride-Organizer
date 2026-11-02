@@ -1,7 +1,7 @@
 import React from 'react'; 
 import { useForm } from 'react-hook-form'; 
 import { useDispatch, useSelector } from 'react-redux'; 
-import { useNavigate } from 'react-router-dom'; 
+import { Link, useNavigate } from 'react-router-dom'; 
 import { createRide } from '../store/rideSlice'; 
 import LocationInput from '../components/common/LocationInput'; 
 import toast from 'react-hot-toast'; 
@@ -71,6 +71,18 @@ export default function OfferRidePage() {
         </p> 
       </div> 
  
+      {/* Without a UPI ID riders can only pay cash */}
+      {user && !user.upiId && (
+        <Link to="/profile" className="card p-4 flex items-center gap-3 border-yellow-500/30 bg-yellow-500/5 hover:border-yellow-500/60">
+          <span className="text-2xl">💳</span>
+          <span className="flex-1 text-sm">
+            <span className="font-semibold block">Add your UPI ID to get paid</span>
+            <span className="text-xs text-aviro-muted">Riders can only pay you cash until you add it in Profile.</span>
+          </span>
+          <span className="text-aviro-orange text-sm">→</span>
+        </Link>
+      )}
+
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5"> 
  
         {/* Route */} 
