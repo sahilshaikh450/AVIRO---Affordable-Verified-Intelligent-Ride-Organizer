@@ -45,7 +45,7 @@ public class AuthServiceImpl implements AuthService {
 
     private static final Pattern COLLEGE_DOMAIN_PATTERN =
             Pattern.compile(
-                    "^[\\w.+-]+@[\\w-]+(\\.[\\w-]+)*\\.edu\\.in$",
+                    "^[\\w.+-]+@[\\w-]+(\\.[\\w-]+)*\\.(edu\\.in|ac\\.in|edu)$",
                     Pattern.CASE_INSENSITIVE
             );
 
@@ -88,7 +88,7 @@ public class AuthServiceImpl implements AuthService {
                 .aviroCredits(100)
                 .build();
 
-        // Auto college verify for .edu.in email
+        // Auto college verify for a college email (.edu.in / .ac.in / .edu)
         if (isCollegeEmail(email)) {
             user.setIsCollegeVerified(true);
         }
@@ -413,7 +413,7 @@ public class AuthServiceImpl implements AuthService {
 
         if (!isCollegeEmail(collegeEmail)) {
             throw new AviroException(
-                    "Please use a valid college email ending in .edu.in"
+                    "Please use your college email (ending in .edu.in, .ac.in or .edu)"
             );
         }
 

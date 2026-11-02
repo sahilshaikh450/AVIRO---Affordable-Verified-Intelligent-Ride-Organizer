@@ -13,7 +13,7 @@ const features = [
   { icon:'🏆', title:'College Leaderboards',    desc:'Compete with other colleges on rides shared & CO₂ saved.' },
 ];
 
-const colleges = ['COEP','VIT Pune','MIT Pune','Symbiosis','PICT','Fergusson','DYPIU','Bharati Vidyapeeth','NIBM','Pune University'];
+const colleges = ['MIT-WPU','COEP','PICT','VIT Pune','Cummins','PCCOE','Symbiosis','Fergusson','DYPIU','Bharati Vidyapeeth','NIBM','Pune University'];
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -38,7 +38,7 @@ export default function LandingPage() {
       <section className="pt-32 pb-20 px-6 text-center max-w-4xl mx-auto">
         <div className="inline-flex items-center gap-2 bg-aviro-orange/10 border border-aviro-orange/30 rounded-full px-4 py-1.5 text-aviro-orange text-xs font-bold mb-6 animate-fade-up">
           <span className="w-1.5 h-1.5 bg-aviro-orange rounded-full animate-pulse-dot" />
-          Pune's #1 College Ride Platform · Only for .edu.in students
+          Pune's #1 College Ride Platform · Only for verified students
         </div>
         <h1 className="font-display font-bold text-5xl md:text-7xl leading-none tracking-tight mb-6 animate-fade-up">
           Ride Smart.<br />
@@ -82,7 +82,7 @@ export default function LandingPage() {
 
         {/* College-only badge */}
         <div className="mt-8 inline-flex items-center gap-2 bg-aviro-card border border-aviro-border rounded-full px-4 py-2 text-sm text-aviro-muted">
-          🎓 <span>Exclusively for students with <span className="text-aviro-orange font-semibold">.edu.in</span> college emails</span>
+          🎓 <span>Exclusively for students with <span className="text-aviro-orange font-semibold">verified</span> college IDs or emails</span>
         </div>
       </section>
 
@@ -122,7 +122,7 @@ export default function LandingPage() {
       {/* Colleges */}
       <section className="py-16 px-6 text-center bg-aviro-card border-y border-aviro-border">
         <h2 className="font-display font-bold text-3xl mb-2">Serving Pune's Best Colleges 🎓</h2>
-        <p className="text-aviro-muted text-sm mb-8">Sign up with your college <span className="text-aviro-orange">.edu.in</span> email to get started</p>
+        <p className="text-aviro-muted text-sm mb-8">Sign up and verify with your <span className="text-aviro-orange">college email or ID card</span> to get started</p>
         <div className="flex flex-wrap gap-3 justify-center max-w-2xl mx-auto">
           {colleges.map(c => (
             <span key={c} className="bg-aviro-card2 border border-aviro-border rounded-full px-4 py-1.5 text-sm text-aviro-muted">{c}</span>
@@ -135,7 +135,7 @@ export default function LandingPage() {
       <section className="py-20 px-6 text-center">
         <h2 className="font-display font-bold text-4xl mb-4">Start Riding Smarter Today</h2>
         <p className="text-aviro-muted mb-2">Join 12,000+ Pune students already saving money on their daily commute.</p>
-        <p className="text-aviro-orange text-sm font-semibold mb-8">🔒 Only accessible with a valid .edu.in college email</p>
+        <p className="text-aviro-orange text-sm font-semibold mb-8">🔒 Only for students with a verified college email or ID</p>
         <div className="flex gap-3 justify-center flex-wrap">
           <Link to="/register" className="btn-primary text-base px-10 py-3">🚀 Join AVIRO Free</Link>
           <Link to="/login"    className="btn-secondary text-base px-8 py-3">Already a member? Sign In</Link>

@@ -26,7 +26,7 @@ public interface AuthService {
 
     ApiResponse<String> logout(String accessToken, String refreshToken);
 
-    // College email verification (.edu.in domain only)
+    // College email verification (.edu.in, .ac.in or .edu domains)
     ApiResponse<String> sendCollegeEmailOtp(
             String userEmail,
             AuthRequest.SendCollegeEmailOtp request

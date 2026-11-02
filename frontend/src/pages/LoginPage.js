@@ -124,9 +124,9 @@ export default function LoginPage() {
       return;
     }
 
-    if (newPassword.length < 6) {
+    if (!/^(?=.*[A-Za-z])(?=.*\d).{8,72}$/.test(newPassword)) {
       toast.error(
-        'Password must be at least 6 characters'
+        'Password needs at least 8 characters, with a letter and a number'
       );
       return;
     }

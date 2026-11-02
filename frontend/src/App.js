@@ -48,6 +48,13 @@ const PrivateRoute = ({ children }) => {
     : <Navigate to="/login" replace />;
 };
 
+// The server also refuses admin data; this just keeps others off an empty page
+const AdminRoute = ({ children }) => {
+  const { token, user } = useSelector((state) => state.auth);
+  if (!isAuthenticated(token)) return <Navigate to="/login" replace />;
+  return user?.role === 'ADMIN' ? children : <Navigate to="/dashboard" replace />;
+};
+
 const PublicRoute = ({ children }) => {
   const { token } = useSelector((state) => state.auth);
 
@@ -247,9 +254,9 @@ export default function App() {
         <Route
           path="/admin"
           element={
-            <PrivateRoute>
+            <AdminRoute>
               <AppLayout />
-            </PrivateRoute>
+            </AdminRoute>
           }
         >
           <Route

@@ -4,7 +4,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { registerUser } from '../store/authSlice';
 
-const COLLEGES = ['COEP Pune','VIT Pune','MIT Pune','Symbiosis Institute','PICT Pune','Fergusson College','Pune University','DYPIU','Bharati Vidyapeeth','NIBM','SCIT','Other'];
+import { PUNE_COLLEGES } from '../utils/colleges';
+
+// Same rules as the server, so mistakes show before submitting
+const NAME_RULE     = { value: /^[\p{L} .'-]+$/u, message: 'Use letters only' };
+const PHONE_RULE    = { value: /^(\+91)?[6-9]\d{9}$/, message: 'Enter a valid 10-digit mobile number' };
+const PASSWORD_RULE = { value: /^(?=.*[A-Za-z])(?=.*\d).{8,72}$/, message: 'At least 8 characters, with a letter and a number' };
 
 export default function RegisterPage() {
   const { register, handleSubmit, watch, trigger, formState: { errors } } = useForm({ defaultValues: { role: 'RIDER', gender: 'MALE' } });
@@ -96,7 +101,7 @@ export default function RegisterPage() {
                 <h3 className="font-bold text-lg">Your Details</h3>
                 <div>
                   <label className="text-xs text-aviro-muted font-medium block mb-1.5">Full Name</label>
-                  <input {...register('fullName', { required: 'Name is required' })} placeholder="Rahul Patil" className="input-field" />
+                  <input {...register('fullName', { required: 'Name is required', minLength: { value: 2, message: 'Name is too short' }, maxLength: { value: 60, message: 'Name is too long' }, pattern: NAME_RULE })} placeholder="Rahul Patil" autoComplete="name" className="input-field" />
                   {errors.fullName && <p className="text-red-400 text-xs mt-1">{errors.fullName.message}</p>}
                 </div>
                 <div>
@@ -106,10 +111,12 @@ export default function RegisterPage() {
                 </div>
                 <div>
                   <label className="text-xs text-aviro-muted font-medium block mb-1.5">College</label>
-                  <select {...register('collegeName', { required: 'College required' })} className="input-field">
-                    <option value="">Select your college</option>
-                    {COLLEGES.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
+                  {/* Type to search; a college that isn't listed can be typed in full */}
+                  <input {...register('collegeName', { required: 'College required', setValueAs: v => (v || '').trim(), minLength: { value: 3, message: 'Enter your college name' }, maxLength: { value: 150, message: 'College name is too long' } })}
+                    list="pune-colleges" placeholder="Start typing, e.g. MIT-WPU, PICT, COEP" autoComplete="off" className="input-field" />
+                  <datalist id="pune-colleges">
+                    {PUNE_COLLEGES.map(c => <option key={c} value={c} />)}
+                  </datalist>
                   {errors.collegeName && <p className="text-red-400 text-xs mt-1">{errors.collegeName.message}</p>}
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -143,16 +150,18 @@ export default function RegisterPage() {
                 </div>
                 <div>
                   <label className="text-xs text-aviro-muted font-medium block mb-1.5">Phone Number</label>
-                  <input {...register('phone')} type="tel" placeholder="9876543210" className="input-field" />
+                  <input {...register('phone', { setValueAs: v => (v || '').replace(/[\s-]/g, ''), validate: v => !v || PHONE_RULE.value.test(v) || PHONE_RULE.message })} type="tel" inputMode="numeric" placeholder="9876543210" autoComplete="tel" className="input-field" />
+                  {errors.phone && <p className="text-red-400 text-xs mt-1">{errors.phone.message}</p>}
                 </div>
                 <div>
                   <label className="text-xs text-aviro-muted font-medium block mb-1.5">Password</label>
-                  <input {...register('password', { required: 'Password required', minLength: { value: 6, message: 'Min 6 chars' } })} type="password" placeholder="••••••••" className="input-field" />
+                  <input {...register('password', { required: 'Password required', pattern: PASSWORD_RULE })} type="password" placeholder="••••••••" autoComplete="new-password" className="input-field" />
+                  {!errors.password && <p className="text-aviro-muted text-xs mt-1">At least 8 characters, with a letter and a number</p>}
                   {errors.password && <p className="text-red-400 text-xs mt-1">{errors.password.message}</p>}
                 </div>
 
                 <div className="bg-aviro-orange/5 border border-aviro-orange/20 rounded-xl p-3 text-xs text-aviro-muted">
-                  🎓 Using a .edu.in email verifies your college automatically. You can also verify it later from your profile.
+                  🎓 Using your college email (.edu.in, .ac.in or .edu) verifies your college automatically. You can also verify it later from your profile.
                 </div>
 
                 <div className="flex gap-2">

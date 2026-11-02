@@ -137,7 +137,7 @@ export default function BookingsPage() {
                       {b.rider?.department && (
                         <p className="text-xs text-aviro-muted">{b.rider.department} · Year {b.rider.yearOfStudy}</p>
                       )}
-                      <GenderBadge gender={b.rider?.gender} />
+                      <GenderBadge gender={b.rider?.gender} label="rider" />
                     </div>
                   </div>
                   <div className="text-right">

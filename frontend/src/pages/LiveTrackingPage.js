@@ -200,7 +200,7 @@ export default function LiveTrackingPage() {
     if (fittedRouteRef.current !== route.stage) {
       fittedRouteRef.current = route.stage;
       map.invalidateSize();
-      map.fitBounds(routeLineRef.current.getBounds(), { padding: [50, 50], animate: true, maxZoom: 17 });
+      map.fitBounds(routeLineRef.current.getBounds(), { padding: [50, 50], animate: false, maxZoom: 17 });
     }
   }, [route]);
 
@@ -221,8 +221,9 @@ export default function LiveTrackingPage() {
     const points = [myLoc, otherLoc, inTrip ? destination : pickup].filter(Boolean).map(p => [p.lat, p.lng]);
     if (!map || points.length === 0) return;
     map.invalidateSize();
-    if (points.length === 1) map.setView(points[0], 16, { animate: true });
-    else map.fitBounds(points, { padding: [50, 50], animate: true, maxZoom: 17 });
+    // No animation: a zoom still running when the trip ends and the map closes throws inside Leaflet
+    if (points.length === 1) map.setView(points[0], 16, { animate: false });
+    else map.fitBounds(points, { padding: [50, 50], animate: false, maxZoom: 17 });
   }, [myLoc, otherLoc, pickup, destination, inTrip]);
 
   // Keep markers in sync with locations
