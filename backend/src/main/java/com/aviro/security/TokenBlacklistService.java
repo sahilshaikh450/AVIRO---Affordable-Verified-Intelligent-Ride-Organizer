@@ -30,12 +30,16 @@ public class TokenBlacklistService {
     private long refreshExpirationMs;
 
     private final StringRedisTemplate redisTemplate;
+    // Tokens just checked and found valid: skips a Redis call on most requests.
+    // A logout on this server clears the entry at once, so it still takes effect immediately.
+    private final TtlCache<String, Boolean> knownGood = new TtlCache<>(60_000, 50_000);
     private final JwtTokenProvider jwtTokenProvider;
 
     public void revoke(String token) {
         if (token == null || token.isBlank() || !jwtTokenProvider.validateToken(token)) {
             return;
         }
+        knownGood.invalidate(hash(token));
         try {
             Date expiry = jwtTokenProvider.getExpirationFromToken(token);
             long ttlMs = expiry.getTime() - System.currentTimeMillis();
@@ -50,19 +54,23 @@ public class TokenBlacklistService {
     // Ends every session of this user (e.g. after a password reset)
     public void revokeAllFor(String email) {
         try {
-            long nowSecondsMs = System.currentTimeMillis() / 1000 * 1000; // token times are whole seconds
-            redisTemplate.opsForValue().set(BEFORE_PREFIX + email, String.valueOf(nowSecondsMs), Duration.ofMillis(refreshExpirationMs));
+            redisTemplate.opsForValue().set(BEFORE_PREFIX + email, String.valueOf(System.currentTimeMillis()), Duration.ofMillis(refreshExpirationMs));
+            // The cache is keyed by token, not user; a reset is rare, so forget all checks at once
+            knownGood.clear();
         } catch (Exception e) {
             log.warn("Could not end sessions for {}: {}", email, e.getMessage());
         }
     }
 
     public boolean isRevoked(String token) {
+        String key = hash(token);
+        if (knownGood.getIfPresent(key) != null) return false;
         try {
-            if (Boolean.TRUE.equals(redisTemplate.hasKey(PREFIX + hash(token)))) return true;
+            if (Boolean.TRUE.equals(redisTemplate.hasKey(PREFIX + key))) return true;
             String before = redisTemplate.opsForValue().get(BEFORE_PREFIX + jwtTokenProvider.getEmailFromToken(token));
-            Date issued = jwtTokenProvider.getIssuedAtFromToken(token);
-            return before != null && issued != null && issued.getTime() < Long.parseLong(before);
+            boolean revoked = before != null && jwtTokenProvider.getIssuedAtMsFromToken(token) < Long.parseLong(before);
+            if (!revoked) knownGood.put(key, Boolean.TRUE);
+            return revoked;
         } catch (Exception e) {
             // Redis down: don't lock everyone out
             log.warn("Token blacklist check failed: {}", e.getMessage());

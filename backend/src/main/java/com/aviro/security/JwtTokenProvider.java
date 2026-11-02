@@ -13,6 +13,8 @@ import java.util.Date;
 @Slf4j
 public class JwtTokenProvider {
 
+    private static final String ISSUED_MS = "iat_ms";
+
     @Value("${aviro.jwt.secret}")
     private String jwtSecret;
 
@@ -30,6 +32,7 @@ public class JwtTokenProvider {
         return Jwts.builder()
                 .setSubject(email)
                 .setIssuedAt(new Date())
+                .claim(ISSUED_MS, System.currentTimeMillis())
                 .setExpiration(new Date(System.currentTimeMillis() + jwtExpiration))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
@@ -39,6 +42,7 @@ public class JwtTokenProvider {
         return Jwts.builder()
                 .setSubject(email)
                 .setIssuedAt(new Date())
+                .claim(ISSUED_MS, System.currentTimeMillis())
                 .setExpiration(new Date(System.currentTimeMillis() + refreshExpiration))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
@@ -53,13 +57,15 @@ public class JwtTokenProvider {
                 .getSubject();
     }
 
-    public Date getIssuedAtFromToken(String token) {
-        return Jwts.parserBuilder()
+    // Issue time in milliseconds ("iat" alone is whole seconds); tokens made before this claim existed use "iat"
+    public long getIssuedAtMsFromToken(String token) {
+        Claims claims = Jwts.parserBuilder()
                 .setSigningKey(getSigningKey())
                 .build()
                 .parseClaimsJws(token)
-                .getBody()
-                .getIssuedAt();
+                .getBody();
+        Number ms = claims.get(ISSUED_MS, Number.class);
+        return ms != null ? ms.longValue() : claims.getIssuedAt().getTime();
     }
 
     public Date getExpirationFromToken(String token) {
