@@ -7,6 +7,12 @@ import LocationInput from '../components/common/LocationInput';
 import toast from 'react-hot-toast'; 
 import { geocodePlace, PUNE_CENTRE } from '../utils/geo';
  
+// College hours, same as the server: departures from 06:00 up to 20:00
+const inCollegeHours = (value) => {
+  const time = (value || '').split('T')[1] || '';
+  return time >= '06:00' && time <= '20:00';
+};
+
 export default function OfferRidePage() { 
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm({ 
     defaultValues: { totalSeats: '1', womenOnly: false, isRecurring: false } 
@@ -37,6 +43,11 @@ export default function OfferRidePage() {
       toast.error('Departure time must be at least 15 minutes from now.'); 
       return; 
     } 
+
+    if (!inCollegeHours(data.departureTime)) {
+      toast.error('Rides can leave only between 6:00 AM and 8:00 PM.');
+      return;
+    }
  
     // Real coordinates so maps and routes point to the right places (Pune centre if not found)
     setLocating(true);
@@ -142,10 +153,13 @@ export default function OfferRidePage() {
             </label> 
  
             <input 
-              {...register('departureTime', { required: 'Required' })} 
+              {...register('departureTime', { required: 'Required', validate: v => inCollegeHours(v) || 'Pick a time between 6:00 AM and 8:00 PM' })} 
               type="datetime-local" 
               className="input-field" 
             /> 
+            {!errors.departureTime && (
+              <p className="text-aviro-muted text-xs mt-1">🌙 Rides run from 6:00 AM to 8:00 PM (college hours)</p>
+            )}
  
             {errors.departureTime && (
               <p className="text-red-400 text-xs mt-1">
