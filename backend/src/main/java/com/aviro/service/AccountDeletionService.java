@@ -102,6 +102,7 @@ public class AccountDeletionService {
         user.setEmail("deleted-" + user.getId() + "-" + UUID.randomUUID() + "@deleted.aviro");
         user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
         user.setPhone(null);
+        user.setUpiId(null);
         user.setCollegeIdNumber(null);
         user.setCollegeIdPicUrl(null);
         user.setProfilePicUrl(null);

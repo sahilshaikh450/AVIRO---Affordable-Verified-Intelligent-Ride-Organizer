@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
+import { QRCodeSVG } from 'qrcode.react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
-export default function PaymentChoiceModal({ booking, isDriver = false, onClose, onPaid }) {
+const isPhone = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+function PaymentChoiceContent({ booking, isDriver = false, onClose, onPaid }) {
   const [method, setMethod]         = useState(null);
   const [txnRef, setTxnRef]         = useState('');
   const [confirming, setConfirming] = useState(false);
@@ -11,8 +15,12 @@ export default function PaymentChoiceModal({ booking, isDriver = false, onClose,
   const amount     = booking?.totalAmount || 0;
   const driverName = booking?.driver?.fullName || 'Driver';
   const riderName  = booking?.rider?.fullName || 'Rider';
-  const note       = `AVIRO-${booking?.id}`;
-  const upiLink    = `upi://pay?pa=aviro@upi&pn=${encodeURIComponent(driverName)}&am=${amount}&cu=INR&tn=${encodeURIComponent(note)}`;
+  const driverUpi  = booking?.driverUpiId;
+  const note       = `AVIRO ride ${booking?.id}`;
+  // Standard UPI link: GPay, PhonePe, Paytm and BHIM all read it, and the QR code holds the same link
+  const upiLink    = driverUpi
+    ? `upi://pay?pa=${encodeURIComponent(driverUpi)}&pn=${encodeURIComponent(driverName)}&am=${Number(amount).toFixed(2)}&cu=INR&tn=${encodeURIComponent(note)}`
+    : null;
 
   // ── DRIVER VIEW: Confirm cash received ──────────────────────────
   if (isDriver) {
@@ -31,7 +39,7 @@ export default function PaymentChoiceModal({ booking, isDriver = false, onClose,
 
     return (
       <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
-        <div className="bg-aviro-card border border-aviro-border rounded-2xl w-full max-w-md shadow-2xl animate-fade-up">
+        <div className="bg-aviro-card border border-aviro-border rounded-2xl w-full max-w-md shadow-2xl animate-fade-up max-h-[92vh] overflow-y-auto">
           <div className="p-5 border-b border-aviro-border">
             <h2 className="font-display font-bold text-xl">💵 Cash Payment</h2>
             <p className="text-aviro-muted text-sm mt-1">
@@ -61,7 +69,16 @@ export default function PaymentChoiceModal({ booking, isDriver = false, onClose,
   // ── RIDER VIEW: Choose payment method ───────────────────────────
   const handleUpiPay = () => {
     window.location.href = upiLink;
-    setTimeout(() => setUpiOpened(true), 2000);
+    setTimeout(() => setUpiOpened(true), 1500);
+  };
+
+  const copyUpi = async () => {
+    try {
+      await navigator.clipboard.writeText(driverUpi);
+      toast.success('UPI ID copied');
+    } catch {
+      toast.error('Could not copy. Select the UPI ID and copy it.');
+    }
   };
 
   const handleConfirm = async () => {
@@ -69,7 +86,7 @@ export default function PaymentChoiceModal({ booking, isDriver = false, onClose,
     try {
       const ref = method === 'CASH'
         ? `CASH-${Date.now()}`
-        : txnRef.trim() || `UPI-${Date.now()}`;
+        : `UPI-${txnRef.trim() || Date.now()}`;
 
       await api.patch(`/bookings/${booking.id}/payment`, {
         paymentReference: ref,
@@ -92,7 +109,7 @@ export default function PaymentChoiceModal({ booking, isDriver = false, onClose,
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
-      <div className="bg-aviro-card border border-aviro-border rounded-2xl w-full max-w-md shadow-2xl animate-fade-up">
+      <div className="bg-aviro-card border border-aviro-border rounded-2xl w-full max-w-md shadow-2xl animate-fade-up max-h-[92vh] overflow-y-auto">
 
         <div className="p-5 border-b border-aviro-border">
           <h2 className="font-display font-bold text-xl">💰 Payment</h2>
@@ -108,13 +125,16 @@ export default function PaymentChoiceModal({ booking, isDriver = false, onClose,
             <>
               <p className="text-sm font-medium text-white">Choose payment method:</p>
               <div className="grid grid-cols-2 gap-3">
-                <button onClick={() => setMethod('UPI')}
-                  className="flex flex-col items-center gap-3 p-5 rounded-2xl border-2 border-aviro-border hover:border-aviro-green hover:bg-aviro-green/5 transition-all">
+                <button onClick={() => setMethod('UPI')} disabled={!driverUpi}
+                  className="flex flex-col items-center gap-3 p-5 rounded-2xl border-2 border-aviro-border hover:border-aviro-green hover:bg-aviro-green/5 transition-all
+                    disabled:opacity-50 disabled:hover:border-aviro-border disabled:hover:bg-transparent">
                   <span className="text-4xl">📱</span>
                   <div className="text-center">
                     <p className="font-bold text-sm">UPI</p>
                     <p className="text-xs text-aviro-muted">GPay / PhonePe / Paytm</p>
-                    <p className="text-xs text-aviro-green mt-1">Instant confirm ✅</p>
+                    {driverUpi
+                      ? <p className="text-xs text-aviro-green mt-1">Pay to driver's UPI ✅</p>
+                      : <p className="text-xs text-yellow-400 mt-1">Driver hasn't added UPI</p>}
                   </div>
                 </button>
                 <button onClick={() => setMethod('CASH')}
@@ -131,38 +151,53 @@ export default function PaymentChoiceModal({ booking, isDriver = false, onClose,
           )}
 
           {/* UPI Flow */}
-          {method === 'UPI' && (
+          {method === 'UPI' && driverUpi && (
             <div className="space-y-3">
-              <div className="flex items-center gap-2 bg-aviro-green/10 border border-aviro-green/20 rounded-xl px-4 py-3">
-                <span className="text-xl">📱</span>
-                <div>
-                  <p className="text-sm font-semibold text-aviro-green">UPI Payment</p>
-                  <p className="text-xs text-aviro-muted">Amount: ₹{amount} to {driverName}</p>
+              {/* Where the money goes */}
+              <div className="bg-aviro-card2 border border-aviro-border rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs text-aviro-muted">Paying {driverName}</p>
+                    <p className="font-mono text-sm font-semibold break-all" data-testid="driver-upi">{driverUpi}</p>
+                  </div>
+                  <button onClick={copyUpi} className="text-xs text-aviro-orange border border-aviro-orange/40 px-3 py-1.5 rounded-lg flex-shrink-0">
+                    Copy
+                  </button>
+                </div>
+                <div className="flex items-center justify-between border-t border-aviro-border pt-3">
+                  <span className="text-xs text-aviro-muted">Amount</span>
+                  <span className="text-xl font-bold text-aviro-green">₹{amount}</span>
                 </div>
               </div>
 
-              {!upiOpened ? (
+              {isPhone() ? (
                 <button onClick={handleUpiPay}
-                  className="w-full bg-gradient-to-r from-aviro-green to-emerald-500 text-white font-bold py-3 rounded-xl text-sm hover:opacity-90 flex items-center justify-center gap-2">
-                  💳 Open UPI App & Pay ₹{amount}
+                  className="w-full bg-gradient-to-r from-aviro-green to-emerald-500 text-white font-bold py-3 rounded-xl text-sm hover:opacity-90">
+                  📱 Open UPI app & pay ₹{amount}
                 </button>
-              ) : (
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Enter Transaction ID (optional):</p>
-                  <input value={txnRef} onChange={e => setTxnRef(e.target.value)}
-                    placeholder="UPI Transaction ID"
-                    className="input-field text-sm"/>
-                  <button onClick={handleConfirm} disabled={confirming}
-                    className="w-full bg-aviro-green text-white font-bold py-3 rounded-xl text-sm disabled:opacity-50">
-                    {confirming ? 'Confirming...' : '✅ Yes, Payment Done!'}
-                  </button>
-                  <button onClick={() => { setUpiOpened(false); window.location.href = upiLink; }}
-                    className="w-full text-xs text-aviro-orange hover:underline py-1">
-                    Open UPI app again
-                  </button>
+              ) : null}
+
+              {/* Scan from another phone, or when the app doesn't open */}
+              <div className="flex flex-col items-center gap-2 py-1">
+                <div className="bg-white p-3 rounded-xl" data-testid="upi-qr">
+                  <QRCodeSVG value={upiLink} size={isPhone() ? 132 : 176} level="M" />
                 </div>
-              )}
-              <button onClick={() => setMethod(null)} className="w-full text-xs text-aviro-muted py-1">← Change method</button>
+                <p className="text-xs text-aviro-muted text-center">
+                  {isPhone() ? "App didn't open? Copy the UPI ID or scan this QR from any UPI app." : 'Scan with GPay, PhonePe, Paytm or any UPI app'}
+                </p>
+              </div>
+
+              {/* Confirm after paying */}
+              <div className="space-y-2 border-t border-aviro-border pt-3">
+                <input value={txnRef} onChange={e => setTxnRef(e.target.value.replace(/\s/g, ''))}
+                  placeholder="UPI transaction ID / UTR (optional)" className="input-field text-sm" />
+                <button onClick={handleConfirm} disabled={confirming}
+                  className={`w-full font-bold py-3 rounded-xl text-sm disabled:opacity-50 ${upiOpened || !isPhone()
+                    ? 'bg-aviro-green text-white' : 'bg-aviro-card2 border border-aviro-green/40 text-aviro-green'}`}>
+                  {confirming ? 'Confirming…' : `✅ I've paid ₹${amount}`}
+                </button>
+              </div>
+              <button onClick={() => { setMethod(null); setUpiOpened(false); }} className="w-full text-xs text-aviro-muted py-1">← Change method</button>
             </div>
           )}
 
@@ -196,4 +231,8 @@ export default function PaymentChoiceModal({ booking, isDriver = false, onClose,
       </div>
     </div>
   );
+}
+// Rendered on <body>: the pages animate with transforms, which would trap a fixed overlay inside them
+export default function PaymentChoiceModal(props) {
+  return createPortal(<PaymentChoiceContent {...props} />, document.body);
 }

@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
@@ -28,6 +29,8 @@ public class UserServiceImpl implements UserService {
     private final VehicleRepository vehicleRepository;
     private final RideRepository rideRepository;
     private final BookingRepository bookingRepository;
+
+    private static final Pattern UPI_ID = Pattern.compile("^[a-z0-9._-]{2,64}@[a-z][a-z0-9]{1,30}$");
 
     @Override
     public ApiResponse<UserResponse> getProfile(String email) {
@@ -41,6 +44,7 @@ public class UserServiceImpl implements UserService {
         User user = getUser(email);
         if (request.getFullName() != null) user.setFullName(request.getFullName());
         if (request.getPhone() != null) user.setPhone(request.getPhone());
+        if (request.getUpiId() != null) user.setUpiId(normalizeUpiId(request.getUpiId()));
         if (request.getLocality() != null) user.setLocality(request.getLocality());
         if (request.getHomeLat() != null) user.setHomeLat(request.getHomeLat());
         if (request.getHomeLng() != null) user.setHomeLng(request.getHomeLng());
@@ -124,6 +128,16 @@ public class UserServiceImpl implements UserService {
         return ApiResponse.success(stats);
     }
 
+    // Blank clears it; otherwise it must look like name@bank
+    private static String normalizeUpiId(String raw) {
+        String upi = raw.trim().toLowerCase();
+        if (upi.isEmpty()) return null;
+        if (!UPI_ID.matcher(upi).matches()) {
+            throw new AviroException("Enter a valid UPI ID, like yourname@okaxis");
+        }
+        return upi;
+    }
+
     private UserResponse toResponse(User user) {
         VehicleResponse vehicleResponse = vehicleRepository.findByUserId(user.getId())
                 .map(this::toVehicleResponse).orElse(null);
@@ -132,6 +146,7 @@ public class UserServiceImpl implements UserService {
                 .fullName(user.getFullName())
                 .email(user.getEmail())
                 .phone(user.getPhone())
+                .upiId(user.getUpiId())
                 .gender(user.getGender())
                 .role(user.getRole())
                 .collegeName(user.getCollegeName())

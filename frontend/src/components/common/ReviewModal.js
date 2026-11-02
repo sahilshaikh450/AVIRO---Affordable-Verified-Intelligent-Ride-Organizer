@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
-export default function ReviewModal({ booking, revieweeId, revieweeName, revieweeGender, onClose, onSubmitted }) {
+function ReviewModalContent({ booking, revieweeId, revieweeName, revieweeGender, onClose, onSubmitted }) {
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState('');
@@ -103,4 +104,8 @@ export default function ReviewModal({ booking, revieweeId, revieweeName, reviewe
       </div>
     </div>
   );
+}
+// Rendered on <body>, so a transformed page can't trap the fixed overlay
+export default function ReviewModal(props) {
+  return createPortal(<ReviewModalContent {...props} />, document.body);
 }

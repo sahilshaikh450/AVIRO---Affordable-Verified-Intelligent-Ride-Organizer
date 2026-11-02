@@ -5,6 +5,7 @@ import { fetchProfile } from '../store/authSlice';
 import { GenderBadge } from '../components/common/UIComponents';
 import ReviewsSection from '../components/common/ReviewsSection';
 import CollegeIdUpload from '../components/common/CollegeIdUpload';
+import UpiIdCard from '../components/common/UpiIdCard';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 
@@ -285,6 +286,9 @@ export default function ProfilePage() {
 
           {/* College ID */}
           <CollegeIdUpload user={user} onUploaded={() => dispatch(fetchProfile())} />
+
+          {/* UPI ID for drivers */}
+          {user?.role !== 'RIDER' && <UpiIdCard user={user} onSaved={() => dispatch(fetchProfile())} />}
 
           {/* ── Vehicle — hide/show ── */}
           <div className="card p-5">
