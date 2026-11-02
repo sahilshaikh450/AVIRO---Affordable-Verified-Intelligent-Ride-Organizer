@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import Logo, { Wordmark } from '../components/common/Logo';
+import { BrandLockup, Wordmark } from '../components/common/Logo';
 
 const STEPS = [
   { n: '1', title: 'Verify your college', desc: 'Sign up with your college email or ID card. Only verified students can ride.' },
@@ -26,13 +26,13 @@ export default function LandingPage() {
 
         <header className="sticky top-0 z-20 bg-aviro-dark/90 backdrop-blur px-5 h-14 flex items-center justify-between border-b border-aviro-border">
           <Wordmark height={26} />
-          <Link to="/login" className="text-sm font-semibold text-aviro-orange">Sign in</Link>
+          <Link to="/login" className="flex items-center text-sm font-semibold text-aviro-orange">Sign in</Link>
         </header>
 
         <main className="flex-1 px-5">
           {/* Hero */}
           <section className="pt-10 pb-8 text-center">
-            <Logo size={76} className="mx-auto mb-6 ring-1 ring-white/10" />
+            <BrandLockup height={44} className="mb-8" />
             <h1 className="font-display font-bold text-[2rem] leading-tight">
               Share rides with students from <span className="text-aviro-orange">your college</span>
             </h1>

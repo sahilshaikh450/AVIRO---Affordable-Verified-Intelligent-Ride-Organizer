@@ -27,3 +27,18 @@ export default function Logo({ size = 32, className = '' }) {
       className={`flex-shrink-0 ${className}`} style={{ borderRadius: size * 0.22 }} />
   );
 }
+
+// Wordmark with the brand line under it, drawn on the page itself (no tile), with a soft glow behind
+export function BrandLockup({ height = 52, className = '' }) {
+  return (
+    <div className={`relative inline-flex flex-col items-center ${className}`}>
+      <div aria-hidden="true" className="absolute -inset-x-10 -inset-y-6 rounded-full bg-aviro-orange/15 blur-3xl" />
+      <Wordmark height={height} className="relative" />
+      <div className="relative flex items-center gap-2 mt-3">
+        <span className="h-[3px] w-6 rounded-full bg-gradient-to-r from-[#FFA24C] to-[#FF4D1A]" />
+        <span className="text-[11px] font-semibold tracking-[0.3em] text-aviro-muted">PUNE · RIDE · SHARE</span>
+        <span className="h-[3px] w-6 rounded-full bg-gradient-to-r from-[#FF4D1A] to-[#FFA24C]" />
+      </div>
+    </div>
+  );
+}
