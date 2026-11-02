@@ -87,6 +87,9 @@ aviro:
     length: 6
 
   ride:
+    # Rides may leave only in this window (college hours, IST)
+    first-departure: ${AVIRO_FIRST_DEPARTURE:06:00}
+    last-departure: ${AVIRO_LAST_DEPARTURE:20:00}
     max-search-radius-km: 5.0
     route-match-threshold: 0.7
 

@@ -19,10 +19,12 @@ import com.aviro.service.NotificationService;
 import com.aviro.service.RideService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -38,6 +40,12 @@ public class RideServiceImpl implements RideService {
     private final BookingRepository bookingRepository;
     private final VehicleRepository vehicleRepository;
     private final NotificationService notificationService;
+
+    // College hours: departures outside this window are refused (app time zone, IST)
+    @Value("${aviro.ride.first-departure:06:00}")
+    private LocalTime firstDeparture;
+    @Value("${aviro.ride.last-departure:20:00}")
+    private LocalTime lastDeparture;
 
     // Status changes a driver may make; cancelled and completed rides are final
     private static final Map<RideStatus, Set<RideStatus>> ALLOWED_MOVES = Map.of(
@@ -78,6 +86,13 @@ public class RideServiceImpl implements RideService {
         if (request.getDepartureTime() == null ||
             request.getDepartureTime().isBefore(LocalDateTime.now().plusMinutes(15))) {
             throw new AviroException("⏰ Departure time must be at least 15 minutes from now.");
+        }
+
+        // 4b. Only during college hours: no rides leaving at night
+        LocalTime leaves = request.getDepartureTime().toLocalTime();
+        if (leaves.isBefore(firstDeparture) || leaves.isAfter(lastDeparture)) {
+            throw new AviroException("🌙 Rides can leave only between " + hhmm(firstDeparture) + " and "
+                    + hhmm(lastDeparture) + ". Please pick a time in college hours.");
         }
 
         // 5. Seats must be valid — ✅ field name: totalSeats
@@ -366,6 +381,11 @@ public class RideServiceImpl implements RideService {
 
     private static String squash(String s) {
         return s.toLowerCase().replaceAll("[^a-z0-9]", "");
+    }
+
+    // 6:00 -> "6:00 AM", 20:00 -> "8:00 PM"
+    private static String hhmm(LocalTime t) {
+        return t.format(java.time.format.DateTimeFormatter.ofPattern("h:mm a", java.util.Locale.ENGLISH));
     }
 
     private User getUser(String email) {
