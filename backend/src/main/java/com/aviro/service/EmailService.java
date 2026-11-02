@@ -1,6 +1,15 @@
 package com.aviro.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.mail.internet.MimeMessage;
+
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
+import java.util.List;
+import java.util.Map;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +20,7 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 @Service
 @RequiredArgsConstructor
@@ -19,8 +29,25 @@ public class EmailService {
 
     private final JavaMailSender mailSender;
 
-    @Value("${spring.mail.username}")
+    private final ObjectMapper objectMapper;
+    private final HttpClient httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
+
+    @Value("${spring.mail.username:}")
     private String mailUsername;
+
+    // Brevo (brevo.com) sends over HTTPS; empty key = use SMTP
+    @Value("${aviro.mail.brevo-api-key:}")
+    private String brevoApiKey;
+
+    @Value("${aviro.mail.brevo-api-url:https://api.brevo.com/v3/smtp/email}")
+    private String brevoApiUrl;
+
+    // Sender address (must be verified in Brevo); defaults to the SMTP username
+    @Value("${aviro.mail.from:}")
+    private String mailFrom;
+
+    @Value("${aviro.mail.from-name:AVIRO}")
+    private String mailFromName;
 
     // ============================================================
     // VERIFICATION OTP
@@ -68,6 +95,17 @@ public class EmailService {
         );
 
         sendEmail(to, subject, body);
+    }
+
+    // Sent right away (not in the background) so the app can tell the user if it failed
+    public boolean sendPasswordResetEmailNow(String to, String name, String otp) {
+        return sendEmail(to, "🔐 Your AVIRO password reset code", buildEmailHtml(
+                name,
+                "Reset your password",
+                "Your password reset code is:",
+                otp,
+                "It expires in 10 minutes. If you didn't ask to reset your password, you can ignore this email."
+        ));
     }
 
     // ============================================================
@@ -308,51 +346,66 @@ public class EmailService {
     // ============================================================
     // COMMON EMAIL METHOD
     // ============================================================
-    private void sendEmail(
+    private boolean sendEmail(
             String to,
             String subject,
             String htmlBody
     ) {
+        // Render's free plan blocks SMTP ports, so use Brevo's HTTPS API when a key is set
+        return StringUtils.hasText(brevoApiKey)
+                ? sendViaBrevo(to, subject, htmlBody)
+                : sendViaSmtp(to, subject, htmlBody);
+    }
 
+    private boolean sendViaBrevo(String to, String subject, String htmlBody) {
         try {
+            String json = objectMapper.writeValueAsString(Map.of(
+                    "sender", Map.of("name", mailFromName, "email", fromAddress()),
+                    "to", List.of(Map.of("email", to)),
+                    "subject", subject,
+                    "htmlContent", htmlBody
+            ));
+            HttpRequest request = HttpRequest.newBuilder(URI.create(brevoApiUrl))
+                    .timeout(Duration.ofSeconds(15))
+                    .header("api-key", brevoApiKey)
+                    .header("Content-Type", "application/json")
+                    .header("Accept", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(json))
+                    .build();
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() / 100 == 2) {
+                log.info("Email sent to {} via Brevo", to);
+                return true;
+            }
+            log.error("Brevo refused email to {}: {} {}", to, response.statusCode(), response.body());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("Email to {} interrupted", to);
+        } catch (Exception e) {
+            log.error("EMAIL FAILED TO: {}", to, e);
+        }
+        return false;
+    }
 
-            log.info(
-                    "Starting email send to: {}",
-                    to
-            );
-
-            MimeMessage message =
-                    mailSender.createMimeMessage();
-
-            MimeMessageHelper helper =
-                    new MimeMessageHelper(
-                            message,
-                            true,
-                            "UTF-8"
-                    );
-
+    private boolean sendViaSmtp(String to, String subject, String htmlBody) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(htmlBody, true);
-
-            // Use authenticated Gmail account
-            helper.setFrom(mailUsername);
-
+            helper.setFrom(fromAddress(), mailFromName);
             mailSender.send(message);
-
-            log.info(
-                    "EMAIL SENT SUCCESSFULLY TO: {}",
-                    to
-            );
-
+            log.info("Email sent to {} via SMTP", to);
+            return true;
         } catch (Exception e) {
-
-            log.error(
-                    "EMAIL FAILED TO: {}",
-                    to,
-                    e
-            );
+            log.error("EMAIL FAILED TO: {}", to, e);
+            return false;
         }
+    }
+
+    private String fromAddress() {
+        return StringUtils.hasText(mailFrom) ? mailFrom : mailUsername;
     }
 
     // ============================================================

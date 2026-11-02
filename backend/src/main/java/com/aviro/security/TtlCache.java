@@ -44,4 +44,8 @@ public class TtlCache<K, V> {
     public void invalidate(K key) {
         entries.remove(key);
     }
+
+    public void clear() {
+        entries.clear();
+    }
 }

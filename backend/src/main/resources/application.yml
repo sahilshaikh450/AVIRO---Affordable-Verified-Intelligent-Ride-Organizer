@@ -51,8 +51,8 @@ spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: ${MAIL_USERNAME}
-    password: ${MAIL_PASSWORD}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
     properties:
       mail:
         debug: false
@@ -77,6 +77,12 @@ sentry:
   send-default-pii: false
 
 aviro:
+  # Email: with a Brevo key, mail goes over HTTPS (Render's free plan blocks SMTP); without it, SMTP above
+  mail:
+    brevo-api-key: ${BREVO_API_KEY:}
+    from: ${MAIL_FROM:}
+    from-name: ${MAIL_FROM_NAME:AVIRO}
+
   # Phone push notifications: off unless both VAPID keys are set
   push:
     vapid-public-key: ${VAPID_PUBLIC_KEY:}
