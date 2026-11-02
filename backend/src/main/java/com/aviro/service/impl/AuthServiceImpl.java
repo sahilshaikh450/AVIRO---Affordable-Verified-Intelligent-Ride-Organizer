@@ -299,38 +299,22 @@ public class AuthServiceImpl implements AuthService {
             AuthRequest.ForgotPassword request) {
 
         String email = normalizeEmail(request.getEmail());
+        // Same answer whether or not the account exists, so emails can't be checked one by one
+        String sentMessage = "If an account exists for " + email + ", a 6-digit code has been sent to it.";
 
-        User user = userRepository.findByEmailNormalized(email)
-                .orElseThrow(() ->
-                        new AviroException(
-                                "No account found with this email"
-                        )
-                );
-
-        String otp = otpService.generateAndSaveOtp(
-                RESET_OTP_PREFIX + email
-        );
-
-        try {
-
-            emailService.sendPasswordResetEmail(
-                    email,
-                    user.getFullName(),
-                    otp
-            );
-
-        } catch (Exception e) {
-
-            log.warn(
-                    "Failed to send reset email: {}",
-                    e.getMessage()
-            );
+        User user = userRepository.findByEmailNormalized(email).orElse(null);
+        if (user == null) {
+            log.info("Password reset asked for unknown email");
+            return ApiResponse.success(sentMessage, null);
         }
 
-        return ApiResponse.success(
-                "Password reset OTP sent to your email",
-                null
-        );
+        String otp = otpService.generateAndSaveOtp(RESET_OTP_PREFIX + email);
+        if (!emailService.sendPasswordResetEmailNow(email, user.getFullName(), otp)) {
+            otpService.discard(RESET_OTP_PREFIX + email);
+            throw new AviroException("We couldn't send the email right now. Please try again in a few minutes.");
+        }
+
+        return ApiResponse.success(sentMessage, null);
     }
 
     // =========================================================
@@ -347,12 +331,12 @@ public class AuthServiceImpl implements AuthService {
 
         boolean valid = otpService.verifyOtp(
                 RESET_OTP_PREFIX + email,
-                request.getOtp()
+                request.getOtp() == null ? "" : request.getOtp().trim()
         );
 
         if (!valid) {
             throw new AviroException(
-                    "Invalid or expired OTP"
+                    "Wrong or expired code. After 5 wrong tries, ask for a new code."
             );
         }
 
@@ -370,8 +354,11 @@ public class AuthServiceImpl implements AuthService {
 
         userRepository.save(user);
 
+        // Anyone signed in with the old password is signed out
+        tokenBlacklistService.revokeAllFor(user.getEmail());
+
         return ApiResponse.success(
-                "Password reset successfully. Please login.",
+                "Password changed. Please sign in with your new password.",
                 null
         );
     }
