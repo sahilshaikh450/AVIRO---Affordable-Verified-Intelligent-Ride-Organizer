@@ -24,12 +24,16 @@ public class TokenBlacklistService {
     private static final String PREFIX = "aviro:revoked:";
 
     private final StringRedisTemplate redisTemplate;
+    // Tokens just checked and found valid: skips a Redis call on most requests.
+    // A logout on this server clears the entry at once, so it still takes effect immediately.
+    private final TtlCache<String, Boolean> knownGood = new TtlCache<>(60_000, 50_000);
     private final JwtTokenProvider jwtTokenProvider;
 
     public void revoke(String token) {
         if (token == null || token.isBlank() || !jwtTokenProvider.validateToken(token)) {
             return;
         }
+        knownGood.invalidate(hash(token));
         try {
             Date expiry = jwtTokenProvider.getExpirationFromToken(token);
             long ttlMs = expiry.getTime() - System.currentTimeMillis();
@@ -42,8 +46,12 @@ public class TokenBlacklistService {
     }
 
     public boolean isRevoked(String token) {
+        String key = hash(token);
+        if (knownGood.getIfPresent(key) != null) return false;
         try {
-            return Boolean.TRUE.equals(redisTemplate.hasKey(PREFIX + hash(token)));
+            boolean revoked = Boolean.TRUE.equals(redisTemplate.hasKey(PREFIX + key));
+            if (!revoked) knownGood.put(key, Boolean.TRUE);
+            return revoked;
         } catch (Exception e) {
             // Redis down: don't lock everyone out
             log.warn("Token blacklist check failed: {}", e.getMessage());

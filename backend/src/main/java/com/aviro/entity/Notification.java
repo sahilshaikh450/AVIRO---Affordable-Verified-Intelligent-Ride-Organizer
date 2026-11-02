@@ -5,7 +5,11 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "notifications")
+// The bell loads a user's newest notifications and counts the unread ones
+@Table(name = "notifications", indexes = {
+        @Index(name = "idx_notification_user_created", columnList = "user_id, created_at"),
+        @Index(name = "idx_notification_user_read", columnList = "user_id, is_read")
+})
 @Getter
 @Setter
 @NoArgsConstructor

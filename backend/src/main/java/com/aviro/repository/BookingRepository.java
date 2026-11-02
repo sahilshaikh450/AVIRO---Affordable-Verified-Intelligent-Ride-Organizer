@@ -16,6 +16,9 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     List<Booking> findByRiderId(Long riderId);
 
+    // A rider's own list: latest 100 is plenty and keeps the response small
+    List<Booking> findTop100ByRiderIdOrderByCreatedAtDesc(Long riderId);
+
     // Ids only, so callers outside a transaction (WebSocket handlers) don't hit lazy loading
     @Query("SELECT b.rider.id FROM Booking b WHERE b.id = :bookingId")
     Optional<Long> findRiderIdByBookingId(@Param("bookingId") Long bookingId);

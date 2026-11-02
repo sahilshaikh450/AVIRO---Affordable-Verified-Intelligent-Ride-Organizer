@@ -1,32 +1,47 @@
 
-import React from 'react';
+import React, { Suspense, lazy as reactLazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 
-import SafetyPage from './pages/SafetyPage';
 
 // Pages
-import SettingsPage from './pages/SettingsPage';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
-import VerifyOtpPage from './pages/VerifyOtpPage';
 import DashboardPage from './pages/DashboardPage';
-import SearchRidePage from './pages/SearchRidePage';
-import OfferRidePage from './pages/OfferRidePage';
-import MyRidesPage from './pages/MyRidesPage';
-import BookingsPage from './pages/BookingsPage';
-import ChatPage from './pages/ChatPage';
-import ProfilePage from './pages/ProfilePage';
-import RideDetailPage from './pages/RideDetailPage';
-import AdminPage from './pages/AdminPage';
 import NotFoundPage from './pages/NotFoundPage';
-import LiveTrackingPage from './pages/LiveTrackingPage';
-import LegalPage from './pages/LegalPage';
-import IntroPage from './pages/IntroPage';
 
 // Layout
 import AppLayout from './components/common/AppLayout';
+
+// Pages other than the first screens load on demand, so the app opens faster on mobile data.
+// After a new release the old page files are gone; reload once to pick up the new ones.
+const RELOAD_KEY = 'aviro_reloaded_for_update';
+const lazy = (load) => reactLazy(() => load().then((page) => {
+  sessionStorage.removeItem(RELOAD_KEY);
+  return page;
+}, (err) => {
+  if (!sessionStorage.getItem(RELOAD_KEY)) {
+    sessionStorage.setItem(RELOAD_KEY, '1');
+    window.location.reload();
+    return new Promise(() => {}); // keep the spinner until the reload happens
+  }
+  throw err;
+}));
+const SafetyPage = lazy(() => import('./pages/SafetyPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const VerifyOtpPage = lazy(() => import('./pages/VerifyOtpPage'));
+const SearchRidePage = lazy(() => import('./pages/SearchRidePage'));
+const OfferRidePage = lazy(() => import('./pages/OfferRidePage'));
+const MyRidesPage = lazy(() => import('./pages/MyRidesPage'));
+const BookingsPage = lazy(() => import('./pages/BookingsPage'));
+const ChatPage = lazy(() => import('./pages/ChatPage'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const RideDetailPage = lazy(() => import('./pages/RideDetailPage'));
+const AdminPage = lazy(() => import('./pages/AdminPage'));
+const LiveTrackingPage = lazy(() => import('./pages/LiveTrackingPage'));
+const LegalPage = lazy(() => import('./pages/LegalPage'));
+const IntroPage = lazy(() => import('./pages/IntroPage'));
 
 const isAuthenticated = (token) => {
   if (token) return true;
@@ -39,6 +54,13 @@ const isAuthenticated = (token) => {
     stored !== 'null'
   );
 };
+
+// Shown for the moment a page's code is downloading
+const PageLoading = () => (
+  <div className="min-h-screen bg-aviro-dark flex items-center justify-center">
+    <div className="w-8 h-8 border-2 border-aviro-orange/30 border-t-aviro-orange rounded-full animate-spin" />
+  </div>
+);
 
 const PrivateRoute = ({ children }) => {
   const { token } = useSelector((state) => state.auth);
@@ -66,6 +88,7 @@ const PublicRoute = ({ children }) => {
 export default function App() {
   return (
     <BrowserRouter>
+      <Suspense fallback={<PageLoading />}>
       <Routes>
 
         {/* =========================
@@ -302,6 +325,7 @@ export default function App() {
         />
 
       </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }
