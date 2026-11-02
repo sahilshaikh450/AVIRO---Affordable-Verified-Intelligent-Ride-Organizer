@@ -12,6 +12,7 @@ import com.aviro.repository.NotificationRepository;
 import com.aviro.repository.PushSubscriptionRepository;
 import com.aviro.repository.RideRepository;
 import com.aviro.repository.UserRepository;
+import com.aviro.security.AuthUserCache;
 import com.aviro.repository.VehicleRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -53,6 +54,7 @@ public class AccountDeletionService {
     private final PushSubscriptionRepository pushSubscriptionRepository;
     private final BookingService bookingService;
     private final PasswordEncoder passwordEncoder;
+    private final AuthUserCache authUserCache;
 
     @Transactional
     public ApiResponse<String> deleteAccount(String email, String password) {
@@ -99,6 +101,7 @@ public class AccountDeletionService {
 
         // Remove personal data; the freed email can be used to register again
         user.setFullName("Deleted User");
+        authUserCache.evict(user.getEmail()); // signed-out at once, not after the cache expires
         user.setEmail("deleted-" + user.getId() + "-" + UUID.randomUUID() + "@deleted.aviro");
         user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
         user.setPhone(null);

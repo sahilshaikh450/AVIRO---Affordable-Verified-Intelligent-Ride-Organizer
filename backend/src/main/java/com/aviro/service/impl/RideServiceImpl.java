@@ -41,6 +41,9 @@ public class RideServiceImpl implements RideService {
     private final VehicleRepository vehicleRepository;
     private final NotificationService notificationService;
 
+    // One screen of results; people narrow the search rather than scroll thousands
+    private static final int MAX_SEARCH_RESULTS = 50;
+
     // College hours: departures outside this window are refused (app time zone, IST)
     @Value("${aviro.ride.first-departure:06:00}")
     private LocalTime firstDeparture;
@@ -166,22 +169,17 @@ public class RideServiceImpl implements RideService {
         LocalDateTime to   = request.getDepartureTime() != null
             ? request.getDepartureTime().plusHours(2)  : LocalDateTime.now().plusDays(7);
 
-        List<Ride> rides = rideRepository.searchRides(
+        List<Ride> matched = rideRepository.searchRides(
             seatsNeeded,
             from,
             to,
             Boolean.TRUE.equals(request.getWomenOnly()),
-            request.getDriverGender()   // ✅ correct field: driverGender
+            request.getDriverGender() == null ? null : request.getDriverGender().name(),
+            request.getMaxPrice(),
+            squash(request.getFromLocation()),
+            squash(request.getToLocation()),
+            MAX_SEARCH_RESULTS
         );
-
-        List<Ride> matched = rides.stream()
-            // ✅ correct field: fromLocation / toLocation
-            .filter(r -> placeMatches(r.getFromLocation(), request.getFromLocation()))
-            .filter(r -> placeMatches(r.getToLocation(), request.getToLocation()))
-            // Price filter
-            .filter(r -> request.getMaxPrice() == null ||
-                r.getPricePerSeat() <= request.getMaxPrice())
-            .collect(Collectors.toList());
         List<RideResponse> result = toResponses(matched);
 
         return ApiResponse.success(result);
@@ -200,10 +198,9 @@ public class RideServiceImpl implements RideService {
     public ApiResponse<List<RideResponse>> getMyRides(String email) {
         User driver     = getUser(email);
         Vehicle vehicle = vehicleRepository.findByUserId(driver.getId()).orElse(null);
-        List<Ride> rides = rideRepository.findByDriverId(driver.getId());
+        List<Ride> rides = rideRepository.findTop100ByDriverIdOrderByDepartureTimeDesc(driver.getId());
         return ApiResponse.success(
             rides.stream()
-                .sorted((a, b) -> b.getDepartureTime().compareTo(a.getDepartureTime()))
                 .map(r -> toResponse(r, vehicle))
                 .collect(Collectors.toList())
         );
@@ -371,16 +368,9 @@ public class RideServiceImpl implements RideService {
                 .build();
     }
 
-    // "Karve Nagar" finds "Karvenagar" and "MIT College - Kothrud" finds "Kothrud": spaces and symbols are ignored
-    private static boolean placeMatches(String ridePlace, String query) {
-        if (query == null || query.isBlank()) return true;
-        if (ridePlace == null) return false;
-        String place = squash(ridePlace), q = squash(query);
-        return !q.isEmpty() && (place.contains(q) || q.contains(place));
-    }
-
+    // Search keys ignore case, spaces and symbols: "Karve Nagar" and "Karvenagar" both become "karvenagar"
     private static String squash(String s) {
-        return s.toLowerCase().replaceAll("[^a-z0-9]", "");
+        return s == null ? "" : s.toLowerCase().replaceAll("[^a-z0-9]", "");
     }
 
     // 6:00 -> "6:00 AM", 20:00 -> "8:00 PM"

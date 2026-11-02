@@ -12,7 +12,8 @@ import java.util.List;
 
 @Repository
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
-    List<Notification> findByUserIdOrderByCreatedAtDesc(Long userId);
+    // The bell shows the newest ones; older notifications stay stored but are not sent
+    List<Notification> findTop50ByUserIdOrderByCreatedAtDesc(Long userId);
 
     void deleteByUserId(Long userId);
     Long countByUserIdAndIsRead(Long userId, Boolean isRead);

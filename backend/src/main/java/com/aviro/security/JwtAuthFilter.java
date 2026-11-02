@@ -31,6 +31,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private final JwtTokenProvider jwtTokenProvider;
     private final UserDetailsService userDetailsService;
     private final TokenBlacklistService tokenBlacklistService;
+    private final AuthUserCache authUserCache;
 
     @Override
     protected void doFilterInternal(
@@ -77,7 +78,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
             if (SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails =
-                        userDetailsService.loadUserByUsername(email);
+                        authUserCache.get(email, userDetailsService::loadUserByUsername);
 
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(

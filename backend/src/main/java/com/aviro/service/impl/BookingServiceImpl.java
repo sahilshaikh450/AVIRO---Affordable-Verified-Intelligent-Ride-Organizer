@@ -148,7 +148,7 @@ public class BookingServiceImpl implements BookingService {
     @Override
     public ApiResponse<List<BookingResponse>> getMyBookings(String email) {
         User rider = getUser(email);
-        List<Booking> bookings = bookingRepository.findByRiderId(rider.getId());
+        List<Booking> bookings = bookingRepository.findTop100ByRiderIdOrderByCreatedAtDesc(rider.getId());
         return ApiResponse.success(toResponses(bookings));
     }
 
