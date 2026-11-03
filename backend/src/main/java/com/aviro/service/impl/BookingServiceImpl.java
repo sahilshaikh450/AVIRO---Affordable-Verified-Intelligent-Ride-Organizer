@@ -20,6 +20,7 @@ import com.aviro.repository.RideRepository;
 import com.aviro.repository.UserRepository;
 import com.aviro.repository.VehicleRepository;
 import com.aviro.service.BookingService;
+import com.aviro.service.DuesService;
 import com.aviro.service.EmailService;
 import com.aviro.service.NotificationService;
 import lombok.RequiredArgsConstructor;
@@ -47,6 +48,7 @@ public class BookingServiceImpl implements BookingService {
     private final UserRepository userRepository;
     private final EmailService emailService;
     private final NotificationService notificationService;
+    private final DuesService duesService;
 
     // Unpredictable ride OTPs (java.util.Random can be guessed from earlier values)
     private static final SecureRandom OTP_RANDOM = new SecureRandom();
@@ -197,6 +199,7 @@ public class BookingServiceImpl implements BookingService {
 
             booking.setStatus(BookingStatus.COMPLETED);
             booking.setTripStage(null);
+            booking.setPlatformFee(duesService.feeFor(booking.getSeatsBooked()));
             bookingRepository.save(booking);
 
             User driver = booking.getRide().getDriver();

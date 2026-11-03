@@ -75,6 +75,7 @@ function CollegeIdImage({ url, onExpand }) {
 export default function AdminPage() {
   const [pending, setPending]               = useState([]);
   const [pendingVehicles, setPendingVehicles] = useState([]);
+  const [duesPayments, setDuesPayments]       = useState([]);
   const [stats, setStats]                   = useState(null);
   const [loading, setLoading]               = useState(true);
   const [processingId, setProcessingId]     = useState(null);
@@ -87,14 +88,16 @@ export default function AdminPage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [pRes, sRes, vRes] = await Promise.all([
+      const [pRes, sRes, vRes, dRes] = await Promise.all([
         api.get('/admin/pending-verifications'),
         api.get('/admin/stats'),
         api.get('/admin/pending-vehicles'),
+        api.get('/admin/dues-payments'),
       ]);
       setPending(pRes.data.data || []);
       setStats(sRes.data.data);
       setPendingVehicles(vRes.data.data || []);
+      setDuesPayments(dRes.data.data || []);
     } catch (err) {
       if (err.response?.status === 403) setForbidden(true);
       else toast.error('Failed to load admin data');
@@ -139,6 +142,17 @@ export default function AdminPage() {
       toast.success('Vehicle rejected');
       loadData();
     } catch { toast.error('Failed to reject vehicle'); }
+    setProcessingId(null);
+  };
+
+  // Confirm only after the money shows up in the AVIRO UPI account
+  const handleDuesDecision = async (id, confirm) => {
+    setProcessingId(`dues-${id}`);
+    try {
+      await api.post(`/admin/dues-payments/${id}/${confirm ? 'confirm' : 'reject'}`);
+      toast.success(confirm ? 'Payment confirmed ✅' : 'Payment rejected');
+      loadData();
+    } catch (err) { toast.error(err.response?.data?.message || 'Failed'); }
     setProcessingId(null);
   };
 
@@ -216,7 +230,46 @@ export default function AdminPage() {
             <span className="ml-2 bg-white/20 text-xs px-1.5 py-0.5 rounded-full">{pendingVehicles.length}</span>
           )}
         </button>
+        <button onClick={() => setTab('dues')}
+          className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all
+            ${tab === 'dues' ? 'bg-aviro-orange text-white' : 'text-aviro-muted hover:text-white'}`}>
+          💳 Fees
+          {duesPayments.length > 0 && (
+            <span className="ml-2 bg-white/20 text-xs px-1.5 py-0.5 rounded-full">{duesPayments.length}</span>
+          )}
+        </button>
       </div>
+
+      {/* ── DRIVER FEE PAYMENTS TAB ── */}
+      {tab === 'dues' && (
+        <div>
+          <h2 className="font-bold text-lg mb-1">💳 Fee payments to check ({duesPayments.length})</h2>
+          <p className="text-xs text-aviro-muted mb-3">Confirm only after you see the money in your UPI app, matching the transaction ID.</p>
+          {duesPayments.length === 0 ? (
+            <div className="card p-8 text-center text-aviro-muted text-sm">
+              <div className="text-3xl mb-2">✅</div>No payments waiting.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {duesPayments.map(p => (
+                <div key={p.id} className="card p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold">₹{p.amount} <span className="text-xs text-aviro-muted font-normal">· {new Date(p.createdAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</span></p>
+                    <p className="text-sm">{p.driverName} <span className="text-xs text-aviro-muted">{p.driverEmail}</span></p>
+                    <p className="text-xs text-aviro-muted">UTR: <span className="font-mono text-white">{p.reference || '—'}</span></p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => handleDuesDecision(p.id, true)} disabled={processingId === `dues-${p.id}`}
+                      className="bg-aviro-green text-white font-bold px-4 py-2 rounded-xl text-sm disabled:opacity-50">✅ Received</button>
+                    <button onClick={() => handleDuesDecision(p.id, false)} disabled={processingId === `dues-${p.id}`}
+                      className="bg-red-500/10 text-red-400 border border-red-500/30 font-bold px-4 py-2 rounded-xl text-sm disabled:opacity-50">Not found</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── COLLEGE ID TAB ── */}
       {tab === 'college' && (

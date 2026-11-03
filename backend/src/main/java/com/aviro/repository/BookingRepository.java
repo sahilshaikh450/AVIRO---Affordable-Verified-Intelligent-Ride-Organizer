@@ -40,6 +40,9 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     @Query("SELECT COUNT(b) FROM Booking b WHERE b.rider.id = :riderId AND b.status = 'COMPLETED'")
     Long countCompletedByRider(@Param("riderId") Long riderId);
 
+    @Query("SELECT COALESCE(SUM(b.platformFee), 0) FROM Booking b WHERE b.ride.driver.id = :driverId AND b.status = 'COMPLETED'")
+    Double totalPlatformFeesForDriver(@Param("driverId") Long driverId);
+
     @Query("SELECT SUM(b.totalAmount) FROM Booking b WHERE b.rider.id = :riderId AND b.paymentStatus = 'COMPLETED'")
     Double totalSpentByRider(@Param("riderId") Long riderId);
 

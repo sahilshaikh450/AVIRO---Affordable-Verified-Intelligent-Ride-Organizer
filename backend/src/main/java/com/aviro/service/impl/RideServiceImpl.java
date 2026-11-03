@@ -15,6 +15,7 @@ import com.aviro.repository.BookingRepository;
 import com.aviro.repository.RideRepository;
 import com.aviro.repository.UserRepository;
 import com.aviro.repository.VehicleRepository;
+import com.aviro.service.DuesService;
 import com.aviro.service.NotificationService;
 import com.aviro.service.RideService;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +41,7 @@ public class RideServiceImpl implements RideService {
     private final BookingRepository bookingRepository;
     private final VehicleRepository vehicleRepository;
     private final NotificationService notificationService;
+    private final DuesService duesService;
 
     // One screen of results; people narrow the search rather than scroll thousands
     private static final int MAX_SEARCH_RESULTS = 50;
@@ -89,6 +91,9 @@ public class RideServiceImpl implements RideService {
                 "🚗 Vehicle not verified yet! An admin is checking your photos."
             );
         }
+
+        // 3b. Unpaid AVIRO fees must stay under the limit
+        duesService.requireCanPost(driver.getId());
 
         // 4. Departure time at least 15 mins in future
         if (request.getDepartureTime() == null ||
