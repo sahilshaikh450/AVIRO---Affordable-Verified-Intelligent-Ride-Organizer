@@ -6,6 +6,8 @@ import { createRide } from '../store/rideSlice';
 import LocationInput from '../components/common/LocationInput'; 
 import toast from 'react-hot-toast'; 
 import { geocodePlace, PUNE_CENTRE } from '../utils/geo';
+import api from '../services/api';
+import { formatWhen } from '../components/common/RideAlerts';
  
 // College hours, same as the server: departures from 06:00 up to 20:00
 const inCollegeHours = (value) => {
@@ -31,6 +33,19 @@ export default function OfferRidePage() {
   const [toPoint, setToPoint]     = React.useState(null);
   const pickFrom = (name, point = null) => { setFromLocation(name); setFromPoint(point); };
   const pickTo   = (name, point = null) => { setToLocation(name); setToPoint(point); };
+
+  // Students waiting for rides (ride alerts), so drivers can offer what's needed
+  const [requests, setRequests] = React.useState([]);
+  React.useEffect(() => {
+    api.get('/ride-requests/open').then(res => setRequests(res.data.data || [])).catch(() => {});
+  }, []);
+  const offerFor = (r) => {
+    pickFrom(r.fromLocation);
+    pickTo(r.toLocation);
+    setValue('departureTime', String(r.desiredTime).slice(0, 16), { shouldValidate: true });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    toast.success('Route and time filled in. Add the price and post!');
+  };
   const [locating, setLocating]         = React.useState(false); 
  
   const onSubmit = async (data) => { 
@@ -91,6 +106,25 @@ export default function OfferRidePage() {
         </p> 
       </div> 
  
+      {requests.length > 0 && (
+        <div className="card p-4 space-y-2" data-testid="students-need-rides">
+          <p className="text-sm font-semibold">🙋 Students need rides</p>
+          <p className="text-xs text-aviro-muted">Offer one of these and the students are notified right away.</p>
+          {requests.slice(0, 5).map(r => (
+            <div key={r.id} className="flex items-center gap-3 border-t border-aviro-border pt-2">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm truncate">{r.fromLocation} → {r.toLocation}</p>
+                <p className="text-xs text-aviro-muted">{formatWhen(r.desiredTime)} · {r.riderFirstName} · {r.seatsNeeded} seat{r.seatsNeeded > 1 ? 's' : ''}</p>
+              </div>
+              <button type="button" onClick={() => offerFor(r)}
+                className="text-xs font-semibold text-aviro-orange border border-aviro-orange/40 px-3 py-1.5 rounded-lg flex-shrink-0">
+                Offer this
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Without a UPI ID riders can only pay cash */}
       {user && !user.upiId && (
         <Link to="/profile" className="card p-4 flex items-center gap-3 border-yellow-500/30 bg-yellow-500/5 hover:border-yellow-500/60">
