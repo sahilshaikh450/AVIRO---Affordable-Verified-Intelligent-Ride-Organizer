@@ -78,10 +78,15 @@ public class RideServiceImpl implements RideService {
             );
         }
 
-        // 3. Vehicle must be verified
+        // 3. Vehicle must be verified, from its number plate and driving licence photos
+        if (!vehicle.hasBothPhotos()) {
+            throw new AviroException(
+                "🚗 Upload your number plate and driving licence photos in Profile to start offering rides."
+            );
+        }
         if (!Boolean.TRUE.equals(vehicle.getIsVerified())) {
             throw new AviroException(
-                "🚗 Vehicle not verified yet! Pending admin verification."
+                "🚗 Vehicle not verified yet! An admin is checking your photos."
             );
         }
 

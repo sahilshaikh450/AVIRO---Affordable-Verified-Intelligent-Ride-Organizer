@@ -8,6 +8,7 @@ import com.aviro.dto.response.UserResponse;
 import com.aviro.dto.response.VehicleResponse;
 import com.aviro.entity.User;
 import com.aviro.enums.Role;
+import com.aviro.exception.AviroException;
 import com.aviro.repository.UserRepository;
 import com.aviro.service.AccountDeletionService;
 import com.aviro.service.CollegeIdVerificationService;
@@ -45,6 +46,28 @@ public class UserController {
     private static final long MAX_ID_PHOTO_BYTES = 5L * 1024 * 1024;
     private static final Map<String, String> IMAGE_TYPES = Map.of(
             "image/jpeg", ".jpg", "image/jpg", ".jpg", "image/png", ".png", "image/webp", ".webp");
+
+    // Checks and saves an uploaded photo as "<prefix>_<userId>_<random>.<ext>"; returns the file name
+    private static String saveImage(MultipartFile file, String prefix, Long userId) throws IOException {
+        if (file.isEmpty()) {
+            throw new AviroException("No file uploaded");
+        }
+        // Photos only, so nothing else (pages, scripts) can be stored and served back
+        String type = file.getContentType() == null ? "" : file.getContentType().toLowerCase();
+        String extension = IMAGE_TYPES.get(type);
+        if (extension == null) {
+            throw new AviroException("Please upload a photo (JPG, PNG or WEBP)");
+        }
+        if (file.getSize() > MAX_ID_PHOTO_BYTES) {
+            throw new AviroException("Photo is too large. Please use one under 5 MB.");
+        }
+        Path uploadPath = Paths.get(UPLOAD_DIR);
+        Files.createDirectories(uploadPath);
+        // Extension from the checked type, not the user's file name
+        String filename = prefix + "_" + userId + "_" + UUID.randomUUID() + extension;
+        Files.copy(file.getInputStream(), uploadPath.resolve(filename));
+        return filename;
+    }
 
     // Removes a photo saved earlier ("/api/users/college-id-image/<file>"); missing files are fine
     private static void deleteStoredImage(String url) {
@@ -122,32 +145,9 @@ public class UserController {
         User user = userRepository.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        if (file.isEmpty()) {
-            return ResponseEntity.badRequest().body(ApiResponse.error("No file uploaded"));
-        }
-        // Photos only, so nothing else (pages, scripts) can be stored and served back
-        String type = file.getContentType() == null ? "" : file.getContentType().toLowerCase();
-        String extension = IMAGE_TYPES.get(type);
-        if (extension == null) {
-            return ResponseEntity.badRequest().body(ApiResponse.error("Please upload a photo (JPG, PNG or WEBP)"));
-        }
-        if (file.getSize() > MAX_ID_PHOTO_BYTES) {
-            return ResponseEntity.badRequest().body(ApiResponse.error("Photo is too large. Please use one under 5 MB."));
-        }
-
         try {
-            // ✅ Create upload directory if not exists
-            Path uploadPath = Paths.get(UPLOAD_DIR);
-            if (!Files.exists(uploadPath)) {
-                Files.createDirectories(uploadPath);
-            }
-
-            // ✅ Generate unique filename (extension from the checked type, not the user's file name)
-            String filename = "college_id_" + user.getId() + "_" + UUID.randomUUID() + extension;
+            String filename = saveImage(file, "college_id", user.getId());
             String previous = user.getCollegeIdPicUrl();
-
-            Path filePath = uploadPath.resolve(filename);
-            Files.copy(file.getInputStream(), filePath);
 
             log.info("College ID uploaded for user {}: {} ({} bytes)",
                 user.getId(), filename, file.getSize());
@@ -178,8 +178,31 @@ public class UserController {
         }
     }
 
-    // ── SERVE COLLEGE ID IMAGE ────────────────────────────────────
-    @GetMapping("/college-id-image/{filename}")
+    // ── VEHICLE PHOTOS: number plate and driving licence ──────────
+    @PostMapping("/vehicle/photo/{kind}")
+    public ResponseEntity<ApiResponse<VehicleResponse>> uploadVehiclePhoto(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable String kind,
+            @RequestParam("file") MultipartFile file) throws IOException {
+        if (!"plate".equals(kind) && !"licence".equals(kind)) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Unknown photo type"));
+        }
+        User user = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new AviroException("User not found"));
+        String filename = saveImage(file, kind, user.getId());
+        try {
+            UserService.VehiclePhotoResult result =
+                    userService.setVehiclePhoto(user.getEmail(), kind, "/api/users/vehicle-photo/" + filename);
+            deleteStoredImage(result.previousUrl());
+            return ResponseEntity.ok(ApiResponse.success("Photo uploaded. An admin will review it soon.", result.vehicle()));
+        } catch (RuntimeException e) {
+            deleteStoredImage(filename); // nothing to attach it to (e.g. no vehicle yet)
+            throw e;
+        }
+    }
+
+    // ── SERVE PRIVATE PHOTOS (college ID, plate, licence) ─────────
+    @GetMapping({"/college-id-image/{filename}", "/vehicle-photo/{filename}"})
     public ResponseEntity<org.springframework.core.io.Resource> getCollegeIdImage(
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable String filename) {
@@ -188,10 +211,10 @@ public class UserController {
             if (filename.contains("..") || filename.contains("/")) {
                 return ResponseEntity.badRequest().build();
             }
-            // An ID card is private: only its owner and admins may see it
+            // ID cards, plates and licences are private: only their owner and admins may see them
             User viewer = userRepository.findByEmail(userDetails.getUsername()).orElse(null);
             boolean isAdmin = viewer != null && viewer.getRole() == Role.ADMIN;
-            boolean isOwner = viewer != null && filename.startsWith("college_id_" + viewer.getId() + "_");
+            boolean isOwner = viewer != null && filename.matches("(college_id|plate|licence)_" + viewer.getId() + "_[^/]+");
             if (!isAdmin && !isOwner) {
                 return ResponseEntity.status(403).build();
             }
