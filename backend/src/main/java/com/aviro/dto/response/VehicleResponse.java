@@ -16,4 +16,7 @@ public class VehicleResponse {
     private Integer year;
     private Integer totalSeats;
     private Boolean isVerified;
+    // Own vehicle only: the uploaded photos (served to the owner and admins)
+    private String platePhotoUrl;
+    private String licencePhotoUrl;
 }

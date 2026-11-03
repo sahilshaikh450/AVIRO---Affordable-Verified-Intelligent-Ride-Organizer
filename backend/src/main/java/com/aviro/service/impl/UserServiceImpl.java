@@ -30,6 +30,10 @@ public class UserServiceImpl implements UserService {
     private final RideRepository rideRepository;
     private final BookingRepository bookingRepository;
 
+    // Indian plates after removing spaces/dashes: MH12AB1234, DL3CAF1234, MH121234 or BH series 22BH1234AA
+    private static final Pattern INDIAN_PLATE =
+            Pattern.compile("^([A-Z]{2}\\d{1,2}[A-Z]{0,3}\\d{1,4}|\\d{2}BH\\d{4}[A-Z]{1,2})$");
+
     private static final Pattern UPI_ID = Pattern.compile("^[a-z0-9._-]{2,64}@[a-z][a-z0-9]{1,30}$");
 
     @Override
@@ -62,6 +66,9 @@ public class UserServiceImpl implements UserService {
         User user = getUser(email);
         // "mh 12-ab 1234" and "MH12AB1234" are the same plate
         String registration = request.getRegistrationNumber().toUpperCase().replaceAll("[\\s-]", "");
+        if (!INDIAN_PLATE.matcher(registration).matches()) {
+            throw new AviroException("Enter a valid number plate, like MH12AB1234 or 22BH1234AA");
+        }
         // A user has one vehicle: adding again replaces its details
         Vehicle vehicle = vehicleRepository.findByUserId(user.getId())
                 .orElseGet(() -> Vehicle.builder().user(user).build());
@@ -70,6 +77,8 @@ public class UserServiceImpl implements UserService {
             throw new AviroException("Vehicle with this registration number already exists");
         }
         boolean updating = vehicle.getId() != null;
+        // A new vehicle, or a different plate or type, has to be checked by an admin again
+        boolean needsReview = !updating || !sameAsBefore || vehicle.getVehicleType() != request.getVehicleType();
         vehicle.setVehicleType(request.getVehicleType());
         vehicle.setRegistrationNumber(registration);
         vehicle.setMake(request.getMake());
@@ -77,9 +86,30 @@ public class UserServiceImpl implements UserService {
         vehicle.setColor(request.getColor());
         vehicle.setYear(request.getYear());
         vehicle.setTotalSeats(request.getTotalSeats());
-        vehicle.setIsVerified(true); // ✅ Auto verify on add
+        if (needsReview) vehicle.setIsVerified(false);
         vehicleRepository.save(vehicle);
-        return ApiResponse.success(updating ? "Vehicle updated!" : "Vehicle added & verified successfully!", toVehicleResponse(vehicle));
+        return ApiResponse.success(needsReview
+                ? "Vehicle saved. Upload the number plate and driving licence photos for verification."
+                : "Vehicle updated!", toVehicleResponse(vehicle));
+    }
+
+    @Override
+    @Transactional
+    public VehiclePhotoResult setVehiclePhoto(String email, String kind, String url) {
+        User user = getUser(email);
+        Vehicle vehicle = vehicleRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new AviroException("Add your vehicle details first"));
+        String previous;
+        if ("plate".equals(kind)) {
+            previous = vehicle.getPlatePhotoUrl();
+            vehicle.setPlatePhotoUrl(url);
+        } else {
+            previous = vehicle.getLicencePhotoUrl();
+            vehicle.setLicencePhotoUrl(url);
+        }
+        vehicle.setIsVerified(false); // a new photo needs a new look
+        vehicleRepository.save(vehicle);
+        return new VehiclePhotoResult(toVehicleResponse(vehicle), previous);
     }
 
     @Override
@@ -182,6 +212,8 @@ public class UserServiceImpl implements UserService {
                 .year(v.getYear())
                 .totalSeats(v.getTotalSeats())
                 .isVerified(v.getIsVerified())
+                .platePhotoUrl(v.getPlatePhotoUrl())
+                .licencePhotoUrl(v.getLicencePhotoUrl())
                 .build();
     }
 

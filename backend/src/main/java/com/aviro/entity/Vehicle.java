@@ -42,4 +42,12 @@ public class Vehicle extends BaseEntity {
 
     private String rcDocUrl;
     private String insuranceDocUrl;
+
+    // Photos an admin checks before the vehicle is verified
+    private String platePhotoUrl;
+    private String licencePhotoUrl;
+
+    public boolean hasBothPhotos() {
+        return platePhotoUrl != null && licencePhotoUrl != null;
+    }
 }
