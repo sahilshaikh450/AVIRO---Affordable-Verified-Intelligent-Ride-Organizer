@@ -16,6 +16,7 @@ const ICONS = {
   PAYMENT_RECEIVED:  '💰',
   CHAT_MESSAGE:      '💬',
   SOS_ALERT:         '🆘',
+  VERIFICATION:      '🎓',
 };
 
 // Notifications whose referenceId is a booking: tapping opens that trip
@@ -113,6 +114,7 @@ export default function NotificationBell() {
     setIsOpen(false);
     if (TRIP_TYPES.includes(n.type) && /^\d+$/.test(String(n.referenceId))) navigate(`/tracking/${n.referenceId}`);
     else if (n.type === 'CHAT_MESSAGE') navigate('/chat');
+    else if (n.type === 'VERIFICATION') navigate('/profile');
   };
 
   const toggle = () => {
