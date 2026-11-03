@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { createRide } from '../store/rideSlice'; 
 import LocationInput from '../components/common/LocationInput'; 
 import toast from 'react-hot-toast'; 
+import api from '../services/api';
 import { geocodePlace, PUNE_CENTRE } from '../utils/geo';
  
 // College hours, same as the server: departures from 06:00 up to 20:00
@@ -23,6 +24,13 @@ export default function OfferRidePage() {
   const { loading } = useSelector(s => s.rides); 
   const womenOnly   = watch('womenOnly'); 
   const isRecurring = watch('isRecurring'); 
+  const price       = Number(watch('pricePerSeat')) || 0;
+
+  // AVIRO fee per seat and whether unpaid fees block posting
+  const [dues, setDues] = React.useState(null);
+  React.useEffect(() => {
+    api.get('/dues/my').then(res => setDues(res.data.data)).catch(() => {});
+  }, []);
  
   const [fromLocation, setFromLocation] = React.useState(''); 
   const [toLocation, setToLocation]     = React.useState(''); 
@@ -91,6 +99,18 @@ export default function OfferRidePage() {
         </p> 
       </div> 
  
+      {/* Unpaid AVIRO fees above the limit: posting is refused, so say so up front */}
+      {dues?.blocked && (
+        <Link to="/profile" className="card p-4 flex items-center gap-3 border-red-500/30 bg-red-500/5">
+          <span className="text-2xl">💳</span>
+          <span className="flex-1 text-sm">
+            <span className="font-semibold block">Pay your AVIRO fees of ₹{dues.due} to post rides</span>
+            <span className="text-xs text-aviro-muted">Open Profile → AVIRO fees.</span>
+          </span>
+          <span className="text-aviro-orange text-sm">→</span>
+        </Link>
+      )}
+
       {/* Without a UPI ID riders can only pay cash */}
       {user && !user.upiId && (
         <Link to="/profile" className="card p-4 flex items-center gap-3 border-yellow-500/30 bg-yellow-500/5 hover:border-yellow-500/60">
@@ -211,6 +231,11 @@ export default function OfferRidePage() {
                   {errors.pricePerSeat.message}
                 </p>
               )} 
+              {dues && price > 0 && !errors.pricePerSeat && (
+                <p className="text-aviro-muted text-xs mt-1">
+                  You get ₹{Math.max(0, price - dues.feePerSeat)} per seat (₹{dues.feePerSeat} AVIRO fee)
+                </p>
+              )}
             </div> 
           </div> 
  

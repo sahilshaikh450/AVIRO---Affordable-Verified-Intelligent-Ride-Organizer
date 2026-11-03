@@ -7,6 +7,7 @@ import ReviewsSection from '../components/common/ReviewsSection';
 import CollegeIdUpload from '../components/common/CollegeIdUpload';
 import UpiIdCard from '../components/common/UpiIdCard';
 import VehicleDocs from '../components/common/VehicleDocs';
+import DuesCard from '../components/common/DuesCard';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 
@@ -290,6 +291,9 @@ export default function ProfilePage() {
 
           {/* UPI ID for drivers */}
           {user?.role !== 'RIDER' && <UpiIdCard user={user} onSaved={() => dispatch(fetchProfile())} />}
+
+          {/* AVIRO fees owed from completed rides (drivers) */}
+          {user?.role !== 'RIDER' && <DuesCard />}
 
           {/* ── Vehicle — hide/show ── */}
           <div className="card p-5">

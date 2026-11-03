@@ -98,6 +98,13 @@ aviro:
     expiry-minutes: 10
     length: 6
 
+  # AVIRO's fee per booked seat; drivers pay it to the UPI ID below and an admin confirms
+  fees:
+    per-seat: ${AVIRO_FEE_PER_SEAT:3}
+    dues-limit: ${AVIRO_DUES_LIMIT:50}
+    upi-id: ${AVIRO_FEE_UPI_ID:}
+    upi-name: ${AVIRO_FEE_UPI_NAME:AVIRO}
+
   ride:
     # Rides may leave only in this window (college hours, IST)
     first-departure: ${AVIRO_FIRST_DEPARTURE:06:00}

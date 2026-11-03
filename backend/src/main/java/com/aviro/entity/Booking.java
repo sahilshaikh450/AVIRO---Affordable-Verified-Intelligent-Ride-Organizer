@@ -53,6 +53,9 @@ private String rideOtp;
     // ✅ NEW: UPI / CASH
     private String paymentMethod;
 
+    // AVIRO's fee for this booking, set when the trip is completed (null on older bookings)
+    private Double platformFee;
+
     private Double riderRating;
     private Double driverRating;
     private String riderReview;

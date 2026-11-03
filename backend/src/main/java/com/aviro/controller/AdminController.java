@@ -5,6 +5,7 @@ import com.aviro.entity.User;
 import com.aviro.entity.Vehicle;
 import com.aviro.repository.UserRepository;
 import com.aviro.repository.VehicleRepository;
+import com.aviro.service.DuesService;
 import com.aviro.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +24,7 @@ public class AdminController {
     private final UserRepository userRepository;
     private final VehicleRepository vehicleRepository;
     private final NotificationService notificationService;
+    private final DuesService duesService;
 
     // The user hears about the admin's decision instead of having to check their profile
     private void tell(Long userId, String title, String message) {
@@ -127,6 +129,24 @@ public class AdminController {
         vehicleRepository.save(vehicle);
         tell(vehicle.getUser().getId(), "Vehicle not approved", "We couldn't verify vehicle " + vehicle.getRegistrationNumber() + ". Please check the details in your profile.");
         return ResponseEntity.ok(ApiResponse.success("Vehicle rejected.", null));
+    }
+
+    // ── Driver dues payments waiting for a check ──────────────────
+    @GetMapping("/dues-payments")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> pendingDuesPayments() {
+        return ResponseEntity.ok(ApiResponse.success(duesService.pendingForAdmin()));
+    }
+
+    @PostMapping("/dues-payments/{id}/confirm")
+    public ResponseEntity<ApiResponse<String>> confirmDuesPayment(@PathVariable Long id) {
+        duesService.decide(id, true);
+        return ResponseEntity.ok(ApiResponse.success("Payment confirmed", null));
+    }
+
+    @PostMapping("/dues-payments/{id}/reject")
+    public ResponseEntity<ApiResponse<String>> rejectDuesPayment(@PathVariable Long id) {
+        duesService.decide(id, false);
+        return ResponseEntity.ok(ApiResponse.success("Payment rejected", null));
     }
 
     // ── Stats ─────────────────────────────────────────────────────

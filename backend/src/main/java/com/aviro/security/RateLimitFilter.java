@@ -41,7 +41,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
             Map.entry("/bookings",                      new Rule(30, Duration.ofHours(1))),
             Map.entry("/chat/send",                     new Rule(60, Duration.ofMinutes(1))),
             Map.entry("/reviews",                       new Rule(20, Duration.ofHours(1))),
-            Map.entry("/users/upload-college-id",       new Rule(10, Duration.ofHours(1)))
+            Map.entry("/users/upload-college-id",       new Rule(10, Duration.ofHours(1))),
+            Map.entry("/dues/payments",                 new Rule(10, Duration.ofHours(1)))
     );
 
     // Every /safety/... call (SOS, share link, report) sends emails, so it shares one budget
