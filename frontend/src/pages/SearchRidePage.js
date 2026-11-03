@@ -6,6 +6,7 @@ import useBookRide from '../hooks/useBookRide';
 import { RideCard, EmptyState, Spinner } from '../components/common/UIComponents';
 import LocationInput from '../components/common/LocationInput';
 import toast from 'react-hot-toast';
+import { RideAlertOffer, MyRideAlerts } from '../components/common/RideAlerts';
 
 export default function SearchRidePage() {
   const dispatch = useDispatch();
@@ -21,6 +22,9 @@ export default function SearchRidePage() {
     driverGender: '',
   });
   const [searched, setSearched] = useState(false);
+  const [alertsVersion, setAlertsVersion] = useState(0);
+  // The route of the last search, so the alert matches what was searched (not what's being typed now)
+  const [lastSearch, setLastSearch] = useState(null);
 
   const handleSearch = async (e) => {
     e.preventDefault();
@@ -29,6 +33,7 @@ export default function SearchRidePage() {
       return;
     }
     setSearched(true);
+    setLastSearch({ fromLocation: form.fromLocation, toLocation: form.toLocation, seatsNeeded: form.seatsNeeded });
     dispatch(searchRides({
       fromLocation: form.fromLocation,
       toLocation:   form.toLocation,
@@ -46,6 +51,8 @@ export default function SearchRidePage() {
         <h1 className="font-display font-bold text-2xl mb-1">Find a Ride 🔍</h1>
         <p className="text-aviro-muted text-sm">Search rides on your college route</p>
       </div>
+
+      <MyRideAlerts refreshKey={alertsVersion} />
 
       {/* Search Form */}
       <form onSubmit={handleSearch} className="card p-5 space-y-4">
@@ -165,12 +172,10 @@ export default function SearchRidePage() {
                 />
               ))}
             </div>
+          ) : lastSearch ? (
+            <RideAlertOffer {...lastSearch} onCreated={() => setAlertsVersion(v => v + 1)} />
           ) : (
-            <EmptyState
-              icon="🔍"
-              title="No rides found"
-              subtitle={`No rides from ${form.fromLocation} to ${form.toLocation}. Try different locations or offer the first ride!`}
-            />
+            <EmptyState icon="🔍" title="No rides found" subtitle="Try different locations." />
           )}
         </div>
       )}
