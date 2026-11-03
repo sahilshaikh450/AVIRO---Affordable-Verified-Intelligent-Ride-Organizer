@@ -11,6 +11,11 @@ public interface UserService {
     ApiResponse<UserResponse> updateProfile(String email, ProfileUpdateRequest request);
     ApiResponse<VehicleResponse> addVehicle(String email, VehicleRequest request);
     ApiResponse<VehicleResponse> getVehicle(String email);
+
+    // kind is "plate" or "licence"; returns the vehicle and the photo it replaced (to delete)
+    VehiclePhotoResult setVehiclePhoto(String email, String kind, String url);
+
+    record VehiclePhotoResult(VehicleResponse vehicle, String previousUrl) {}
     ApiResponse<String> addRideBuddy(String email, Long buddyId);
     ApiResponse<String> removeRideBuddy(String email, Long buddyId);
     ApiResponse<Object> getDashboardStats(String email);

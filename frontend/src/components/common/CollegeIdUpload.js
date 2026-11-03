@@ -1,20 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
-
-// The ID photo is private, so it's fetched with the login token (a plain <img src> has none)
-function IdPhoto({ url, className, alt }) {
-  const [src, setSrc] = useState(null);
-  useEffect(() => {
-    let objectUrl;
-    let cancelled = false;
-    api.get(url.replace(/^\/api/, ''), { responseType: 'blob' })
-      .then(res => { if (!cancelled) { objectUrl = URL.createObjectURL(res.data); setSrc(objectUrl); } })
-      .catch(() => {});
-    return () => { cancelled = true; if (objectUrl) URL.revokeObjectURL(objectUrl); };
-  }, [url]);
-  return src ? <img src={src} alt={alt} className={className} /> : null;
-}
+import PrivatePhoto from './PrivatePhoto';
 
 export default function CollegeIdUpload({ user, onUploaded }) {
   const [uploading, setUploading] = useState(false);
@@ -85,7 +72,7 @@ export default function CollegeIdUpload({ user, onUploaded }) {
         </div>
         {user?.collegeIdPicUrl && (
           <div className="mt-3">
-            <IdPhoto url={user.collegeIdPicUrl} alt="College ID"
+            <PrivatePhoto url={user.collegeIdPicUrl} alt="College ID"
               className="w-full max-h-40 object-contain rounded-xl border border-aviro-border bg-aviro-card2 mt-2" />
           </div>
         )}
@@ -116,7 +103,7 @@ export default function CollegeIdUpload({ user, onUploaded }) {
               <p className="text-xs text-aviro-muted">Admin will review your ID shortly</p>
             </div>
           </div>
-          <IdPhoto url={user.collegeIdPicUrl} alt="Uploaded College ID"
+          <PrivatePhoto url={user.collegeIdPicUrl} alt="Uploaded College ID"
             className="w-full max-h-48 object-contain rounded-xl border border-aviro-border bg-aviro-card2" />
         </div>
       )}

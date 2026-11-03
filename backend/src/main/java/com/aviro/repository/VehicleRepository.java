@@ -16,7 +16,8 @@ public interface VehicleRepository extends JpaRepository<Vehicle, Long> {
 
     List<Vehicle> findByUserIdIn(Collection<Long> userIds);
 
-    @Query("SELECT v FROM Vehicle v JOIN FETCH v.user WHERE v.isVerified = false")
+    // Ready for review: not verified yet and both photos uploaded
+    @Query("SELECT v FROM Vehicle v JOIN FETCH v.user WHERE v.isVerified = false AND v.platePhotoUrl IS NOT NULL AND v.licencePhotoUrl IS NOT NULL")
     List<Vehicle> findPendingWithOwner();
 
     long countByIsVerifiedTrue();

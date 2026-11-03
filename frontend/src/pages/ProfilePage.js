@@ -6,6 +6,7 @@ import { GenderBadge } from '../components/common/UIComponents';
 import ReviewsSection from '../components/common/ReviewsSection';
 import CollegeIdUpload from '../components/common/CollegeIdUpload';
 import UpiIdCard from '../components/common/UpiIdCard';
+import VehicleDocs from '../components/common/VehicleDocs';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 
@@ -117,7 +118,7 @@ export default function ProfilePage() {
   const { register, handleSubmit, reset } = useForm();
   const [saving, setSaving]           = useState(false);
   const [addingVehicle, setAddingVehicle] = useState(false);
-  const { register: vReg, handleSubmit: vSubmit } = useForm();
+  const { register: vReg, handleSubmit: vSubmit, formState: { errors: vErrors } } = useForm();
   const [activeTab, setActiveTab]     = useState('profile');
 
   // ── Hide/Show toggles ──
@@ -148,8 +149,8 @@ export default function ProfilePage() {
 
   const onAddVehicle = async (data) => {
     try {
-      await api.post('/users/vehicle', { ...data, totalSeats: parseInt(data.totalSeats) });
-      toast.success('Vehicle added!');
+      const res = await api.post('/users/vehicle', { ...data, totalSeats: parseInt(data.totalSeats) });
+      toast.success(res.data?.message || 'Vehicle saved!');
       setAddingVehicle(false);
       dispatch(fetchProfile());
     } catch (err) { toast.error(err.response?.data?.message || 'Failed'); }
@@ -313,11 +314,16 @@ export default function ProfilePage() {
                 <div>
                   <p className="font-semibold">{user.vehicle.make} {user.vehicle.model} · {user.vehicle.color}</p>
                   <p className="text-xs text-aviro-muted">{user.vehicle.registrationNumber} · {user.vehicle.totalSeats} seats</p>
-                  {user.vehicle.isVerified
+                  {user.vehicle.isVerified && user.vehicle.platePhotoUrl && user.vehicle.licencePhotoUrl
                     ? <span className="text-xs text-green-400 font-semibold">✓ Verified</span>
-                    : <span className="text-xs text-yellow-400">⏳ Pending verification</span>}
+                    : <span className="text-xs text-yellow-400">⏳ Not verified yet</span>}
                 </div>
               </div>
+            )}
+
+            {/* Photos for verification: always visible, since rides can't be offered without them */}
+            {user?.vehicle && !addingVehicle && (
+              <VehicleDocs vehicle={user.vehicle} onChanged={() => dispatch(fetchProfile())} />
             )}
 
             {!user?.vehicle && !addingVehicle && (
@@ -339,7 +345,8 @@ export default function ProfilePage() {
                   </div>
                   <div>
                     <label className="text-xs text-aviro-muted font-medium block mb-1">Registration No.</label>
-                    <input {...vReg('registrationNumber', { required: true })} placeholder="MH12AB1234" className="input-field" />
+                    <input {...vReg('registrationNumber', { required: true, validate: v => /^([A-Z]{2}\d{1,2}[A-Z]{0,3}\d{1,4}|\d{2}BH\d{4}[A-Z]{1,2})$/.test(v.toUpperCase().replace(/[\s-]/g, '')) || 'Like MH12AB1234' })} placeholder="MH12AB1234" autoCapitalize="characters" className="input-field" />
+                    {vErrors?.registrationNumber && <p className="text-red-400 text-xs mt-1">{vErrors.registrationNumber.message}</p>}
                   </div>
                   <div>
                     <label className="text-xs text-aviro-muted font-medium block mb-1">Make</label>
