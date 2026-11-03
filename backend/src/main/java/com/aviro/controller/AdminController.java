@@ -90,6 +90,8 @@ public class AdminController {
             m.put("model", v.getModel());
             m.put("color", v.getColor());
             m.put("totalSeats", v.getTotalSeats());
+            m.put("platePhotoUrl", v.getPlatePhotoUrl());
+            m.put("licencePhotoUrl", v.getLicencePhotoUrl());
             // Owner info
             if (v.getUser() != null) {
                 m.put("ownerName", v.getUser().getFullName());
@@ -107,6 +109,9 @@ public class AdminController {
     public ResponseEntity<ApiResponse<String>> approveVehicle(@PathVariable Long vehicleId) {
         Vehicle vehicle = vehicleRepository.findById(vehicleId)
                 .orElseThrow(() -> new RuntimeException("Vehicle not found"));
+        if (!vehicle.hasBothPhotos()) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("The plate and licence photos are not uploaded yet."));
+        }
         vehicle.setIsVerified(true);
         vehicleRepository.save(vehicle);
         tell(vehicle.getUser().getId(), "Vehicle approved ✅", "Your vehicle " + vehicle.getRegistrationNumber() + " is verified. You can offer rides now.");

@@ -295,7 +295,7 @@ export default function AdminPage() {
                          v.vehicleType === 'AUTO'   ? '🛺' : '🚐'}
                       </div>
                       <div>
-                        <p className="font-bold text-sm">{v.make} {v.model} · {v.color}</p>
+                        <p className="font-bold text-sm">{[[v.make, v.model].filter(Boolean).join(' '), v.color].filter(Boolean).join(' · ') || v.vehicleType}</p>
                         <p className="text-xs text-aviro-muted">Reg: {v.registrationNumber}</p>
                         <p className="text-xs text-aviro-muted">{v.totalSeats} seats · {v.vehicleType}</p>
                       </div>
@@ -309,6 +309,16 @@ export default function AdminPage() {
                     <p className="text-xs text-aviro-muted mb-1">Owner</p>
                     <p className="text-sm font-semibold">{v.ownerName}</p>
                     <p className="text-xs text-aviro-muted">{v.ownerEmail} · {v.collegeName}</p>
+                  </div>
+
+                  {/* Compare the plate in the photo with the number above, and the licence name with the owner */}
+                  <div className="grid grid-cols-2 gap-3 mb-4">
+                    {[['Number plate', v.platePhotoUrl], ['Driving licence', v.licencePhotoUrl]].map(([label, url]) => (
+                      <div key={label}>
+                        <p className="text-xs text-aviro-muted mb-1">{label}</p>
+                        {url ? <CollegeIdImage url={url} onExpand={setExpandedImg} /> : <p className="text-xs text-red-400">Not uploaded</p>}
+                      </div>
+                    ))}
                   </div>
 
                   <div className="flex gap-3">
