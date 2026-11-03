@@ -68,6 +68,7 @@ public class NotificationService {
             return "/tracking/" + referenceId;
         }
         if ("CHAT_MESSAGE".equals(type)) return "/chat";
+        if ("VERIFICATION".equals(type)) return "/profile";
         return "/dashboard";
     }
 
