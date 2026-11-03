@@ -1,8 +1,20 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
-const BASE_URL = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:8080';
+// The ID photo is private, so it's fetched with the login token (a plain <img src> has none)
+function IdPhoto({ url, className, alt }) {
+  const [src, setSrc] = useState(null);
+  useEffect(() => {
+    let objectUrl;
+    let cancelled = false;
+    api.get(url.replace(/^\/api/, ''), { responseType: 'blob' })
+      .then(res => { if (!cancelled) { objectUrl = URL.createObjectURL(res.data); setSrc(objectUrl); } })
+      .catch(() => {});
+    return () => { cancelled = true; if (objectUrl) URL.revokeObjectURL(objectUrl); };
+  }, [url]);
+  return src ? <img src={src} alt={alt} className={className} /> : null;
+}
 
 export default function CollegeIdUpload({ user, onUploaded }) {
   const [uploading, setUploading] = useState(false);
@@ -14,8 +26,8 @@ export default function CollegeIdUpload({ user, onUploaded }) {
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) { toast.error('Please select an image file'); return; }
-    if (file.size > 10 * 1024 * 1024) { toast.error('Image must be under 10MB'); return; }
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { toast.error('Please choose a JPG, PNG or WEBP photo'); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error('Photo must be under 5 MB'); return; }
     setPreview(URL.createObjectURL(file));
     setResult(null);
     handleUpload(file);
@@ -73,14 +85,8 @@ export default function CollegeIdUpload({ user, onUploaded }) {
         </div>
         {user?.collegeIdPicUrl && (
           <div className="mt-3">
-            <button onClick={() => {}} className="text-xs text-aviro-muted">
-              <img
-                src={`${BASE_URL}${user.collegeIdPicUrl}`}
-                alt="College ID"
-                className="w-full max-h-40 object-contain rounded-xl border border-aviro-border bg-aviro-card2 mt-2"
-                onError={(e) => { e.target.style.display = 'none'; }}
-              />
-            </button>
+            <IdPhoto url={user.collegeIdPicUrl} alt="College ID"
+              className="w-full max-h-40 object-contain rounded-xl border border-aviro-border bg-aviro-card2 mt-2" />
           </div>
         )}
       </div>
@@ -110,19 +116,13 @@ export default function CollegeIdUpload({ user, onUploaded }) {
               <p className="text-xs text-aviro-muted">Admin will review your ID shortly</p>
             </div>
           </div>
-          <img
-            src={`${BASE_URL}${user.collegeIdPicUrl}`}
-            alt="Uploaded College ID"
-            className="w-full max-h-48 object-contain rounded-xl border border-aviro-border bg-aviro-card2"
-            onError={(e) => {
-              e.target.style.display = 'none';
-            }}
-          />
+          <IdPhoto url={user.collegeIdPicUrl} alt="Uploaded College ID"
+            className="w-full max-h-48 object-contain rounded-xl border border-aviro-border bg-aviro-card2" />
         </div>
       )}
 
-      {/* Upload area */}
-      <div
+      {/* Upload area (once a photo is waiting for review, the button below replaces it) */}
+      {!(user?.collegeIdPicUrl && !preview && !verifying) && <div
         onClick={() => !uploading && fileRef.current?.click()}
         className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all
           ${uploading
@@ -149,14 +149,14 @@ export default function CollegeIdUpload({ user, onUploaded }) {
           <>
             <div className="text-4xl mb-3">📷</div>
             <p className="text-sm text-white font-semibold">Tap to upload College ID</p>
-            <p className="text-xs text-aviro-muted mt-1">JPG, PNG up to 10MB</p>
+            <p className="text-xs text-aviro-muted mt-1">JPG, PNG or WEBP, up to 5 MB</p>
             <div className="mt-3 flex items-center justify-center gap-2 bg-aviro-orange/10 border border-aviro-orange/20 rounded-lg px-3 py-2">
               <span>🤖</span>
               <p className="text-xs text-aviro-orange font-medium">AI auto-verifies instantly</p>
             </div>
           </>
         )}
-      </div>
+      </div>}
 
       {/* Result message */}
       {result && !verifying && (
@@ -179,7 +179,7 @@ export default function CollegeIdUpload({ user, onUploaded }) {
       <input
         ref={fileRef}
         type="file"
-        accept="image/*"
+        accept="image/jpeg,image/png,image/webp"
         capture="environment"
         onChange={handleFileSelect}
         className="hidden"

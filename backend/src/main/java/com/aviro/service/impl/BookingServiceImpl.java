@@ -28,11 +28,11 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -47,6 +47,9 @@ public class BookingServiceImpl implements BookingService {
     private final UserRepository userRepository;
     private final EmailService emailService;
     private final NotificationService notificationService;
+
+    // Unpredictable ride OTPs (java.util.Random can be guessed from earlier values)
+    private static final SecureRandom OTP_RANDOM = new SecureRandom();
 
     private static final Set<BookingStatus> ACTIVE_STATUSES = EnumSet.of(BookingStatus.REQUESTED, BookingStatus.CONFIRMED);
 
@@ -503,7 +506,7 @@ public class BookingServiceImpl implements BookingService {
         // Agar OTP pehle generate hua hai toh wohi return karo
         String otp = booking.getRideOtp();
         if (otp == null || otp.isBlank()) {
-            otp = String.format("%04d", new Random().nextInt(10000));
+            otp = String.format("%04d", OTP_RANDOM.nextInt(10000));
             booking.setRideOtp(otp);
             bookingRepository.save(booking);
         }

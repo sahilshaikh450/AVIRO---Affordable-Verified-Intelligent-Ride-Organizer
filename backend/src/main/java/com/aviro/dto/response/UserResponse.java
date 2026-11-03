@@ -22,6 +22,8 @@ public class UserResponse {
     private String yearOfStudy;
     private String locality;
     private String profilePicUrl;
+    // Own profile only: link to the uploaded college ID photo (served to its owner and admins)
+    private String collegeIdPicUrl;
     private Boolean isVerified;
     private Boolean isCollegeVerified;
     private Double rating;
