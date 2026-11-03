@@ -48,6 +48,10 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private static final String SAFETY_PREFIX = "/safety/";
     private static final Rule SAFETY_RULE = new Rule(10, Duration.ofMinutes(10));
 
+    // The trip OTP has only 4 digits, so a driver gets a few tries per booking, not 10,000
+    private static final String RIDE_OTP_SUFFIX = "/verify-ride-otp";
+    private static final Rule RIDE_OTP_RULE = new Rule(5, Duration.ofMinutes(10));
+
     private final StringRedisTemplate redisTemplate;
 
     @Override
@@ -57,7 +61,9 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     private Rule ruleFor(String path) {
         Rule rule = RULES.get(path);
-        return rule != null ? rule : path.startsWith(SAFETY_PREFIX) ? SAFETY_RULE : null;
+        if (rule != null) return rule;
+        if (path.startsWith(SAFETY_PREFIX)) return SAFETY_RULE;
+        return path.startsWith("/bookings/") && path.endsWith(RIDE_OTP_SUFFIX) ? RIDE_OTP_RULE : null;
     }
 
     @Override

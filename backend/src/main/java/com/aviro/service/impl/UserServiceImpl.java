@@ -60,22 +60,26 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public ApiResponse<VehicleResponse> addVehicle(String email, VehicleRequest request) {
         User user = getUser(email);
-        if (vehicleRepository.existsByRegistrationNumber(request.getRegistrationNumber())) {
+        // "mh 12-ab 1234" and "MH12AB1234" are the same plate
+        String registration = request.getRegistrationNumber().toUpperCase().replaceAll("[\\s-]", "");
+        // A user has one vehicle: adding again replaces its details
+        Vehicle vehicle = vehicleRepository.findByUserId(user.getId())
+                .orElseGet(() -> Vehicle.builder().user(user).build());
+        boolean sameAsBefore = registration.equals(vehicle.getRegistrationNumber());
+        if (!sameAsBefore && vehicleRepository.existsByRegistrationNumber(registration)) {
             throw new AviroException("Vehicle with this registration number already exists");
         }
-        Vehicle vehicle = Vehicle.builder()
-                .user(user)
-                .vehicleType(request.getVehicleType())
-                .registrationNumber(request.getRegistrationNumber().toUpperCase())
-                .make(request.getMake())
-                .model(request.getModel())
-                .color(request.getColor())
-                .year(request.getYear())
-                .totalSeats(request.getTotalSeats())
-                .isVerified(true) // ✅ Auto verify on add
-                .build();
+        boolean updating = vehicle.getId() != null;
+        vehicle.setVehicleType(request.getVehicleType());
+        vehicle.setRegistrationNumber(registration);
+        vehicle.setMake(request.getMake());
+        vehicle.setModel(request.getModel());
+        vehicle.setColor(request.getColor());
+        vehicle.setYear(request.getYear());
+        vehicle.setTotalSeats(request.getTotalSeats());
+        vehicle.setIsVerified(true); // ✅ Auto verify on add
         vehicleRepository.save(vehicle);
-        return ApiResponse.success("Vehicle added & verified successfully!", toVehicleResponse(vehicle));
+        return ApiResponse.success(updating ? "Vehicle updated!" : "Vehicle added & verified successfully!", toVehicleResponse(vehicle));
     }
 
     @Override
@@ -154,6 +158,7 @@ public class UserServiceImpl implements UserService {
                 .yearOfStudy(user.getYearOfStudy())
                 .locality(user.getLocality())
                 .profilePicUrl(user.getProfilePicUrl())
+                .collegeIdPicUrl(user.getCollegeIdPicUrl())
                 .isVerified(user.getIsVerified())
                 .isCollegeVerified(user.getIsCollegeVerified())
                 .rating(user.getRating())
