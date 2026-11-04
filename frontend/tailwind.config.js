@@ -22,7 +22,9 @@ module.exports = {
         display: ["Syne", "sans-serif"],
       },
       animation: {
-        "fade-up":   "fadeUp 0.5s ease both",
+        // "backwards", not "both": once it ends no transform stays on the page, which would
+        // otherwise trap position:fixed popups (SOS, dialogs) inside the page instead of the screen
+        "fade-up":   "fadeUp 0.5s ease backwards",
         "pulse-dot": "pulseDot 1.5s ease infinite",
         "float":     "float 3s ease-in-out infinite",
         "slide-in":  "slideIn 0.3s ease both",

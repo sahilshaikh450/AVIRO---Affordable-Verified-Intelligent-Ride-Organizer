@@ -2,7 +2,11 @@ package com.aviro.controller;
 
 import com.aviro.dto.response.ApiResponse;
 import com.aviro.entity.User;
+import com.aviro.entity.SafetyReport;
 import com.aviro.entity.Vehicle;
+import com.aviro.enums.SafetyReportStatus;
+import com.aviro.exception.AviroException;
+import com.aviro.repository.SafetyReportRepository;
 import com.aviro.repository.UserRepository;
 import com.aviro.repository.VehicleRepository;
 import com.aviro.service.NotificationService;
@@ -23,6 +27,7 @@ public class AdminController {
     private final UserRepository userRepository;
     private final VehicleRepository vehicleRepository;
     private final NotificationService notificationService;
+    private final SafetyReportRepository safetyReportRepository;
 
     // The user hears about the admin's decision instead of having to check their profile
     // section: "id" or "vehicle", the Profile tab the notification opens
@@ -150,5 +155,41 @@ public class AdminController {
         stats.put("pendingVehicles", pendingVehicles);
 
         return ResponseEntity.ok(ApiResponse.success(stats));
+    }
+
+    // ── Safety reports from riders and drivers ──
+    @GetMapping("/safety-reports")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> safetyReports() {
+        List<Map<String, Object>> list = safetyReportRepository.findAllForAdmin().stream().map(r -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", r.getId());
+            m.put("status", r.getStatus());
+            m.put("reason", r.getReason());
+            m.put("details", r.getDetails());
+            m.put("createdAt", r.getCreatedAt());
+            m.put("resolvedAt", r.getResolvedAt());
+            m.put("bookingId", r.getBooking().getId());
+            m.put("route", r.getBooking().getRide().getFromLocation() + " → " + r.getBooking().getRide().getToLocation());
+            m.put("departureTime", r.getBooking().getRide().getDepartureTime());
+            m.put("reporterName", r.getReporter().getFullName());
+            m.put("reporterEmail", r.getReporter().getEmail());
+            m.put("reportedName", r.getReportedUser().getFullName());
+            m.put("reportedEmail", r.getReportedUser().getEmail());
+            m.put("reportedPhone", r.getReportedUser().getPhone());
+            return m;
+        }).collect(Collectors.toList());
+        return ResponseEntity.ok(ApiResponse.success(list));
+    }
+
+    @PostMapping("/safety-reports/{id}/resolve")
+    public ResponseEntity<ApiResponse<String>> resolveSafetyReport(@PathVariable Long id) {
+        SafetyReport report = safetyReportRepository.findById(id)
+                .orElseThrow(() -> new AviroException("Report not found"));
+        if (report.getStatus() != SafetyReportStatus.RESOLVED) {
+            report.setStatus(SafetyReportStatus.RESOLVED);
+            report.setResolvedAt(java.time.LocalDateTime.now());
+            safetyReportRepository.save(report);
+        }
+        return ResponseEntity.ok(ApiResponse.success("Report marked as resolved", null));
     }
 }

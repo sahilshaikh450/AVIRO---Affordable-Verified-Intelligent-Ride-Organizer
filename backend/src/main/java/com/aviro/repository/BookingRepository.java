@@ -53,4 +53,15 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     @Query("SELECT b FROM Booking b WHERE b.ride.id = :rideId AND b.status IN ('REQUESTED', 'CONFIRMED')")
     List<Booking> findActiveBookingsForRide(@Param("rideId") Long rideId);
+
+    // The user's trips as rider or driver since a date, newest departure first (Safety Center pickers)
+    @Query("""
+        SELECT b FROM Booking b JOIN FETCH b.ride r JOIN FETCH r.driver JOIN FETCH b.rider
+        WHERE (b.rider.id = :userId OR r.driver.id = :userId)
+          AND r.departureTime >= :since AND b.status IN :statuses
+        ORDER BY r.departureTime DESC
+        """)
+    List<Booking> findTripsForUser(@Param("userId") Long userId,
+                                   @Param("since") java.time.LocalDateTime since,
+                                   @Param("statuses") java.util.Collection<BookingStatus> statuses);
 }
