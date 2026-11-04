@@ -6,6 +6,7 @@ import com.aviro.entity.User;
 import com.aviro.enums.BookingStatus;
 import com.aviro.repository.BookingRepository;
 import com.aviro.repository.UserRepository;
+import com.aviro.service.LiveLocationStore;
 import com.aviro.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +31,7 @@ public class LocationController {
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final LiveLocationStore liveLocations;
 
     // ── Driver broadcasts location via WebSocket ──
     @MessageMapping("/location.update")
@@ -44,6 +46,8 @@ public class LocationController {
         Double lat     = Double.valueOf(payload.get("lat").toString());
         Double lng     = Double.valueOf(payload.get("lng").toString());
         String status  = payload.getOrDefault("status", "ON_THE_WAY").toString();
+        if (!LiveLocationStore.valid(lat, lng)) return;
+        liveLocations.driverAt(bookingId, lat, lng);
 
         Map<String, Object> locationData = Map.of(
             "bookingId", bookingId,
@@ -77,10 +81,15 @@ public class LocationController {
             return;
         }
 
+        Double lat = Double.valueOf(payload.get("lat").toString());
+        Double lng = Double.valueOf(payload.get("lng").toString());
+        if (!LiveLocationStore.valid(lat, lng)) return;
+        liveLocations.riderAt(bookingId, lat, lng);
+
         Map<String, Object> locationData = Map.of(
             "bookingId", bookingId,
-            "lat",       Double.valueOf(payload.get("lat").toString()),
-            "lng",       Double.valueOf(payload.get("lng").toString()),
+            "lat",       lat,
+            "lng",       lng,
             "timestamp", System.currentTimeMillis()
         );
         messagingTemplate.convertAndSendToUser(

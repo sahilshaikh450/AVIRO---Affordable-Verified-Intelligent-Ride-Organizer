@@ -42,6 +42,7 @@ const AdminPage = lazy(() => import('./pages/AdminPage'));
 const LiveTrackingPage = lazy(() => import('./pages/LiveTrackingPage'));
 const LegalPage = lazy(() => import('./pages/LegalPage'));
 const IntroPage = lazy(() => import('./pages/IntroPage'));
+const SharedTripPage = lazy(() => import('./pages/SharedTripPage'));
 
 const isAuthenticated = (token) => {
   if (token) return true;
@@ -138,6 +139,12 @@ export default function App() {
             element={<SafetyPage />}
           />
         </Route>
+
+        {/* Trip shared with family: no account needed */}
+        <Route
+          path="/share/:token"
+          element={<SharedTripPage />}
+        />
 
         <Route
           path="/privacy"

@@ -81,17 +81,20 @@ export default function AdminPage() {
   const [tab, setTab]                       = useState('college');
   const [expandedImg, setExpandedImg]       = useState(null); // fullscreen image
   const [forbidden, setForbidden]           = useState(false);
+  const [reports, setReports]               = useState([]);
 
   useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const [pRes, sRes, vRes] = await Promise.all([
+      const [pRes, sRes, vRes, rRes] = await Promise.all([
         api.get('/admin/pending-verifications'),
         api.get('/admin/stats'),
         api.get('/admin/pending-vehicles'),
+        api.get('/admin/safety-reports'),
       ]);
+      setReports(rRes.data.data || []);
       setPending(pRes.data.data || []);
       setStats(sRes.data.data);
       setPendingVehicles(vRes.data.data || []);
@@ -100,6 +103,16 @@ export default function AdminPage() {
       else toast.error('Failed to load admin data');
     }
     setLoading(false);
+  };
+
+  const resolveReport = async (id) => {
+    setProcessingId(`r${id}`);
+    try {
+      await api.post(`/admin/safety-reports/${id}/resolve`);
+      setReports(rs => rs.map(r => r.id === id ? { ...r, status: 'RESOLVED', resolvedAt: new Date().toISOString() } : r));
+      toast.success('Marked as resolved');
+    } catch { toast.error('Failed to update'); }
+    setProcessingId(null);
   };
 
   const handleApprove = async (userId) => {
@@ -216,7 +229,61 @@ export default function AdminPage() {
             <span className="ml-2 bg-white/20 text-xs px-1.5 py-0.5 rounded-full">{pendingVehicles.length}</span>
           )}
         </button>
+        <button onClick={() => setTab('reports')}
+          className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all
+            ${tab === 'reports' ? 'bg-aviro-orange text-white' : 'text-aviro-muted hover:text-white'}`}>
+          🚩 Reports
+          {reports.some(r => r.status === 'OPEN') && (
+            <span className="ml-2 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">{reports.filter(r => r.status === 'OPEN').length}</span>
+          )}
+        </button>
       </div>
+
+      {/* ── SAFETY REPORTS TAB ── */}
+      {tab === 'reports' && (
+        <div data-testid="admin-reports">
+          <h2 className="font-bold text-lg mb-3">🚩 Safety reports ({reports.filter(r => r.status === 'OPEN').length} open)</h2>
+          {reports.length === 0 ? (
+            <div className="card p-8 text-center text-aviro-muted text-sm">No reports yet.</div>
+          ) : (
+            <div className="space-y-3">
+              {reports.map(r => (
+                <div key={r.id} className={`card p-4 space-y-2 ${r.status === 'OPEN' ? 'border-red-500/40' : 'opacity-70'}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-red-300">{r.reason}</p>
+                      <p className="text-xs text-aviro-muted">#{r.id} · {new Date(r.createdAt).toLocaleString('en-IN')} · booking #{r.bookingId}</p>
+                    </div>
+                    <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${r.status === 'OPEN' ? 'bg-red-500/15 text-red-300' : 'bg-green-500/15 text-green-300'}`}>
+                      {r.status === 'OPEN' ? 'Open' : 'Resolved'}
+                    </span>
+                  </div>
+                  {r.details && <p className="text-sm bg-aviro-card2 rounded-lg p-3 whitespace-pre-wrap break-words">{r.details}</p>}
+                  <div className="grid sm:grid-cols-2 gap-2 text-xs">
+                    <div className="bg-aviro-card2 rounded-lg p-2.5">
+                      <p className="text-aviro-muted">Reported</p>
+                      <p className="font-semibold">{r.reportedName}</p>
+                      <p className="text-aviro-muted break-all">{r.reportedEmail}{r.reportedPhone ? ` · ${r.reportedPhone}` : ''}</p>
+                    </div>
+                    <div className="bg-aviro-card2 rounded-lg p-2.5">
+                      <p className="text-aviro-muted">By</p>
+                      <p className="font-semibold">{r.reporterName}</p>
+                      <p className="text-aviro-muted break-all">{r.reporterEmail}</p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-aviro-muted">🗺️ {r.route} · {new Date(r.departureTime).toLocaleString('en-IN')}</p>
+                  {r.status === 'OPEN' && (
+                    <button onClick={() => resolveReport(r.id)} disabled={processingId === `r${r.id}`}
+                      className="w-full bg-aviro-green/15 text-aviro-green border border-aviro-green/30 font-bold py-2 rounded-xl text-sm disabled:opacity-50">
+                      ✓ Mark as resolved
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── COLLEGE ID TAB ── */}
       {tab === 'college' && (
