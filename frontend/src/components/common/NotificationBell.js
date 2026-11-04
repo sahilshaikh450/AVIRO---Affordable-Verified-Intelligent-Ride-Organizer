@@ -115,7 +115,7 @@ export default function NotificationBell() {
     setIsOpen(false);
     if (TRIP_TYPES.includes(n.type) && /^\d+$/.test(String(n.referenceId))) navigate(`/tracking/${n.referenceId}`);
     else if (n.type === 'CHAT_MESSAGE') navigate('/chat');
-    else if (n.type === 'VERIFICATION') navigate('/profile');
+    else if (n.type === 'VERIFICATION') navigate(['id', 'vehicle'].includes(n.referenceId) ? `/profile?tab=${n.referenceId}` : '/profile');
     else if (n.type === 'RIDE_MATCH' && /^\d+$/.test(String(n.referenceId))) navigate(`/rides/${n.referenceId}`);
   };
 

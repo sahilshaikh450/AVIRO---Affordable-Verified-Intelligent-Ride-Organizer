@@ -110,7 +110,7 @@ export default function DashboardPage() {
             <p className="font-semibold text-sm text-yellow-400">Verify your college ID</p>
             <p className="text-xs text-aviro-muted mt-0.5">Upload your college ID to unlock all features and increase trust score</p>
           </div>
-          <Link to="/profile" className="text-aviro-orange text-sm font-semibold whitespace-nowrap hover:underline">Verify →</Link>
+          <Link to="/profile?tab=id" className="text-aviro-orange text-sm font-semibold whitespace-nowrap hover:underline">Verify →</Link>
         </div>
       )}
     </div>
