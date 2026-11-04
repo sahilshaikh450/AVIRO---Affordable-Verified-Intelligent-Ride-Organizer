@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useForm } from 'react-hook-form';
+import { useSearchParams } from 'react-router-dom';
 import { fetchProfile } from '../store/authSlice';
 import { GenderBadge } from '../components/common/UIComponents';
 import ReviewsSection from '../components/common/ReviewsSection';
@@ -112,6 +113,16 @@ function AnalyticsTab() {
   );
 }
 
+// Profile is split into tabs; /profile?tab=id or ?tab=vehicle opens one directly
+const TABS = [
+  { key: 'profile',   icon: '👤', label: 'Profile' },
+  { key: 'id',        icon: '🎓', label: 'College ID' },
+  { key: 'vehicle',   icon: '🏍️', label: 'Vehicle' },
+  { key: 'analytics', icon: '📊', label: 'Stats' },
+];
+
+const vehicleIcon = (type) => ({ CAR: '🚗', BIKE: '🏍️', SCOOTY: '🛵', AUTO: '🛺' }[type] || '🚐');
+
 export default function ProfilePage() {
   const dispatch = useDispatch();
   const { user } = useSelector(s => s.auth);
@@ -119,12 +130,17 @@ export default function ProfilePage() {
   const [saving, setSaving]           = useState(false);
   const [addingVehicle, setAddingVehicle] = useState(false);
   const { register: vReg, handleSubmit: vSubmit, formState: { errors: vErrors } } = useForm();
-  const [activeTab, setActiveTab]     = useState('profile');
+  const [params, setParams] = useSearchParams();
+  const activeTab = TABS.some(t => t.key === params.get('tab')) ? params.get('tab') : 'profile';
+  const setActiveTab = (key) => setParams(key === 'profile' ? {} : { tab: key }, { replace: true });
 
   // ── Hide/Show toggles ──
   const [showPersonalInfo, setShowPersonalInfo]   = useState(false);
-  const [showVehicleInfo, setShowVehicleInfo]     = useState(false);
   const [editPersonalInfo, setEditPersonalInfo]   = useState(false);
+
+  const vehicleVerified = !!(user?.vehicle?.isVerified && user.vehicle.platePhotoUrl && user.vehicle.licencePhotoUrl);
+  // An orange dot on a tab that still needs something from the user
+  const needsAction = { id: user && !user.isCollegeVerified, vehicle: !!user?.vehicle && !vehicleVerified };
 
   useEffect(() => { dispatch(fetchProfile()); }, [dispatch]);
   useEffect(() => {
@@ -174,21 +190,17 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard icon="⭐" label="Rating"   value={`${user?.rating?.toFixed(1) || '5.0'}★`} color="yellow" />
-        <StatCard icon="🏍️" label="Rides"    value={user?.totalRides || 0}                    color="orange" />
-        <StatCard icon="🪙" label="Credits"  value={user?.aviroCredits || 0}                  color="green"  />
-        <StatCard icon="🌱" label="CO₂ (kg)" value={user?.co2Saved?.toFixed(1) || '0'}        color="green"  />
-      </div>
-
       {/* Tabs */}
-      <div className="flex bg-aviro-card2 p-1.5 rounded-2xl border border-aviro-border gap-1">
-        {['profile', 'analytics'].map(t => (
-          <button key={t} onClick={() => setActiveTab(t)}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all capitalize
-              ${activeTab === t ? 'bg-aviro-orange text-white' : 'text-aviro-muted hover:text-white'}`}>
-            {t === 'profile' ? '👤 Profile' : '📊 Analytics'}
+      <div role="tablist" className="grid grid-cols-4 bg-aviro-card2 p-1.5 rounded-2xl border border-aviro-border gap-1">
+        {TABS.map(t => (
+          <button key={t.key} role="tab" aria-selected={activeTab === t.key} onClick={() => setActiveTab(t.key)}
+            className={`relative flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 py-2 sm:py-2.5 rounded-xl text-[11px] sm:text-sm font-semibold transition-all
+              ${activeTab === t.key ? 'bg-aviro-orange text-white' : 'text-aviro-muted hover:text-white'}`}>
+            <span className="text-base sm:text-sm leading-none">{t.icon}</span>
+            <span className="whitespace-nowrap">{t.label}</span>
+            {needsAction[t.key] && (
+              <span className={`absolute top-1.5 right-1.5 w-2 h-2 rounded-full ${activeTab === t.key ? 'bg-white' : 'bg-aviro-orange'}`} />
+            )}
           </button>
         ))}
       </div>
@@ -196,6 +208,14 @@ export default function ProfilePage() {
       {/* ── PROFILE TAB ── */}
       {activeTab === 'profile' && (
         <>
+          {/* Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <StatCard icon="⭐" label="Rating"   value={`${user?.rating?.toFixed(1) || '5.0'}★`} color="yellow" />
+            <StatCard icon="🏍️" label="Rides"    value={user?.totalRides || 0}                    color="orange" />
+            <StatCard icon="🪙" label="Credits"  value={user?.aviroCredits || 0}                  color="green"  />
+            <StatCard icon="🌱" label="CO₂ (kg)" value={user?.co2Saved?.toFixed(1) || '0'}        color="green"  />
+          </div>
+
           {/* ── Personal Info — hide/show toggle ── */}
           <div className="card p-5">
             <div className="flex items-center justify-between mb-3">
@@ -285,36 +305,34 @@ export default function ProfilePage() {
             )}
           </div>
 
-          {/* College ID */}
-          <CollegeIdUpload user={user} onUploaded={() => dispatch(fetchProfile())} />
-
           {/* UPI ID for drivers */}
           {user?.role !== 'RIDER' && <UpiIdCard user={user} onSaved={() => dispatch(fetchProfile())} />}
 
-          {/* ── Vehicle — hide/show ── */}
+          {/* Reviews */}
+          <ReviewsSection userId={user?.id} />
+        </>
+      )}
+
+      {/* ── COLLEGE ID TAB ── */}
+      {activeTab === 'id' && (
+        <CollegeIdUpload user={user} onUploaded={() => dispatch(fetchProfile())} />
+      )}
+
+      {/* ── VEHICLE TAB ── */}
+      {activeTab === 'vehicle' && (
           <div className="card p-5">
-            <div className="flex items-center justify-between mb-3">
+            <div className="mb-3">
               <h3 className="font-semibold">🏍️ My Vehicle</h3>
-              {user?.vehicle && !addingVehicle && (
-                <button onClick={() => setShowVehicleInfo(!showVehicleInfo)}
-                  className="text-xs text-aviro-orange border border-aviro-orange/30 px-3 py-1.5 rounded-lg hover:bg-aviro-orange/10 transition-colors">
-                  {showVehicleInfo ? '🙈 Hide' : '👁️ View vehicle'}
-                </button>
-              )}
+              <p className="text-xs text-aviro-muted mt-0.5">Needed only if you want to offer rides.</p>
             </div>
 
-            {user?.vehicle && showVehicleInfo && !addingVehicle && (
+            {user?.vehicle && !addingVehicle && (
               <div className="bg-aviro-card2 rounded-xl p-4 flex items-center gap-4 mb-3">
-                <div className="text-3xl">
-                  {user.vehicle.vehicleType === 'CAR' ? '🚗' :
-                   user.vehicle.vehicleType === 'BIKE' ? '🏍️' :
-                   user.vehicle.vehicleType === 'SCOOTY' ? '🛵' :
-                   user.vehicle.vehicleType === 'AUTO' ? '🛺' : '🚐'}
-                </div>
+                <div className="text-3xl">{vehicleIcon(user.vehicle.vehicleType)}</div>
                 <div>
-                  <p className="font-semibold">{user.vehicle.make} {user.vehicle.model} · {user.vehicle.color}</p>
+                  <p className="font-semibold">{[user.vehicle.make, user.vehicle.model].filter(Boolean).join(' ') || user.vehicle.vehicleType}{user.vehicle.color ? ` · ${user.vehicle.color}` : ''}</p>
                   <p className="text-xs text-aviro-muted">{user.vehicle.registrationNumber} · {user.vehicle.totalSeats} seats</p>
-                  {user.vehicle.isVerified && user.vehicle.platePhotoUrl && user.vehicle.licencePhotoUrl
+                  {vehicleVerified
                     ? <span className="text-xs text-green-400 font-semibold">✓ Verified</span>
                     : <span className="text-xs text-yellow-400">⏳ Not verified yet</span>}
                 </div>
@@ -330,9 +348,6 @@ export default function ProfilePage() {
               <p className="text-aviro-muted text-sm mb-3">No vehicle added. Add one to start offering rides!</p>
             )}
 
-            {!showVehicleInfo && user?.vehicle && !addingVehicle && (
-              <p className="text-xs text-aviro-muted mb-3">Click "View vehicle" to see vehicle details</p>
-            )}
 
             {addingVehicle ? (
               <form onSubmit={vSubmit(onAddVehicle)} className="space-y-3">
@@ -382,10 +397,6 @@ export default function ProfilePage() {
               </button>
             )}
           </div>
-
-          {/* Reviews */}
-          <ReviewsSection userId={user?.id} />
-        </>
       )}
 
       {/* ── ANALYTICS TAB ── */}
