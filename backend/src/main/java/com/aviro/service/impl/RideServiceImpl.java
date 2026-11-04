@@ -16,6 +16,7 @@ import com.aviro.repository.RideRepository;
 import com.aviro.repository.UserRepository;
 import com.aviro.repository.VehicleRepository;
 import com.aviro.service.NotificationService;
+import com.aviro.service.RideRequestService;
 import com.aviro.service.RideService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,6 +41,7 @@ public class RideServiceImpl implements RideService {
     private final BookingRepository bookingRepository;
     private final VehicleRepository vehicleRepository;
     private final NotificationService notificationService;
+    private final RideRequestService rideRequestService;
 
     // One screen of results; people narrow the search rather than scroll thousands
     private static final int MAX_SEARCH_RESULTS = 50;
@@ -157,6 +159,7 @@ public class RideServiceImpl implements RideService {
                 .build();
 
         rideRepository.save(ride);
+        rideRequestService.notifyMatches(ride); // riders who asked for this route and time
         log.info("✅ Ride created: driver={} route={}→{}", email, ride.getFromLocation(), ride.getToLocation());
         return ApiResponse.success("Ride posted successfully! 🚀", toResponse(ride, vehicle));
     }
