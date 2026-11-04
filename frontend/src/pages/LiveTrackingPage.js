@@ -340,14 +340,34 @@ export default function LiveTrackingPage() {
     const send = async (lat, lng) => {
       const link = lat ? `https://maps.google.com/?q=${lat},${lng}` : 'location unavailable';
       try {
-        await api.post('/safety/sos', { bookingId: Number(bookingId), lat, lng, message: `🆘 SOS ALERT from ${user.fullName}! Location: ${link}` });
-        sendQuickMsg(`🆘 EMERGENCY! ${user.fullName} needs help! 📍 ${link}`);
-        toast.error('🆘 SOS sent! Emergency contacts notified.', { duration: 6000 });
-      } catch { toast.error('SOS failed — call 112!'); }
+        const res = await api.post('/safety/sos', { bookingId: Number(bookingId), lat, lng });
+        if (clientRef.current?.connected) sendQuickMsg(`🆘 EMERGENCY! ${user.fullName} needs help! 📍 ${link}`);
+        // The server says who was actually alerted (e.g. no emergency contacts saved)
+        toast(res.data.message, { icon: '🆘', duration: 9000 });
+      } catch (err) { toast.error(err.response?.data?.message || 'SOS failed. Call 112!', { duration: 9000 }); }
       setShowSOS(false); setSosConfirm(false);
     };
     if (myLoc) send(myLoc.lat, myLoc.lng);
-    else navigator.geolocation?.getCurrentPosition(p => send(p.coords.latitude, p.coords.longitude), () => send(null, null));
+    else if (navigator.geolocation) navigator.geolocation.getCurrentPosition(p => send(p.coords.latitude, p.coords.longitude), () => send(null, null), { timeout: 8000 });
+    else send(null, null);
+  };
+
+  // A link family can open without the app; uses the phone's share sheet when there is one
+  const shareTrip = async () => {
+    try {
+      const res = await api.post(`/safety/share-ride/${bookingId}`, {});
+      const link = res.data.data.link;
+      const text = `I'm on an AVIRO ride: ${booking?.fromLocation || ''} → ${booking?.toLocation || ''}. Follow my trip live:`;
+      if (navigator.share) {
+        try { await navigator.share({ title: 'My AVIRO trip', text, url: link }); }
+        catch (e) { if (e.name !== 'AbortError') throw e; }
+      } else {
+        await navigator.clipboard.writeText(`${text} ${link}`);
+        toast.success('Trip link copied. Paste it in WhatsApp or SMS.');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not create the link');
+    }
   };
 
   if (loading || !booking) return (
@@ -599,11 +619,16 @@ export default function LiveTrackingPage() {
         </div>
       )}
 
-      {/* SOS */}
+      {/* Share with family + SOS */}
       {isLive && (
-        <button onClick={() => setShowSOS(true)} className="w-full bg-red-500 text-white font-bold py-3 rounded-xl hover:bg-red-600">
-          🆘 SOS Emergency
-        </button>
+        <div className="grid grid-cols-2 gap-2">
+          <button onClick={shareTrip} className="w-full bg-aviro-card2 border border-aviro-border text-white font-bold py-3 rounded-xl hover:border-aviro-orange/50">
+            📍 Share trip
+          </button>
+          <button onClick={() => setShowSOS(true)} className="w-full bg-red-500 text-white font-bold py-3 rounded-xl hover:bg-red-600">
+            🆘 SOS
+          </button>
+        </div>
       )}
       {showSOS && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
