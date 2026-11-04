@@ -25,9 +25,10 @@ public class AdminController {
     private final NotificationService notificationService;
 
     // The user hears about the admin's decision instead of having to check their profile
-    private void tell(Long userId, String title, String message) {
+    // section: "id" or "vehicle", the Profile tab the notification opens
+    private void tell(Long userId, String section, String title, String message) {
         try {
-            notificationService.send(userId, title, message, "VERIFICATION", null);
+            notificationService.send(userId, title, message, "VERIFICATION", section);
         } catch (Exception e) {
             // The decision is saved either way
         }
@@ -60,7 +61,7 @@ public class AdminController {
                 .orElseThrow(() -> new RuntimeException("User not found"));
         user.setIsCollegeVerified(true);
         userRepository.save(user);
-        tell(user.getId(), "College ID approved ✅", "You're verified. You can now book and offer rides on AVIRO.");
+        tell(user.getId(), "id", "College ID approved ✅", "You're verified. You can now book and offer rides on AVIRO.");
         return ResponseEntity.ok(ApiResponse.success("User college ID verified!", null));
     }
 
@@ -72,7 +73,7 @@ public class AdminController {
         user.setIsCollegeVerified(false);
         user.setCollegeIdPicUrl(null);
         userRepository.save(user);
-        tell(user.getId(), "College ID not approved", "We couldn't verify your college ID. Please upload a clear photo of the front of your ID card.");
+        tell(user.getId(), "id", "College ID not approved", "We couldn't verify your college ID. Please upload a clear photo of the front of your ID card.");
         return ResponseEntity.ok(ApiResponse.success("Verification rejected.", null));
     }
 
@@ -114,7 +115,7 @@ public class AdminController {
         }
         vehicle.setIsVerified(true);
         vehicleRepository.save(vehicle);
-        tell(vehicle.getUser().getId(), "Vehicle approved ✅", "Your vehicle " + vehicle.getRegistrationNumber() + " is verified. You can offer rides now.");
+        tell(vehicle.getUser().getId(), "vehicle", "Vehicle approved ✅", "Your vehicle " + vehicle.getRegistrationNumber() + " is verified. You can offer rides now.");
         return ResponseEntity.ok(ApiResponse.success("Vehicle verified successfully!", null));
     }
 
@@ -125,7 +126,7 @@ public class AdminController {
                 .orElseThrow(() -> new RuntimeException("Vehicle not found"));
         vehicle.setIsVerified(false);
         vehicleRepository.save(vehicle);
-        tell(vehicle.getUser().getId(), "Vehicle not approved", "We couldn't verify vehicle " + vehicle.getRegistrationNumber() + ". Please check the details in your profile.");
+        tell(vehicle.getUser().getId(), "vehicle", "Vehicle not approved", "We couldn't verify vehicle " + vehicle.getRegistrationNumber() + ". Please check the details in your profile.");
         return ResponseEntity.ok(ApiResponse.success("Vehicle rejected.", null));
     }
 

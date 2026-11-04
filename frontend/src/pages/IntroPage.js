@@ -10,7 +10,7 @@ const STEPS = [
     icon: '🎓',
     title: 'Verify your college ID',
     text: 'Upload your college ID card in Profile. Our AI checks it, and an admin approves it. Only verified students can book or offer rides.',
-    cta: { label: 'Go to Profile', to: '/profile' },
+    cta: { label: 'Verify my ID', to: '/profile?tab=id' },
   },
   {
     icon: '🔍',
