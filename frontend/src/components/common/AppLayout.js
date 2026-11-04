@@ -7,15 +7,33 @@ import TripAlerts from './TripAlerts';
 import PushPrompt from './PushPrompt';
 import { Wordmark } from './Logo';
 
-// ── Bottom nav links (mobile) ──
+// ── Bottom nav links (mobile); Profile opens from the avatar in the top bar ──
 const bottomLinks = [
   { to: '/dashboard',  icon: '🏠', label: 'Home'     },
   { to: '/search',     icon: '🔍', label: 'Find'     },
   { to: '/offer-ride', icon: '🏍️', label: 'Offer'    },
   { to: '/bookings',   icon: '📋', label: 'Bookings' },
-  { to: '/profile',    icon: '👤', label: 'Profile'  },
   { to: '/settings', icon: '⚙️', label: 'Settings' },
 ];
+
+// The user's avatar; opens Profile. Ringed while on Profile.
+function ProfileAvatar({ showName = false }) {
+  const { user } = useSelector(s => s.auth);
+  return (
+    <NavLink to="/profile" aria-label="Profile" title="Profile"
+      className={`flex items-center gap-2 rounded-full ${showName ? 'pr-2 hover:bg-aviro-card2' : ''}`}>
+      {({ isActive }) => (
+        <>
+          <span className={`w-8 h-8 rounded-full bg-aviro-orange/20 flex items-center justify-center text-sm transition-shadow
+            ${isActive ? 'ring-2 ring-aviro-orange' : 'hover:ring-2 hover:ring-aviro-orange/50'}`}>
+            {user?.gender === 'FEMALE' ? '👩' : '👨'}
+          </span>
+          {showName && <span className="text-sm font-medium">{user?.fullName?.split(' ')[0]}</span>}
+        </>
+      )}
+    </NavLink>
+  );
+}
 
 // ── Sidebar links (desktop) ──
 const sidebarLinks = [
@@ -32,7 +50,6 @@ const sidebarLinks = [
 
 // ── Mobile Top Bar ──
 function MobileTopBar() {
-  const { user } = useSelector(s => s.auth);
   return (
     <header className="md:hidden h-14 border-b border-aviro-border bg-aviro-card/90 backdrop-blur sticky top-0 z-20 flex items-center justify-between px-4">
       <div className="flex items-center gap-2">
@@ -40,9 +57,7 @@ function MobileTopBar() {
       </div>
       <div className="flex items-center gap-2">
         <NotificationBell />
-        <div className="w-8 h-8 rounded-full bg-aviro-orange/20 flex items-center justify-center text-sm">
-          {user?.gender === 'FEMALE' ? '👩' : '👨'}
-        </div>
+        <ProfileAvatar />
       </div>
     </header>
   );
@@ -133,18 +148,12 @@ function DesktopSidebar() {
 
 // ── Desktop Topbar ──
 function DesktopTopbar() {
-  const { user } = useSelector(s => s.auth);
   return (
     <header className="hidden md:flex h-16 border-b border-aviro-border bg-aviro-card/80 backdrop-blur sticky top-0 z-10 items-center justify-between px-6">
       <div/>
       <div className="flex items-center gap-3">
         <NotificationBell />
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-aviro-orange/20 flex items-center justify-center text-sm">
-            {user?.gender === 'FEMALE' ? '👩' : '👨'}
-          </div>
-          <span className="text-sm font-medium">{user?.fullName?.split(' ')[0]}</span>
-        </div>
+        <ProfileAvatar showName />
       </div>
     </header>
   );

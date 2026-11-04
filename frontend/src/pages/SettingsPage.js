@@ -336,7 +336,7 @@ export default function SettingsPage() {
         { icon: '✏️', label: 'Edit Profile',            sub: 'Update your personal information',   action: () => navigate('/profile') },
         { icon: '🔐', label: 'Reset Password',           sub: 'Change your account password',       action: () => setShowResetPass(true) },
         { icon: '🛡️', label: 'Safety Center',            sub: 'Emergency contacts & SOS settings',  action: () => navigate('/safety') },
-        { icon: '🎓', label: 'College ID Verification',  sub: 'Upload or update your college ID',   action: () => navigate('/profile') },
+        { icon: '🎓', label: 'College ID Verification',  sub: 'Upload or update your college ID',   action: () => navigate('/profile?tab=id') },
       ]
     },
     {
@@ -344,7 +344,7 @@ export default function SettingsPage() {
       items: [
         { icon: '📋', label: 'My Bookings',   sub: 'View all your ride bookings',      action: () => navigate('/bookings') },
         { icon: '🗺️', label: 'My Rides',      sub: 'Rides you have offered',           action: () => navigate('/my-rides') },
-        { icon: '🚗', label: 'My Vehicle',    sub: 'Manage your registered vehicle',   action: () => navigate('/profile') },
+        { icon: '🚗', label: 'My Vehicle',    sub: 'Manage your registered vehicle',   action: () => navigate('/profile?tab=vehicle') },
       ]
     },
     {
