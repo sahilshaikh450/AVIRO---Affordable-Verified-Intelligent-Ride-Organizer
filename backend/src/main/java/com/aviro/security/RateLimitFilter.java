@@ -45,9 +45,14 @@ public class RateLimitFilter extends OncePerRequestFilter {
             Map.entry("/ride-requests",                 new Rule(20, Duration.ofHours(1)))
     );
 
-    // Every /safety/... call (SOS, share link, report) sends emails, so it shares one budget
+    // /safety/... calls that send emails (share link, report) share one budget.
+    // SOS has its own, so saving contacts or sharing a trip can never use up the SOS button.
     private static final String SAFETY_PREFIX = "/safety/";
     private static final Rule SAFETY_RULE = new Rule(10, Duration.ofMinutes(10));
+    private static final String SOS_PATH = "/safety/sos";
+    private static final Rule SOS_RULE = new Rule(10, Duration.ofMinutes(10));
+    private static final String CONTACTS_PATH = "/safety/emergency-contacts";
+    private static final Rule CONTACTS_RULE = new Rule(20, Duration.ofHours(1));
 
     // The trip OTP has only 4 digits, so a driver gets a few tries per booking, not 10,000
     private static final String RIDE_OTP_SUFFIX = "/verify-ride-otp";
@@ -63,6 +68,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private Rule ruleFor(String path) {
         Rule rule = RULES.get(path);
         if (rule != null) return rule;
+        if (path.equals(SOS_PATH)) return SOS_RULE;
+        if (path.equals(CONTACTS_PATH)) return CONTACTS_RULE;
         if (path.startsWith(SAFETY_PREFIX)) return SAFETY_RULE;
         return path.startsWith("/bookings/") && path.endsWith(RIDE_OTP_SUFFIX) ? RIDE_OTP_RULE : null;
     }
@@ -73,7 +80,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
         String path = path(request);
         Rule rule = ruleFor(path);
-        String bucket = path.startsWith(SAFETY_PREFIX) ? SAFETY_PREFIX : path;
+        String bucket = path.startsWith(SAFETY_PREFIX) && !path.equals(SOS_PATH) && !path.equals(CONTACTS_PATH)
+                ? SAFETY_PREFIX : path;
         long windowMs = rule.window().toMillis();
         long windowStart = System.currentTimeMillis() / windowMs;
         String key = "aviro:rl:" + bucket + ":" + caller(request) + ":" + windowStart;

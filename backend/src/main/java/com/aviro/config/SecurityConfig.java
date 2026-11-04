@@ -49,6 +49,7 @@ public class SecurityConfig {
                 .requestMatchers(
                     "/auth/**",       // context path '/api' already stripped by Spring Security
                     "/health",
+                    "/public/**",     // shared trip links for family, no account
                     "/ws/**",
                     "/error"
                 ).permitAll()
