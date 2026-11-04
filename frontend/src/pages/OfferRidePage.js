@@ -7,7 +7,7 @@ import LocationInput from '../components/common/LocationInput';
 import toast from 'react-hot-toast'; 
 import { geocodePlace, PUNE_CENTRE } from '../utils/geo';
 import api from '../services/api';
-import { formatWhen } from '../components/common/RideAlerts';
+import { StudentsNeedRides } from '../components/common/RideAlerts';
  
 // College hours, same as the server: departures from 06:00 up to 20:00
 const inCollegeHours = (value) => {
@@ -106,24 +106,7 @@ export default function OfferRidePage() {
         </p> 
       </div> 
  
-      {requests.length > 0 && (
-        <div className="card p-4 space-y-2" data-testid="students-need-rides">
-          <p className="text-sm font-semibold">🙋 Students need rides</p>
-          <p className="text-xs text-aviro-muted">Offer one of these and the students are notified right away.</p>
-          {requests.slice(0, 5).map(r => (
-            <div key={r.id} className="flex items-center gap-3 border-t border-aviro-border pt-2">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm truncate">{r.fromLocation} → {r.toLocation}</p>
-                <p className="text-xs text-aviro-muted">{formatWhen(r.desiredTime)} · {r.riderFirstName} · {r.seatsNeeded} seat{r.seatsNeeded > 1 ? 's' : ''}</p>
-              </div>
-              <button type="button" onClick={() => offerFor(r)}
-                className="text-xs font-semibold text-aviro-orange border border-aviro-orange/40 px-3 py-1.5 rounded-lg flex-shrink-0">
-                Offer this
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
+      <StudentsNeedRides requests={requests} onOffer={offerFor} />
 
       {/* Without a UPI ID riders can only pay cash */}
       {user && !user.upiId && (
