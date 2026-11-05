@@ -1,5 +1,7 @@
 package com.aviro.service.impl;
 
+import com.aviro.enums.VehicleType;
+
 import com.aviro.dto.request.ProfileUpdateRequest;
 import com.aviro.dto.request.VehicleRequest;
 import com.aviro.dto.response.ApiResponse;
@@ -68,6 +70,15 @@ public class UserServiceImpl implements UserService {
         String registration = request.getRegistrationNumber().toUpperCase().replaceAll("[\\s-]", "");
         if (!INDIAN_PLATE.matcher(registration).matches()) {
             throw new AviroException("Enter a valid number plate, like MH12AB1234 or 22BH1234AA");
+        }
+        VehicleType type = request.getVehicleType();
+        if (type == null || !type.supported()) {
+            throw new AviroException("AVIRO supports bikes, scooties and cars");
+        }
+        if (request.getTotalSeats() > type.maxRiders()) {
+            throw new AviroException(type == VehicleType.CAR
+                    ? "A car can take up to 4 riders"
+                    : "A " + type.name().toLowerCase() + " can take 1 rider");
         }
         // A user has one vehicle: adding again replaces its details
         Vehicle vehicle = vehicleRepository.findByUserId(user.getId())

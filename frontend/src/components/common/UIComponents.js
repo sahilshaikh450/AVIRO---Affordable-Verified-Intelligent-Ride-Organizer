@@ -27,7 +27,7 @@ export const GenderBadge = ({ gender, label = 'driver' }) => {
 
 // ─── VEHICLE ICON ─────────────────────────────────────────────────
 export const VehicleIcon = ({ type }) => {
-  const icons = { BIKE: '🏍️', SCOOTY: '🛵', CAR: '🚗', AUTO: '🛺', VAN: '🚐' };
+  const icons = { BIKE: '🏍️', SCOOTY: '🛵', CAR: '🚗' };
   return <span>{icons[type] || '🚗'}</span>;
 };
 

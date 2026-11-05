@@ -65,7 +65,7 @@ export const personIcon = (text) => L.divIcon({
   iconSize: [32, 32], iconAnchor: [16, 16], className: '',
 });
 
-export const VEHICLE_EMOJI = { BIKE: '🏍️', SCOOTY: '🛵', CAR: '🚗', AUTO: '🛺', VAN: '🚐' };
+export const VEHICLE_EMOJI = { BIKE: '🏍️', SCOOTY: '🛵', CAR: '🚗' };
 
 // Plain map options: no +/- buttons (pinch to zoom on phones), small attribution
 export const MAP_OPTIONS = { zoomControl: false, attributionControl: true };
