@@ -121,7 +121,14 @@ const TABS = [
   { key: 'analytics', icon: '📊', label: 'Stats' },
 ];
 
-const vehicleIcon = (type) => ({ CAR: '🚗', BIKE: '🏍️', SCOOTY: '🛵', AUTO: '🛺' }[type] || '🚐');
+const vehicleIcon = (type) => ({ CAR: '🚗', BIKE: '🏍️', SCOOTY: '🛵' }[type] || '🚗');
+
+// AVIRO supports bikes, scooties and cars
+const VEHICLE_TYPES = [
+  { value: 'BIKE', label: '🏍️ Bike' },
+  { value: 'SCOOTY', label: '🛵 Scooty' },
+  { value: 'CAR', label: '🚗 Car' },
+];
 
 export default function ProfilePage() {
   const dispatch = useDispatch();
@@ -129,7 +136,8 @@ export default function ProfilePage() {
   const { register, handleSubmit, reset } = useForm();
   const [saving, setSaving]           = useState(false);
   const [addingVehicle, setAddingVehicle] = useState(false);
-  const { register: vReg, handleSubmit: vSubmit, formState: { errors: vErrors } } = useForm();
+  const { register: vReg, handleSubmit: vSubmit, watch: vWatch, formState: { errors: vErrors } } = useForm({ defaultValues: { vehicleType: 'BIKE', totalSeats: '1' } });
+  const vType = vWatch('vehicleType');
   const [params, setParams] = useSearchParams();
   const activeTab = TABS.some(t => t.key === params.get('tab')) ? params.get('tab') : 'profile';
   const setActiveTab = (key) => setParams(key === 'profile' ? {} : { tab: key }, { replace: true });
@@ -165,7 +173,7 @@ export default function ProfilePage() {
 
   const onAddVehicle = async (data) => {
     try {
-      const res = await api.post('/users/vehicle', { ...data, totalSeats: parseInt(data.totalSeats) });
+      const res = await api.post('/users/vehicle', { ...data, totalSeats: data.vehicleType === 'CAR' ? parseInt(data.totalSeats, 10) : 1 });
       toast.success(res.data?.message || 'Vehicle saved!');
       setAddingVehicle(false);
       dispatch(fetchProfile());
@@ -360,7 +368,7 @@ export default function ProfilePage() {
                   <div>
                     <label className="text-xs text-aviro-muted font-medium block mb-1">Vehicle Type</label>
                     <select {...vReg('vehicleType', { required: true })} className="input-field">
-                      {['BIKE','SCOOTY','CAR','AUTO','VAN'].map(t => <option key={t}>{t}</option>)}
+                      {VEHICLE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                     </select>
                   </div>
                   <div>
@@ -381,10 +389,14 @@ export default function ProfilePage() {
                     <input {...vReg('color')} placeholder="Black, Red..." className="input-field" />
                   </div>
                   <div>
-                    <label className="text-xs text-aviro-muted font-medium block mb-1">Total Seats</label>
-                    <select {...vReg('totalSeats', { required: true })} className="input-field">
-                      {[1,2,3,4,5,6].map(n => <option key={n} value={n}>{n}</option>)}
-                    </select>
+                    <label className="text-xs text-aviro-muted font-medium block mb-1">Seats for riders</label>
+                    {vType === 'CAR' ? (
+                      <select {...vReg('totalSeats', { required: true })} className="input-field">
+                        {[1, 2, 3, 4].map(n => <option key={n} value={n}>{n}</option>)}
+                      </select>
+                    ) : (
+                      <p className="input-field text-aviro-muted">1 (pillion)</p>
+                    )}
                   </div>
                 </div>
                 <div className="flex gap-2">
