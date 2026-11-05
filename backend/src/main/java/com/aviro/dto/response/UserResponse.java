@@ -33,4 +33,6 @@ public class UserResponse {
     private Boolean womenOnlyMode;
     private LocalDateTime createdAt;
     private VehicleResponse vehicle;
+    // False while testing: rides can be posted with an unverified vehicle
+    private Boolean vehicleVerificationRequired;
 }

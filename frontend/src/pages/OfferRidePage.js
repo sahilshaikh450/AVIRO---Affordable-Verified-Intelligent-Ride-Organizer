@@ -146,7 +146,10 @@ export default function OfferRidePage() {
       {/* The ride goes out with the driver's own vehicle; it must be verified first */}
       {user && (() => {
         const v = user.vehicle;
-        const ready = v && v.isVerified && v.platePhotoUrl && v.licencePhotoUrl;
+        const verified = v && v.isVerified && v.platePhotoUrl && v.licencePhotoUrl;
+        // While testing, the server lets unverified vehicles post rides
+        const mustVerify = user.vehicleVerificationRequired !== false;
+        const ready = v && (verified || !mustVerify);
         const icon = { BIKE: '🏍️', SCOOTY: '🛵', CAR: '🚗' }[v?.vehicleType] || '🚗';
         return ready ? (
           <div className="card p-4 flex items-center gap-3" data-testid="offer-vehicle">
@@ -154,6 +157,7 @@ export default function OfferRidePage() {
             <span className="flex-1 min-w-0">
               <span className="text-xs text-aviro-muted block">You're driving</span>
               <span className="font-semibold text-sm block truncate">{[v.make, v.model].filter(Boolean).join(' ') || v.vehicleType} · {v.registrationNumber}</span>
+              {!verified && <span className="text-[11px] text-yellow-400 block">Not verified yet · allowed during testing</span>}
             </span>
             <Link to="/profile?tab=vehicle" className="text-xs text-aviro-orange font-semibold">Change</Link>
           </div>
