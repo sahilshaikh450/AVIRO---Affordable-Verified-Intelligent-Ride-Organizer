@@ -108,6 +108,32 @@ export default function OfferRidePage() {
  
       <StudentsNeedRides requests={requests} onOffer={offerFor} />
 
+      {/* The ride goes out with the driver's own vehicle; it must be verified first */}
+      {user && (() => {
+        const v = user.vehicle;
+        const ready = v && v.isVerified && v.platePhotoUrl && v.licencePhotoUrl;
+        const icon = { BIKE: '🏍️', SCOOTY: '🛵', CAR: '🚗', AUTO: '🛺', VAN: '🚐' }[v?.vehicleType] || '🚗';
+        return ready ? (
+          <div className="card p-4 flex items-center gap-3" data-testid="offer-vehicle">
+            <span className="text-2xl">{icon}</span>
+            <span className="flex-1 min-w-0">
+              <span className="text-xs text-aviro-muted block">You're driving</span>
+              <span className="font-semibold text-sm block truncate">{[v.make, v.model].filter(Boolean).join(' ') || v.vehicleType} · {v.registrationNumber}</span>
+            </span>
+            <Link to="/profile?tab=vehicle" className="text-xs text-aviro-orange font-semibold">Change</Link>
+          </div>
+        ) : (
+          <Link to="/profile?tab=vehicle" className="card p-4 flex items-center gap-3 border-yellow-500/40 bg-yellow-500/5" data-testid="offer-vehicle">
+            <span className="text-2xl">{icon}</span>
+            <span className="flex-1 text-sm">
+              <span className="font-semibold block text-yellow-300">{v ? 'Your vehicle is not verified yet' : 'Add your vehicle first'}</span>
+              <span className="text-xs text-aviro-muted">{v ? 'Upload the number plate and licence photos. You can post rides once an admin approves them.' : 'Add your bike or car with number plate and licence photos to offer rides.'}</span>
+            </span>
+            <span className="text-aviro-orange text-sm">→</span>
+          </Link>
+        );
+      })()}
+
       {/* Without a UPI ID riders can only pay cash */}
       {user && !user.upiId && (
         <Link to="/profile" className="card p-4 flex items-center gap-3 border-yellow-500/30 bg-yellow-500/5 hover:border-yellow-500/60">
@@ -236,43 +262,6 @@ export default function OfferRidePage() {
             <span>
               AI tip: For Pune college routes, ₹20–₹45 per seat is the typical range.
             </span> 
-          </div> 
-        </div> 
- 
-        {/* Vehicle */} 
-        <div className="card p-5 space-y-3"> 
-          <h3 className="font-semibold text-sm text-aviro-muted uppercase tracking-wider">
-            🚗 Vehicle Type
-          </h3> 
- 
-          <div className="grid grid-cols-5 gap-2"> 
-            {[ 
-              { value: 'BIKE',   label: '🏍️', name: 'Bike'   }, 
-              { value: 'SCOOTY', label: '🛵', name: 'Scooty' }, 
-              { value: 'CAR',    label: '🚗', name: 'Car'    }, 
-              { value: 'AUTO',   label: '🛺', name: 'Auto'   }, 
-              { value: 'VAN',    label: '🚐', name: 'Van'    }, 
-            ].map(v => ( 
-              <label 
-                key={v.value} 
-                className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 cursor-pointer transition-all 
-                  ${watch('vehicleType') === v.value 
-                    ? 'border-aviro-orange bg-aviro-orange/5' 
-                    : 'border-aviro-border hover:border-aviro-orange/40'}`}
-              > 
-                <input 
-                  {...register('vehicleType')} 
-                  type="radio" 
-                  value={v.value} 
-                  className="hidden" 
-                /> 
- 
-                <span className="text-2xl">{v.label}</span> 
-                <span className="text-xs font-medium text-aviro-muted">
-                  {v.name}
-                </span> 
-              </label> 
-            ))} 
           </div> 
         </div> 
  
