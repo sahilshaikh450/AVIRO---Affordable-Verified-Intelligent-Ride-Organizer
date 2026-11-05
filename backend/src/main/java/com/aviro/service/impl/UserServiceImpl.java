@@ -32,6 +32,10 @@ public class UserServiceImpl implements UserService {
     private final RideRepository rideRepository;
     private final BookingRepository bookingRepository;
 
+    // Tells the app whether drivers must verify their vehicle before posting rides
+    @org.springframework.beans.factory.annotation.Value("${aviro.vehicle.require-verification:false}")
+    private boolean requireVehicleVerification;
+
     // Indian plates after removing spaces/dashes: MH12AB1234, DL3CAF1234, MH121234 or BH series 22BH1234AA
     private static final Pattern INDIAN_PLATE =
             Pattern.compile("^([A-Z]{2}\\d{1,2}[A-Z]{0,3}\\d{1,4}|\\d{2}BH\\d{4}[A-Z]{1,2})$");
@@ -209,6 +213,7 @@ public class UserServiceImpl implements UserService {
                 .womenOnlyMode(user.getWomenOnlyMode())
                 .createdAt(user.getCreatedAt())
                 .vehicle(vehicleResponse)
+                .vehicleVerificationRequired(requireVehicleVerification)
                 .build();
     }
 
