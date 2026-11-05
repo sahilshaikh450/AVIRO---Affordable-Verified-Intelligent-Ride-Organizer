@@ -2,22 +2,15 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
+import { formatWhen } from '../../utils/when';
+
+export { formatWhen };
 
 // Tomorrow 9:00 local time as "YYYY-MM-DDTHH:mm" for a datetime-local input
 const tomorrowNine = () => {
   const d = new Date(Date.now() + 24 * 3600e3);
   const pad = (n) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T09:00`;
-};
-
-// "Today, 9:00 am" / "Tomorrow, 9:00 am" / "Fri 6 Nov, 9:00 am"
-export const formatWhen = (value) => {
-  const d = new Date(value);
-  const time = d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' });
-  const days = Math.round((new Date(d).setHours(0, 0, 0, 0) - new Date().setHours(0, 0, 0, 0)) / 86400000);
-  if (days === 0) return `Today, ${time}`;
-  if (days === 1) return `Tomorrow, ${time}`;
-  return `${d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}, ${time}`;
 };
 
 const seatsText = (n) => `${n} seat${n > 1 ? 's' : ''}`;
