@@ -14,7 +14,7 @@ const STAGE_TEXT = {
   ARRIVED: 'Driver has reached the pickup',
   STARTED: 'On the trip now',
 };
-const VEHICLE_ICON = { CAR: '🚗', BIKE: '🏍️', SCOOTY: '🛵', AUTO: '🛺', VAN: '🚐' };
+const VEHICLE_ICON = { CAR: '🚗', BIKE: '🏍️', SCOOTY: '🛵' };
 
 
 function FollowPoint({ at }) {
