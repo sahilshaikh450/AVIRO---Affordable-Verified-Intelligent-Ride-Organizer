@@ -1,5 +1,5 @@
 import React from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { logoutUser } from '../../store/authSlice';
 import NotificationBell from './NotificationBell';
@@ -7,13 +7,15 @@ import TripAlerts from './TripAlerts';
 import PushPrompt from './PushPrompt';
 import { Wordmark } from './Logo';
 
-// ── Bottom nav links (mobile); Profile opens from the avatar in the top bar ──
+// ── Bottom nav links (mobile) ──
+// Trips covers rides you booked and rides you offer. Profile and Settings open from the avatar,
+// Safety from the shield in the top bar.
 const bottomLinks = [
-  { to: '/dashboard',  icon: '🏠', label: 'Home'     },
-  { to: '/search',     icon: '🔍', label: 'Find'     },
-  { to: '/offer-ride', icon: '🏍️', label: 'Offer'    },
-  { to: '/bookings',   icon: '📋', label: 'Bookings' },
-  { to: '/settings', icon: '⚙️', label: 'Settings' },
+  { to: '/dashboard',  icon: '🏠', label: 'Home'  },
+  { to: '/search',     icon: '🔍', label: 'Find'  },
+  { to: '/offer-ride', icon: '🏍️', label: 'Offer' },
+  { to: '/bookings',   icon: '🧾', label: 'Trips', also: ['/my-rides', '/tracking'] },
+  { to: '/chat',       icon: '💬', label: 'Chat'  },
 ];
 
 // The user's avatar; opens Profile. Ringed while on Profile.
@@ -56,6 +58,9 @@ function MobileTopBar() {
         <Wordmark height={26} />
       </div>
       <div className="flex items-center gap-2">
+        <NavLink to="/safety" aria-label="Safety Center" title="Safety Center"
+          className={({ isActive }) => `w-9 h-9 rounded-xl flex items-center justify-center text-lg border transition-colors
+            ${isActive ? 'border-aviro-orange bg-aviro-orange/10' : 'border-aviro-border bg-aviro-card2'}`}>🛡️</NavLink>
         <NotificationBell />
         <ProfileAvatar />
       </div>
@@ -65,6 +70,7 @@ function MobileTopBar() {
 
 // ── Mobile Bottom Navigation ──
 function MobileBottomNav() {
+  const { pathname } = useLocation();
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-20 bg-aviro-card border-t border-aviro-border">
       <div className="flex items-center justify-around px-2 py-1 safe-area-bottom">
@@ -74,7 +80,7 @@ function MobileBottomNav() {
             to={l.to}
             className={({ isActive }) =>
               `flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all min-w-0
-              ${isActive
+              ${isActive || l.also?.some(p => pathname.startsWith(p))
                 ? 'text-aviro-orange bg-aviro-orange/10'
                 : 'text-aviro-muted hover:text-white'}`
             }

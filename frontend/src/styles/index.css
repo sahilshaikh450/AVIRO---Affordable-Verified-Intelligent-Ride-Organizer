@@ -102,3 +102,6 @@
     min-height: 100dvh;
   }
 }
+/* Leaflet gives its panes and controls z-index up to 1000; keep all of that inside the map
+   so the map never draws over the bottom nav, sticky bars or popups */
+.leaflet-container { z-index: 0; }

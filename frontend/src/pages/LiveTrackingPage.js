@@ -395,7 +395,7 @@ export default function LiveTrackingPage() {
           <h1 className="font-display font-bold text-xl">{isDriver ? 'Your Trip 🚗' : 'Your Ride 🗺️'}</h1>
           <p className="text-aviro-muted text-sm">{booking.fromLocation} → {booking.toLocation}</p>
         </div>
-        <button onClick={() => navigate('/bookings')}
+        <button onClick={() => navigate(isDriver ? '/my-rides' : '/bookings')}
           className="text-aviro-muted text-sm border border-aviro-border px-3 py-1.5 rounded-lg hover:text-white">
           ← Bookings
         </button>
