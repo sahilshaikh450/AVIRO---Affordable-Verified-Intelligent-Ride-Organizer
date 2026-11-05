@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
-import L from 'leaflet';
 import api from '../services/api';
 import { Wordmark } from '../components/common/Logo';
 import { RouteLines, formatWhen } from '../components/common/RideAlerts';
+import { TILE_URL, TILE_OPTIONS, vehicleIcon, VEHICLE_EMOJI } from '../utils/mapStyle';
 
 // Opened by family from a shared link: no account, read-only, refreshes itself
 const REFRESH_MS = 15000;
@@ -16,10 +16,6 @@ const STAGE_TEXT = {
 };
 const VEHICLE_ICON = { CAR: '🚗', BIKE: '🏍️', SCOOTY: '🛵', AUTO: '🛺', VAN: '🚐' };
 
-const dot = L.divIcon({
-  html: '<div style="background:#FF6B2B;width:20px;height:20px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 14px rgba(255,107,43,.9)"></div>',
-  iconSize: [20, 20], iconAnchor: [10, 10], className: '',
-});
 
 function FollowPoint({ at }) {
   const map = useMap();
@@ -111,9 +107,9 @@ export default function SharedTripPage() {
         {trip.live && (
           trip.location ? (
             <div className="card overflow-hidden">
-              <MapContainer center={[trip.location.lat, trip.location.lng]} zoom={15} style={{ height: 280 }} scrollWheelZoom={false}>
-                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap" />
-                <Marker position={[trip.location.lat, trip.location.lng]} icon={dot} />
+              <MapContainer center={[trip.location.lat, trip.location.lng]} zoom={16} style={{ height: 300 }} scrollWheelZoom={false} zoomControl={false}>
+                <TileLayer url={TILE_URL} {...TILE_OPTIONS} />
+                <Marker position={[trip.location.lat, trip.location.lng]} icon={vehicleIcon(VEHICLE_EMOJI[v?.type] || '🚗', trip.sharerName)} />
                 <FollowPoint at={trip.location} />
               </MapContainer>
               <div className="px-4 py-2.5 flex items-center justify-between text-xs">

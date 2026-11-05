@@ -10,6 +10,7 @@ import { getErrorMessage } from '../store/authSlice';
 import PaymentChoiceModal from '../components/common/PaymentChoiceModal';
 import ReviewModal from '../components/common/ReviewModal';
 import { geocodePlace, fetchRoute, hasRealCoords, googleMapsDirections } from '../utils/geo';
+import { MAP_OPTIONS, addTiles, routeLayer, layerBounds, meIcon, personIcon, vehicleIcon, startIcon, endIcon, VEHICLE_EMOJI } from '../utils/mapStyle';
 import toast from 'react-hot-toast';
 
 const QUICK_MESSAGES = [
@@ -47,21 +48,6 @@ const distanceKm = (a, b) => {
 };
 const formatDistance = (km) => km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`;
 const etaMinutes = (km) => Math.max(1, Math.round(km / AVG_CITY_SPEED_KMH * 60));
-
-const pinIcon = (bg, emoji, label) => L.divIcon({
-  html: `<div style="position:relative">
-    <div style="background:${bg};width:34px;height:34px;border-radius:50%;border:3px solid white;
-      box-shadow:0 0 14px ${bg};display:flex;align-items:center;justify-content:center;font-size:17px;">${emoji}</div>
-    ${label ? `<div style="position:absolute;bottom:-14px;left:50%;transform:translateX(-50%);background:${bg};color:white;
-      font-size:9px;font-weight:bold;padding:1px 5px;border-radius:8px;white-space:nowrap;">${label}</div>` : ''}
-  </div>`,
-  iconSize: [34, 34], className: '', iconAnchor: [17, 17],
-});
-const meIcon = () => L.divIcon({
-  html: `<div style="background:#3b82f6;width:18px;height:18px;border-radius:50%;border:3px solid white;
-    box-shadow:0 0 12px rgba(59,130,246,0.9)"></div>`,
-  iconSize: [18, 18], className: '', iconAnchor: [9, 9],
-});
 
 export default function LiveTrackingPage() {
   const { bookingId } = useParams();
@@ -140,11 +126,8 @@ export default function LiveTrackingPage() {
   // ── Map ──
   useEffect(() => {
     if (!showMap || !mapRef.current || mapInstance.current) return;
-    const map = L.map(mapRef.current, { zoomControl: true }).setView([18.5204, 73.8567], 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap', maxZoom: 19,
-    }).addTo(map);
-    mapRef.current.style.filter = 'invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9)';
+    const map = L.map(mapRef.current, MAP_OPTIONS).setView([18.5204, 73.8567], 13);
+    addTiles(map);
     mapInstance.current = map;
     // Cleared on unmount: resizing a removed map throws
     const resizeTimer = setTimeout(() => map.invalidateSize(), 300);
@@ -193,14 +176,11 @@ export default function LiveTrackingPage() {
     if (!map) return;
     if (routeLineRef.current) { map.removeLayer(routeLineRef.current); routeLineRef.current = null; }
     if (!route) return;
-    routeLineRef.current = L.polyline(route.coords, {
-      color: route.stage === 'STARTED' ? '#22c55e' : '#f97316',
-      weight: 5, opacity: 0.85, dashArray: route.straight ? '8 8' : null,
-    }).addTo(map);
+    routeLineRef.current = routeLayer(route.coords, { straight: route.straight }).addTo(map);
     if (fittedRouteRef.current !== route.stage) {
       fittedRouteRef.current = route.stage;
       map.invalidateSize();
-      map.fitBounds(routeLineRef.current.getBounds(), { padding: [50, 50], animate: false, maxZoom: 17 });
+      map.fitBounds(layerBounds(routeLineRef.current), { padding: [50, 50], animate: false, maxZoom: 17 });
     }
   }, [route]);
 
@@ -231,12 +211,12 @@ export default function LiveTrackingPage() {
     if (!booking || !mapInstance.current) return;
     placeMarker('me', myLoc, meIcon(), '📍 You');
     placeMarker('other', otherLoc, isDriver
-      ? pinIcon('#22c55e', '🙋', other?.fullName?.split(' ')[0] || 'Rider')
-      : pinIcon('#f97316', booking.driver?.vehicleType === 'CAR' ? '🚗' : '🏍️', other?.fullName?.split(' ')[0] || 'Driver'),
+      ? personIcon(other?.fullName?.split(' ')[0] || 'Rider')
+      : vehicleIcon(VEHICLE_EMOJI[booking.driver?.vehicleType] || '🚗', other?.fullName?.split(' ')[0] || 'Driver'),
       isDriver ? `🙋 ${other?.fullName || 'Rider'}` : `🚗 ${other?.fullName || 'Driver'}`);
     // Once the rider is in the vehicle the pickup pin is replaced by the destination
-    placeMarker('pickup', inTrip ? null : pickup, pinIcon('#a855f7', '📌'), '📌 Pickup point');
-    placeMarker('dest', destination, pinIcon('#ef4444', '🏁', booking.toLocation?.split(' ').slice(0, 2).join(' ')), `🏁 ${booking.toLocation}`);
+    placeMarker('pickup', inTrip ? null : pickup, startIcon('Pickup'), '📌 Pickup point');
+    placeMarker('dest', destination, endIcon(booking.toLocation?.split(',')[0].split(' ').slice(0, 3).join(' ')), `🏁 ${booking.toLocation}`);
     // Reframe when someone new appears on the map; otherwise let the user move it freely
     const known = [myLoc, otherLoc, pickup].filter(Boolean).length;
     if (known > fittedCountRef.current) { fitAll(); fittedCountRef.current = known; }
@@ -558,19 +538,24 @@ export default function LiveTrackingPage() {
       {/* Map */}
       {showMap && (
         <div className="card overflow-hidden rounded-2xl relative">
-          <div ref={mapRef} style={{ height: '320px', width: '100%', background: '#1a1a2e' }} />
-          <button onClick={fitAll} className="absolute bottom-12 right-2 z-[1000] bg-white text-gray-800 font-bold px-3 py-2 rounded-xl shadow-lg text-xs">
-            🎯 Recenter
+          <div ref={mapRef} style={{ height: '340px', width: '100%', background: '#f2efe9' }} data-testid="trip-map" />
+          {/* Time and distance, like a cab app */}
+          {route && !route.straight && (
+            <div className="absolute top-3 left-3 z-[500] bg-white text-[#202124] rounded-xl px-3 py-2 shadow-lg text-xs font-semibold pointer-events-none" data-testid="route-info">
+              <span className="text-[#1A73E8] text-sm font-bold">{route.durationMin} min</span>
+              <span className="text-[#5f6368]"> · {formatDistance(route.distanceKm)}</span>
+            </div>
+          )}
+          {isLive && (
+            <div className={`absolute top-3 right-3 z-[500] rounded-full px-2.5 py-1 text-[11px] font-semibold shadow pointer-events-none
+              ${gpsStatus === 'active' ? 'bg-white text-[#1E8E3E]' : 'bg-white text-[#5f6368]'}`}>
+              {gpsStatus === 'active' ? '● Live' : gpsStatus === 'acquiring' ? '○ Getting GPS…' : '○ GPS off'}
+            </div>
+          )}
+          <button onClick={fitAll} aria-label="Recenter map"
+            className="absolute bottom-8 right-3 z-[500] w-11 h-11 rounded-full bg-white text-[#1A73E8] shadow-lg flex items-center justify-center text-xl">
+            ◎
           </button>
-          <div className="absolute bottom-2 left-2 z-[1000] bg-black/80 rounded-lg px-3 py-1.5 flex items-center gap-3 text-xs text-white">
-            <span>🔵 You</span>
-            <span>{isDriver ? '🟢 Rider' : '🟠 Driver'}</span>
-            {pickup && !inTrip && <span>📌 Pickup</span>}
-            {destination && <span>🏁 Drop</span>}
-            {isLive && <span className={gpsStatus === 'active' ? 'text-aviro-green' : 'text-aviro-muted'}>
-              {gpsStatus === 'active' ? '● Sharing live' : gpsStatus === 'acquiring' ? '○ Getting GPS…' : '○ GPS off'}
-            </span>}
-          </div>
         </div>
       )}
 
