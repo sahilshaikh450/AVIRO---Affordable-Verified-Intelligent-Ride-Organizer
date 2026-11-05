@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useForm } from 'react-hook-form';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { fetchProfile } from '../store/authSlice';
 import { GenderBadge } from '../components/common/UIComponents';
 import ReviewsSection from '../components/common/ReviewsSection';
@@ -174,7 +174,12 @@ export default function ProfilePage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 animate-fade-up">
-      <h1 className="font-display font-bold text-2xl">My Profile 👤</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="font-display font-bold text-2xl">My Profile</h1>
+        <Link to="/settings" className="flex items-center gap-1.5 text-sm font-semibold bg-aviro-card2 border border-aviro-border rounded-xl px-3 py-2 hover:border-aviro-orange/50">
+          ⚙️ Settings
+        </Link>
+      </div>
 
       {/* Profile Header */}
       <div className="card p-6 text-center">

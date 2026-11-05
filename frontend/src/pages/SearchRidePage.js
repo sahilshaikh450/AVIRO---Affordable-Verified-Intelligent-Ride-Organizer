@@ -43,7 +43,7 @@ export default function SearchRidePage() {
     }));
   };
 
-  const { bookRide: handleBook } = useBookRide();
+  const { bookRide: handleBook, bookingRideId } = useBookRide();
 
   return (
     <div className="space-y-6 animate-fade-up">
@@ -168,6 +168,7 @@ export default function SearchRidePage() {
                   key={ride.id}
                   ride={ride}
                   onBook={() => handleBook(ride)}
+                  booking={bookingRideId === ride.id}
                   onClick={() => navigate(`/rides/${ride.id}`)}
                 />
               ))}

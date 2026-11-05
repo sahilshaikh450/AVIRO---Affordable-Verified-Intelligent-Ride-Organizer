@@ -1,4 +1,7 @@
 import React from 'react';
+import { useSelector } from 'react-redux';
+import { RouteLines } from './RideAlerts';
+import { timeOf, dayOf } from '../../utils/when';
 
 // ─── GENDER BADGE ─────────────────────────────────────────────────
 // label: who the badge describes ("driver" on ride cards); empty for a person's own gender
@@ -29,73 +32,58 @@ export const VehicleIcon = ({ type }) => {
 };
 
 // ─── RIDE CARD ────────────────────────────────────────────────────
-export const RideCard = ({ ride, onBook, onClick }) => {
+// When first (that's what people pick by), then the route and price, then who's driving
+export const RideCard = ({ ride, onBook, onClick, booking = false }) => {
   const { driver } = ride;
+  const me = useSelector(s => s.auth.user);
+  const own = me && driver?.id === me.id;
+  const seats = ride.availableSeats;
   return (
-    <div
-      onClick={onClick}
-      className="card p-4 hover:border-aviro-orange/50 hover:-translate-y-0.5 transition-all cursor-pointer"
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-aviro-card2 border border-aviro-border flex items-center justify-center text-lg">
+    <div onClick={onClick} role="link" tabIndex={0}
+      onKeyDown={e => { if (e.key === 'Enter' && onClick) onClick(); }}
+      className="card p-4 hover:border-aviro-orange/50 transition-colors cursor-pointer" data-testid="ride-card">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="font-display font-bold text-xl leading-none">{ride.departureTime ? timeOf(ride.departureTime) : ''}</p>
+          <p className="text-xs text-aviro-muted mt-1">{ride.departureTime ? dayOf(ride.departureTime) : ''}</p>
+        </div>
+        <div className="text-right">
+          <p className="text-aviro-green font-bold text-xl leading-none">₹{ride.pricePerSeat}</p>
+          <p className="text-[11px] text-aviro-muted mt-1">per seat</p>
+        </div>
+      </div>
+
+      <div className="mt-3"><RouteLines from={ride.fromLocation} to={ride.toLocation} /></div>
+
+      <div className="flex flex-wrap gap-1.5 mt-3">
+        <Pill icon="💺" label={seats === 1 ? '1 seat left' : `${seats} seats left`} />
+        {driver?.vehicleType && <Pill icon={<VehicleIcon type={driver.vehicleType} />} label={driver.vehicleType.charAt(0) + driver.vehicleType.slice(1).toLowerCase()} />}
+        {ride.womenOnly && <span className="bg-pink-500/10 text-pink-400 text-xs px-2 py-0.5 rounded-full font-semibold">🚺 Women-only</span>}
+      </div>
+
+      <div className="flex items-center justify-between gap-3 mt-3 pt-3 border-t border-aviro-border">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className="w-9 h-9 rounded-full bg-aviro-card2 border border-aviro-border flex items-center justify-center flex-shrink-0">
             {driver?.gender === 'FEMALE' ? '👩' : '👨'}
-          </div>
-          <div>
-            <p className="font-semibold text-sm text-white">{driver?.fullName}</p>
-            <p className="text-xs text-aviro-muted">{driver?.collegeName}</p>
-          </div>
-        </div>
-        <div className="flex flex-col items-end gap-1.5">
-          <GenderBadge gender={driver?.gender} />
-          <span className="text-aviro-green font-bold text-base">₹{ride.pricePerSeat}</span>
-        </div>
-      </div>
-
-      {/* Route */}
-      <div className="bg-aviro-card2 rounded-xl p-3 mb-3">
-        <div className="flex items-center gap-2 text-sm">
-          <div className="flex flex-col items-center gap-1">
-            <div className="w-2 h-2 rounded-full bg-aviro-orange" />
-            <div className="w-px h-4 bg-aviro-border" />
-            <div className="w-2 h-2 rounded-full bg-aviro-green" />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <span className="text-white font-medium">{ride.fromLocation}</span>
-            <span className="text-aviro-muted">{ride.toLocation}</span>
+          </span>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold truncate">
+              {driver?.fullName}{driver?.isCollegeVerified && <span className="text-aviro-green text-xs ml-1" title="College verified">✓</span>}
+            </p>
+            <p className="text-xs text-aviro-muted truncate">
+              {driver?.rating != null && `⭐ ${Number(driver.rating).toFixed(1)} · `}{driver?.gender === 'FEMALE' ? 'Female' : 'Male'} driver
+            </p>
           </div>
         </div>
-      </div>
-
-      {/* Meta + Book Button */}
-      <div className="flex items-center justify-between">
-        <div className="flex gap-2 flex-wrap">
-          <Pill icon={<VehicleIcon type={driver?.vehicleType} />} label={driver?.vehicleType} />
-          <Pill icon="⭐" label={driver?.rating?.toFixed(1)} />
-          <Pill icon="💺" label={`${ride.availableSeats} seats`} />
-          {ride.womenOnly && (
-            <span className="bg-pink-500/10 text-pink-400 text-xs px-2 py-0.5 rounded-full font-semibold">
-              Women-only
-            </span>
-          )}
-        </div>
-        <button
-          onClick={e => { e.stopPropagation(); onBook && onBook(ride); }}
-          className="btn-primary text-xs px-4 py-2"
-        >
-          Book →
-        </button>
-      </div>
-
-      <p className="text-xs text-aviro-muted mt-2">
-        🕐 {ride.departureTime
-          ? new Date(ride.departureTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
-          : ''}
-        {driver?.isCollegeVerified && (
-          <span className="ml-2 text-aviro-green">✓ Verified</span>
+        {own ? (
+          <span className="text-xs text-aviro-muted flex-shrink-0">Your ride</span>
+        ) : (
+          <button onClick={e => { e.stopPropagation(); onBook && onBook(ride); }} disabled={booking || seats < 1}
+            className="btn-primary text-sm px-5 py-2 flex-shrink-0 disabled:opacity-50">
+            {booking ? 'Booking…' : 'Book'}
+          </button>
         )}
-      </p>
+      </div>
     </div>
   );
 };
