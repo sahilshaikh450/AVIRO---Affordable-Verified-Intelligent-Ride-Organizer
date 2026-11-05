@@ -47,6 +47,10 @@ public class RideServiceImpl implements RideService {
     private static final int MAX_SEARCH_RESULTS = 50;
 
     // College hours: departures outside this window are refused (app time zone, IST)
+    // Off while testing (see application.yml): a vehicle needs no photos or admin approval to post rides
+    @Value("${aviro.vehicle.require-verification:false}")
+    private boolean requireVehicleVerification;
+
     @Value("${aviro.ride.first-departure:06:00}")
     private LocalTime firstDeparture;
     @Value("${aviro.ride.last-departure:20:00}")
@@ -81,12 +85,12 @@ public class RideServiceImpl implements RideService {
         }
 
         // 3. Vehicle must be verified, from its number plate and driving licence photos
-        if (!vehicle.hasBothPhotos()) {
+        if (requireVehicleVerification && !vehicle.hasBothPhotos()) {
             throw new AviroException(
                 "🚗 Upload your number plate and driving licence photos in Profile to start offering rides."
             );
         }
-        if (!Boolean.TRUE.equals(vehicle.getIsVerified())) {
+        if (requireVehicleVerification && !Boolean.TRUE.equals(vehicle.getIsVerified())) {
             throw new AviroException(
                 "🚗 Vehicle not verified yet! An admin is checking your photos."
             );

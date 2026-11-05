@@ -102,6 +102,11 @@ aviro:
     # Rides may leave only in this window (college hours, IST)
     first-departure: ${AVIRO_FIRST_DEPARTURE:06:00}
     last-departure: ${AVIRO_LAST_DEPARTURE:20:00}
+
+  vehicle:
+    # Off while testing: drivers can post rides without plate/licence photos or admin approval.
+    # Set AVIRO_REQUIRE_VEHICLE_VERIFICATION=true before launch.
+    require-verification: ${AVIRO_REQUIRE_VEHICLE_VERIFICATION:false}
     max-search-radius-km: 5.0
     route-match-threshold: 0.7
 
