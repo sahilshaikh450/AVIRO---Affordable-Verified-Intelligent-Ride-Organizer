@@ -105,11 +105,15 @@ public class RideServiceImpl implements RideService {
                     + hhmm(lastDeparture) + ". Please pick a time in college hours.");
         }
 
-        // 5. Seats must be valid — ✅ field name: totalSeats
-        if (request.getTotalSeats() == null ||
-            request.getTotalSeats() < 1 ||
-            request.getTotalSeats() > 6) {
-            throw new AviroException("🪑 Seats must be between 1 and 6.");
+        // 5. Seats must fit the vehicle: one pillion on a bike or scooty, up to four in a car
+        if (vehicle.getVehicleType() == null || !vehicle.getVehicleType().supported()) {
+            throw new AviroException("🚗 AVIRO supports bikes, scooties and cars. Update your vehicle in Profile.");
+        }
+        int maxRiders = vehicle.getVehicleType().maxRiders();
+        if (request.getTotalSeats() == null || request.getTotalSeats() < 1 || request.getTotalSeats() > maxRiders) {
+            throw new AviroException(maxRiders == 1
+                    ? "🪑 A " + vehicle.getVehicleType().name().toLowerCase() + " can take 1 rider."
+                    : "🪑 Seats must be between 1 and " + maxRiders + ".");
         }
 
         // 6. Price must be valid

@@ -5,10 +5,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { createRide } from '../store/rideSlice'; 
 import LocationInput from '../components/common/LocationInput'; 
 import toast from 'react-hot-toast'; 
-import { geocodePlace, PUNE_CENTRE } from '../utils/geo';
+import { geocodePlace, fetchRoute, PUNE_CENTRE } from '../utils/geo';
 import api from '../services/api';
 import { StudentsNeedRides } from '../components/common/RideAlerts';
  
+// Rough petrol cost per km, one way
+const PER_KM = { BIKE: 2.5, SCOOTY: 2.5, CAR: 7 };
+
 // College hours, same as the server: departures from 06:00 up to 20:00
 const inCollegeHours = (value) => {
   const time = (value || '').split('T')[1] || '';
@@ -44,9 +47,41 @@ export default function OfferRidePage() {
     pickTo(r.toLocation);
     setValue('departureTime', String(r.desiredTime).slice(0, 16), { shouldValidate: true });
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    toast.success('Route and time filled in. Add the price and post!');
+    toast.success('Route and time filled in. Add the trip cost and post!');
   };
   const [locating, setLocating]         = React.useState(false); 
+
+  // Seats a vehicle can take: one pillion on a bike or scooty, up to four in a car
+  const vehicleType = user?.vehicle?.vehicleType;
+  const maxSeats = { BIKE: 1, SCOOTY: 1, CAR: 4 }[vehicleType] || 4;
+  const seats = Math.min(maxSeats, parseInt(watch('totalSeats'), 10) || 1);
+
+  // Cost split: the trip cost is shared equally by the driver and the riders
+  const [tripCost, setTripCost] = React.useState('');
+  const cost = Math.max(0, Math.round(Number(tripCost) || 0));
+  const perSeat = cost > 0 ? Math.ceil(cost / (seats + 1)) : 0;
+  React.useEffect(() => {
+    setValue('pricePerSeat', perSeat || '', { shouldValidate: perSeat > 0 });
+  }, [perSeat, setValue]);
+  React.useEffect(() => {
+    if (parseInt(watch('totalSeats'), 10) > maxSeats) setValue('totalSeats', String(maxSeats));
+  }, [maxSeats, setValue, watch]);
+
+  // Rough petrol cost from the road distance (₹ per km, one way)
+  const [estimating, setEstimating] = React.useState(false);
+  const [estimateNote, setEstimateNote] = React.useState('');
+  const estimateCost = async () => {
+    if (!fromLocation || !toLocation) { toast.error('Pick From and To first'); return; }
+    setEstimating(true);
+    const [from, to] = await Promise.all([fromPoint || geocodePlace(fromLocation), toPoint || geocodePlace(toLocation)]);
+    const route = from && to ? await fetchRoute(from, to) : null;
+    setEstimating(false);
+    if (!route) { toast.error("Couldn't measure the route. Enter the cost yourself."); return; }
+    const rate = PER_KM[vehicleType] || PER_KM.CAR;
+    const estimate = Math.max(10, Math.round((route.distanceKm * rate) / 5) * 5);
+    setTripCost(String(estimate));
+    setEstimateNote(`About ${route.distanceKm.toFixed(1)} km × ₹${rate}/km. Change it if your cost is different.`);
+  };
  
   const onSubmit = async (data) => { 
     if (!fromLocation || !toLocation) { 
@@ -102,7 +137,7 @@ export default function OfferRidePage() {
       <div> 
         <h1 className="font-display font-bold text-2xl mb-1">Offer a Ride 🏍️</h1> 
         <p className="text-aviro-muted text-sm">
-          Post your ride and earn while going to college
+          Going to college anyway? Share your empty seats and split the petrol cost.
         </p> 
       </div> 
  
@@ -112,7 +147,7 @@ export default function OfferRidePage() {
       {user && (() => {
         const v = user.vehicle;
         const ready = v && v.isVerified && v.platePhotoUrl && v.licencePhotoUrl;
-        const icon = { BIKE: '🏍️', SCOOTY: '🛵', CAR: '🚗', AUTO: '🛺', VAN: '🚐' }[v?.vehicleType] || '🚗';
+        const icon = { BIKE: '🏍️', SCOOTY: '🛵', CAR: '🚗' }[v?.vehicleType] || '🚗';
         return ready ? (
           <div className="card p-4 flex items-center gap-3" data-testid="offer-vehicle">
             <span className="text-2xl">{icon}</span>
@@ -212,59 +247,64 @@ export default function OfferRidePage() {
           </div> 
         </div> 
  
-        {/* Seats & Price */} 
-        <div className="card p-5 space-y-4"> 
-          <h3 className="font-semibold text-sm text-aviro-muted uppercase tracking-wider">
-            💺 Seats & Fare
-          </h3> 
- 
-          <div className="grid grid-cols-2 gap-4"> 
-            <div> 
-              <label className="text-xs text-aviro-muted font-medium block mb-1.5 uppercase tracking-wider">
-                Available Seats
-              </label> 
- 
-              <select {...register('totalSeats')} className="input-field"> 
-                {[1,2,3,4,5,6].map(n => (
-                  <option key={n} value={n}>
-                    {n} seat{n > 1 ? 's' : ''}
-                  </option>
-                ))} 
-              </select> 
-            </div> 
- 
-            <div> 
-              <label className="text-xs text-aviro-muted font-medium block mb-1.5 uppercase tracking-wider">
-                Price per Seat (₹)
-              </label> 
- 
-              <input 
-                {...register('pricePerSeat', { 
-                  required: 'Required', 
-                  min: { value: 5, message: 'Min ₹5' } 
-                })} 
-                type="number" 
-                step="0.5" 
-                placeholder="28" 
-                className="input-field" 
-              /> 
- 
-              {errors.pricePerSeat && (
-                <p className="text-red-400 text-xs mt-1">
-                  {errors.pricePerSeat.message}
-                </p>
-              )} 
-            </div> 
-          </div> 
- 
-          <div className="bg-aviro-orange/5 border border-aviro-orange/20 rounded-xl p-3 text-xs text-aviro-orange flex gap-2"> 
-            <span>🤖</span> 
-            <span>
-              AI tip: For Pune college routes, ₹20–₹45 per seat is the typical range.
-            </span> 
-          </div> 
-        </div> 
- 
+        {/* Seats & cost split */}
+        <div className="card p-5 space-y-4" data-testid="cost-split">
+          <div>
+            <h3 className="font-semibold text-sm text-aviro-muted uppercase tracking-wider">💺 Seats & cost split</h3>
+            <p className="text-xs text-aviro-muted mt-1">Enter what the trip costs you (petrol). It is split equally between you and your riders.</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="seats" className="text-xs text-aviro-muted font-medium block mb-1.5 uppercase tracking-wider">Seats for riders</label>
+              {maxSeats === 1 ? (
+                <>
+                  <input type="hidden" {...register('totalSeats')} value="1" />
+                  <p className="input-field text-aviro-muted">1 seat (pillion)</p>
+                </>
+              ) : (
+                <select id="seats" {...register('totalSeats')} className="input-field">
+                  {Array.from({ length: maxSeats }, (_, i) => i + 1).map(n => (
+                    <option key={n} value={n}>{n} seat{n > 1 ? 's' : ''}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+            <div>
+              <label htmlFor="trip-cost" className="text-xs text-aviro-muted font-medium block mb-1.5 uppercase tracking-wider">Trip cost (₹)</label>
+              <input id="trip-cost" type="number" inputMode="numeric" min="0" step="1" placeholder="45"
+                value={tripCost} onChange={e => setTripCost(e.target.value)} className="input-field" />
+            </div>
+          </div>
+          <button type="button" onClick={estimateCost} disabled={estimating}
+            className="text-xs font-semibold text-aviro-orange disabled:opacity-50">
+            {estimating ? 'Measuring the route…' : '⛽ Estimate from the route distance'}
+          </button>
+          {estimateNote && <p className="text-[11px] text-aviro-muted -mt-2">{estimateNote}</p>}
+
+          {/* The per-seat price the server stores; worked out from the cost */}
+          <input type="hidden" {...register('pricePerSeat', {
+            required: 'Enter the trip cost',
+            min: { value: 5, message: 'Each share must be at least ₹5. Enter a higher trip cost.' },
+          })} />
+
+          {perSeat > 0 ? (
+            <div className="rounded-xl bg-aviro-green/10 border border-aviro-green/25 p-4 space-y-1.5" data-testid="split-result">
+              <p className="text-sm">
+                ₹{cost} ÷ {seats + 1} people (you + {seats} rider{seats > 1 ? 's' : ''}) ={' '}
+                <span className="text-aviro-green font-bold text-lg">₹{perSeat}</span> <span className="text-aviro-muted">per rider</span>
+              </p>
+              <p className="text-xs text-aviro-muted">
+                You pay your own share (₹{Math.max(0, cost - perSeat * seats)}).
+                {seats > 1 && ` If fewer riders book, each still pays ₹${perSeat}.`}
+              </p>
+            </div>
+          ) : (
+            <p className="text-xs text-aviro-muted bg-aviro-card2 rounded-xl p-3">Typical one-way college trip: ₹30–₹60 on a bike, ₹100–₹200 in a car.</p>
+          )}
+          {errors.pricePerSeat && <p className="text-red-400 text-xs">{errors.pricePerSeat.message}</p>}
+        </div>
+
         {/* Preferences */} 
         <div className="card p-5 space-y-4"> 
           <h3 className="font-semibold text-sm text-aviro-muted uppercase tracking-wider">
