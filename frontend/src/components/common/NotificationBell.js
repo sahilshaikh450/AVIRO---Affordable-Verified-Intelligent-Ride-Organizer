@@ -1,8 +1,10 @@
+import { FiBell } from 'react-icons/fi';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 import { NOTIFICATION_EVENT, REALTIME_CONNECTED_EVENT } from './TripAlerts';
+import Icon, { stripEmoji } from './Icon';
 
 const ICONS = {
   BOOKING_REQUEST:   '🔔',
@@ -130,11 +132,11 @@ export default function NotificationBell() {
       <button
         onClick={toggle}
         aria-label="Notifications"
-        className="relative w-10 h-10 rounded-xl bg-aviro-card2 border border-aviro-border flex items-center justify-center hover:border-aviro-orange/50 transition-colors"
+        className="relative w-9 h-9 rounded-full bg-aviro-card2 text-aviro-fg flex items-center justify-center hover:bg-neutral-200 transition-colors"
       >
-        <span className="text-lg">🔔</span>
+        <FiBell size={18} />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-aviro-orange text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
+          <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center border-2 border-white">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
@@ -150,13 +152,13 @@ export default function NotificationBell() {
             <p className="font-bold text-sm">Notifications</p>
             <div className="flex items-center gap-3">
               {notifications.length > 0 && (
-                <button onClick={clearAll} className="text-xs text-red-400 hover:underline">
+                <button onClick={clearAll} className="text-xs text-red-600 hover:underline">
                   Clear all
                 </button>
               )}
               <button onClick={() => setIsOpen(false)} aria-label="Close"
-                className="text-aviro-muted hover:text-white text-lg w-8 h-8 flex items-center justify-center">
-                ✕
+                className="text-aviro-muted hover:text-aviro-fg text-lg w-8 h-8 flex items-center justify-center">
+                <Icon e="✕" />
               </button>
             </div>
           </div>
@@ -165,7 +167,7 @@ export default function NotificationBell() {
           <div className="overflow-y-auto overscroll-contain">
             {notifications.length === 0 ? (
               <div className="p-8 text-center">
-                <p className="text-3xl mb-2">🔔</p>
+                <p className="text-3xl mb-2"><Icon e="🔔" /></p>
                 <p className="text-sm text-aviro-muted">You're all caught up</p>
               </div>
             ) : (
@@ -174,17 +176,17 @@ export default function NotificationBell() {
                   onKeyDown={e => { if (e.key === 'Enter') openNotification(n); }}
                   className={`flex items-start gap-3 pl-4 pr-2 py-3 border-b border-aviro-border hover:bg-aviro-card2 transition-colors cursor-pointer
                     ${!n.isRead ? 'bg-aviro-orange/5' : ''}`}>
-                  <span className="text-xl flex-shrink-0 mt-0.5">{ICONS[n.type] || '📢'}</span>
+                  <span className="w-9 h-9 rounded-full bg-aviro-card2 flex items-center justify-center flex-shrink-0"><Icon e={ICONS[n.type] || '🔔'} size={17} /></span>
                   <div className="flex-1 min-w-0">
-                    <p className={`text-sm font-semibold ${!n.isRead ? 'text-white' : 'text-aviro-muted'}`}>
-                      {n.title}
+                    <p className={`text-sm font-semibold ${!n.isRead ? 'text-aviro-fg' : 'text-aviro-muted'}`}>
+                      {stripEmoji(n.title)}
                     </p>
-                    <p className="text-xs text-aviro-muted mt-0.5 line-clamp-2">{n.message}</p>
+                    <p className="text-xs text-aviro-muted mt-0.5 line-clamp-2">{stripEmoji(n.message)}</p>
                     {n.createdAt && <p className="text-[11px] text-aviro-muted mt-1">{timeAgo(n.createdAt)}</p>}
                   </div>
                   <button onClick={(e) => deleteNotification(n, e)} aria-label="Delete notification"
-                    className="text-aviro-muted hover:text-red-400 flex-shrink-0 w-9 h-9 rounded-lg hover:bg-red-500/10 flex items-center justify-center">
-                    ✕
+                    className="text-aviro-muted hover:text-red-600 flex-shrink-0 w-9 h-9 rounded-lg hover:bg-red-500/10 flex items-center justify-center">
+                    <Icon e="✕" />
                   </button>
                 </div>
               ))

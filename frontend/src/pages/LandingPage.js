@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { BrandLockup, Wordmark } from '../components/common/Logo';
+import Icon from '../components/common/Icon';
 
 const STEPS = [
   { n: '1', title: 'Verify your college', desc: 'Sign up with your college email or ID card. Only verified students can ride.' },
@@ -26,7 +27,7 @@ function ExampleRide() {
       <div className="relative card p-6 space-y-5 shadow-2xl">
         <div className="flex items-center justify-between">
           <span className="section-tag">Example ride</span>
-          <span className="text-xs text-green-400 font-semibold">✓ Verified student</span>
+          <span className="text-xs text-green-600 font-semibold"><Icon e="✓" /> Verified student</span>
         </div>
         <div className="flex gap-4">
           <div className="flex flex-col items-center pt-1.5">
@@ -41,10 +42,10 @@ function ExampleRide() {
         </div>
         <div className="flex items-center justify-between rounded-xl bg-aviro-card2 p-4">
           <div className="flex items-center gap-3">
-            <span className="w-10 h-10 rounded-full bg-aviro-orange/15 flex items-center justify-center">🏍️</span>
+            <span className="w-10 h-10 rounded-full bg-aviro-orange/15 flex items-center justify-center"><Icon e="🏍️" /></span>
             <div><p className="text-sm font-semibold">Bike · 1 seat left</p><p className="text-xs text-aviro-muted">Starts with an OTP</p></div>
           </div>
-          <p className="text-xs text-aviro-muted text-right">Pay by<br /><span className="text-white font-semibold">UPI or cash</span></p>
+          <p className="text-xs text-aviro-muted text-right">Pay by<br /><span className="text-aviro-fg font-semibold">UPI or cash</span></p>
         </div>
       </div>
     </div>
@@ -54,7 +55,7 @@ function ExampleRide() {
 // Phone first; on a laptop the same sections spread into columns
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-aviro-dark text-white">
+    <div className="min-h-screen bg-aviro-dark text-aviro-fg">
       <div className="max-w-md md:max-w-6xl mx-auto min-h-screen flex flex-col">
 
         <header className="sticky top-0 z-20 bg-aviro-dark/90 backdrop-blur px-5 md:px-8 h-14 md:h-16 flex items-center justify-between border-b border-aviro-border">
@@ -78,7 +79,7 @@ export default function LandingPage() {
             </p>
             <div className="mt-7 md:mt-9 space-y-3 md:space-y-0 md:flex md:gap-4 md:justify-center lg:justify-start">
               <Link to="/register" className="btn-primary block w-full md:w-auto md:px-8 text-center py-3.5 text-base">Create free account</Link>
-              <Link to="/login" className="block w-full md:w-auto md:px-8 text-center py-3.5 text-base rounded-xl border border-aviro-border text-white font-semibold hover:border-aviro-orange">
+              <Link to="/login" className="block w-full md:w-auto md:px-8 text-center py-3.5 text-base rounded-xl border border-aviro-border text-aviro-fg font-semibold hover:border-aviro-orange">
                 I already have an account
               </Link>
             </div>
@@ -109,7 +110,7 @@ export default function LandingPage() {
             <div className="card divide-y divide-aviro-border md:divide-y-0 md:bg-transparent md:border-0 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-4">
               {SAFETY.map(f => (
                 <div key={f.title} className="flex gap-3 p-4 md:card md:p-5">
-                  <span className="text-xl flex-shrink-0" aria-hidden="true">{f.icon}</span>
+                  <span className="text-xl flex-shrink-0" aria-hidden="true"><Icon e={f.icon} /></span>
                   <div>
                     <p className="font-semibold text-sm">{f.title}</p>
                     <p className="text-xs text-aviro-muted mt-0.5 leading-relaxed">{f.desc}</p>
@@ -141,9 +142,9 @@ export default function LandingPage() {
 
         <footer className="px-5 md:px-8 py-6 border-t border-aviro-border text-center text-xs text-aviro-muted space-y-2">
           <p>
-            <Link to="/privacy" className="hover:text-white">Privacy Policy</Link>
+            <Link to="/privacy" className="hover:text-aviro-fg">Privacy Policy</Link>
             {' · '}
-            <Link to="/terms" className="hover:text-white">Terms of Service</Link>
+            <Link to="/terms" className="hover:text-aviro-fg">Terms of Service</Link>
           </p>
           <p>© 2026 AVIRO · Affordable Verified Intelligent Ride Organizer</p>
         </footer>

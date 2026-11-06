@@ -5,6 +5,7 @@ import api from '../services/api';
 import { Wordmark } from '../components/common/Logo';
 import { RouteLines, formatWhen } from '../components/common/RideAlerts';
 import { TILE_URL, TILE_OPTIONS, vehicleIcon, VEHICLE_EMOJI } from '../utils/mapStyle';
+import Icon from '../components/common/Icon';
 
 // Opened by family from a shared link: no account, read-only, refreshes itself
 const REFRESH_MS = 15000;
@@ -66,12 +67,12 @@ export default function SharedTripPage() {
 
   if (error || !trip) {
     return (
-      <div className="min-h-screen bg-aviro-dark text-white">
+      <div className="min-h-screen bg-aviro-dark text-aviro-fg">
         {header}
         <div className="max-w-md mx-auto p-6 text-center space-y-3 mt-10">
           {error ? (
             <>
-              <p className="text-4xl">🔗</p>
+              <p className="text-4xl"><Icon e="🔗" /></p>
               <p className="font-bold text-lg">{error}</p>
               <p className="text-sm text-aviro-muted">Ask the person who sent it to share the trip again.</p>
             </>
@@ -84,14 +85,14 @@ export default function SharedTripPage() {
   }
 
   const status = !trip.live
-    ? (trip.status === 'COMPLETED' ? { text: 'Trip completed ✅', cls: 'bg-green-500/10 text-green-300 border-green-500/30' }
+    ? (trip.status === 'COMPLETED' ? { text: 'Trip completed ✅', cls: 'bg-green-500/10 text-green-700 border-green-500/30' }
       : trip.status === 'CANCELLED' ? { text: 'This trip was cancelled', cls: 'bg-aviro-card2 text-aviro-muted border-aviro-border' }
       : { text: 'This link has expired', cls: 'bg-aviro-card2 text-aviro-muted border-aviro-border' })
     : { text: STAGE_TEXT[trip.tripStage] || `Trip booked for ${formatWhen(trip.departureTime)}`, cls: 'bg-aviro-orange/10 text-aviro-orange border-aviro-orange/30' };
   const v = trip.vehicle;
 
   return (
-    <div className="min-h-screen bg-aviro-dark text-white">
+    <div className="min-h-screen bg-aviro-dark text-aviro-fg">
       {header}
       <main className="max-w-md mx-auto p-4 space-y-4 pb-10">
         <div>
@@ -113,21 +114,21 @@ export default function SharedTripPage() {
                 <FollowPoint at={trip.location} />
               </MapContainer>
               <div className="px-4 py-2.5 flex items-center justify-between text-xs">
-                <span className="text-aviro-muted">📍 Updated {ago(trip.location.updatedAt)}</span>
+                <span className="text-aviro-muted"><Icon e="📍" /> Updated {ago(trip.location.updatedAt)}</span>
                 <a href={`https://maps.google.com/?q=${trip.location.lat},${trip.location.lng}`} target="_blank" rel="noreferrer"
                   className="text-aviro-orange font-semibold">Open in Google Maps</a>
               </div>
             </div>
           ) : (
             <div className="card p-4 text-sm text-aviro-muted text-center" data-testid="no-location">
-              📍 Live location shows here once the trip screen is open on their phone. This page refreshes by itself.
+              <Icon e="📍" /> Live location shows here once the trip screen is open on their phone. This page refreshes by itself.
             </div>
           )
         )}
 
         <div className="card p-4 space-y-4">
           <RouteLines from={trip.fromLocation} to={trip.toLocation} />
-          <p className="text-xs text-aviro-muted">🕘 {formatWhen(trip.departureTime)}</p>
+          <p className="text-xs text-aviro-muted"><Icon e="🕘" /> {formatWhen(trip.departureTime)}</p>
         </div>
 
         <div className="card p-4 space-y-3">
@@ -147,9 +148,9 @@ export default function SharedTripPage() {
         </div>
 
         <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm">
-          <p className="font-semibold text-red-300">Worried?</p>
+          <p className="font-semibold text-red-700">Worried?</p>
           <p className="text-aviro-muted text-xs mt-1">Call {trip.sharerName} first. If you think they are in danger, call the police.</p>
-          <a href="tel:112" className="mt-3 block text-center bg-red-500 text-white font-bold py-2.5 rounded-xl">📞 Call 112</a>
+          <a href="tel:112" className="mt-3 block text-center bg-red-500 text-white font-bold py-2.5 rounded-xl"><Icon e="📞" /> Call 112</a>
         </div>
 
         <p className="text-center text-xs text-aviro-muted">

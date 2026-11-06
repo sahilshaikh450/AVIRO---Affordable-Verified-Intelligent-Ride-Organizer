@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { registerUser } from '../store/authSlice';
 
 import { PUNE_COLLEGES } from '../utils/colleges';
+import Icon from '../components/common/Icon';
 
 // Same rules as the server, so mistakes show before submitting
 const NAME_RULE     = { value: /^[\p{L} .'-]+$/u, message: 'Use letters only' };
@@ -40,7 +41,7 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-aviro-dark flex items-center justify-center p-4">
       <div className="w-full max-w-lg">
         <div className="text-center mb-6 animate-fade-up">
-          <h1 className="font-display font-bold text-3xl text-aviro-orange">Join AVIRO 🚀</h1>
+          <h1 className="font-display font-bold text-3xl text-aviro-orange">Join AVIRO</h1>
           <p className="text-aviro-muted text-sm mt-1">Pune's College Ride Platform</p>
         </div>
 
@@ -69,7 +70,7 @@ export default function RegisterPage() {
                     <label key={r} className={`relative flex flex-col items-center p-4 rounded-xl border-2 cursor-pointer transition-all
                       ${role === r ? 'border-aviro-orange bg-aviro-orange/5' : 'border-aviro-border hover:border-aviro-border/80'}`}>
                       <input {...register('role')} type="radio" value={r} className="absolute opacity-0" />
-                      <span className="text-2xl mb-1">{r === 'RIDER' ? '🎒' : r === 'DRIVER' ? '🏍️' : '🤝'}</span>
+                      <span className="text-2xl mb-1"><Icon e={r === 'RIDER' ? '🎒' : r === 'DRIVER' ? '🏍️' : '🤝'} /></span>
                       <span className="text-sm font-semibold">{r === 'BOTH' ? 'Both' : r.charAt(0) + r.slice(1).toLowerCase()}</span>
                       <span className="text-xs text-aviro-muted text-center mt-0.5">
                         {r === 'RIDER' ? 'Find rides' : r === 'DRIVER' ? 'Offer rides' : 'Find & Offer'}
@@ -85,7 +86,7 @@ export default function RegisterPage() {
                       <label key={g} className={`flex items-center justify-center gap-1.5 p-2.5 rounded-xl border-2 cursor-pointer text-sm font-medium transition-all
                         ${watch('gender') === g ? 'border-aviro-orange bg-aviro-orange/5 text-aviro-orange' : 'border-aviro-border text-aviro-muted'}`}>
                         <input {...register('gender')} type="radio" value={g} className="hidden" />
-                        {g === 'MALE' ? '👨' : g === 'FEMALE' ? '👩' : '🧑'} {g.charAt(0) + g.slice(1).toLowerCase()}
+                        {g.charAt(0) + g.slice(1).toLowerCase()}
                       </label>
                     ))}
                   </div>
@@ -102,12 +103,12 @@ export default function RegisterPage() {
                 <div>
                   <label className="text-xs text-aviro-muted font-medium block mb-1.5">Full Name</label>
                   <input {...register('fullName', { required: 'Name is required', minLength: { value: 2, message: 'Name is too short' }, maxLength: { value: 60, message: 'Name is too long' }, pattern: NAME_RULE })} placeholder="Rahul Patil" autoComplete="name" className="input-field" />
-                  {errors.fullName && <p className="text-red-400 text-xs mt-1">{errors.fullName.message}</p>}
+                  {errors.fullName && <p className="text-red-600 text-xs mt-1">{errors.fullName.message}</p>}
                 </div>
                 <div>
                   <label className="text-xs text-aviro-muted font-medium block mb-1.5">College Email</label>
                   <input {...register('email', { required: 'Email required', pattern: { value: /\S+@\S+\.\S+/, message: 'Invalid' } })} type="email" placeholder="rahul@college.edu.in" className="input-field" />
-                  {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email.message}</p>}
+                  {errors.email && <p className="text-red-600 text-xs mt-1">{errors.email.message}</p>}
                 </div>
                 <div>
                   <label className="text-xs text-aviro-muted font-medium block mb-1.5">College</label>
@@ -117,7 +118,7 @@ export default function RegisterPage() {
                   <datalist id="pune-colleges">
                     {PUNE_COLLEGES.map(c => <option key={c} value={c} />)}
                   </datalist>
-                  {errors.collegeName && <p className="text-red-400 text-xs mt-1">{errors.collegeName.message}</p>}
+                  {errors.collegeName && <p className="text-red-600 text-xs mt-1">{errors.collegeName.message}</p>}
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -142,26 +143,26 @@ export default function RegisterPage() {
             {/* STEP 3 - Location & Password */}
             {step === 3 && (
               <div className="space-y-4">
-                <h3 className="font-bold text-lg">Almost Done! 🎉</h3>
+                <h3 className="font-bold text-lg">Almost Done! <Icon e="🎉" /></h3>
                 <div>
                   <label className="text-xs text-aviro-muted font-medium block mb-1.5">Your Area / Locality</label>
                   <input {...register('locality', { required: 'Locality required' })} placeholder="Shivajinagar, Kothrud..." className="input-field" />
-                  {errors.locality && <p className="text-red-400 text-xs mt-1">{errors.locality.message}</p>}
+                  {errors.locality && <p className="text-red-600 text-xs mt-1">{errors.locality.message}</p>}
                 </div>
                 <div>
                   <label className="text-xs text-aviro-muted font-medium block mb-1.5">Phone Number</label>
                   <input {...register('phone', { setValueAs: v => (v || '').replace(/[\s-]/g, ''), validate: v => !v || PHONE_RULE.value.test(v) || PHONE_RULE.message })} type="tel" inputMode="numeric" placeholder="9876543210" autoComplete="tel" className="input-field" />
-                  {errors.phone && <p className="text-red-400 text-xs mt-1">{errors.phone.message}</p>}
+                  {errors.phone && <p className="text-red-600 text-xs mt-1">{errors.phone.message}</p>}
                 </div>
                 <div>
                   <label className="text-xs text-aviro-muted font-medium block mb-1.5">Password</label>
                   <input {...register('password', { required: 'Password required', pattern: PASSWORD_RULE })} type="password" placeholder="••••••••" autoComplete="new-password" className="input-field" />
                   {!errors.password && <p className="text-aviro-muted text-xs mt-1">At least 8 characters, with a letter and a number</p>}
-                  {errors.password && <p className="text-red-400 text-xs mt-1">{errors.password.message}</p>}
+                  {errors.password && <p className="text-red-600 text-xs mt-1">{errors.password.message}</p>}
                 </div>
 
                 <div className="bg-aviro-orange/5 border border-aviro-orange/20 rounded-xl p-3 text-xs text-aviro-muted">
-                  🎓 Using your college email (.edu.in, .ac.in or .edu) verifies your college automatically. You can also verify it later from your profile.
+                  <Icon e="🎓" /> Using your college email (.edu.in, .ac.in or .edu) verifies your college automatically. You can also verify it later from your profile.
                 </div>
 
                 <div className="flex gap-2">

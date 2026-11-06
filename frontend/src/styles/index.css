@@ -1,26 +1,26 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne:wght@700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #0D0F14; color: #F0F2F8; font-family: 'Space Grotesk', sans-serif; }
+  body { background: #FFFFFF; color: #000000; font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
   ::-webkit-scrollbar { width: 6px; }
-  ::-webkit-scrollbar-track { background: #0D0F14; }
-  ::-webkit-scrollbar-thumb { background: #2A2F3E; border-radius: 3px; }
+  ::-webkit-scrollbar-track { background: #FFFFFF; }
+  ::-webkit-scrollbar-thumb { background: #D4D4D4; border-radius: 3px; }
 }
 
 @layer components {
-  .btn-primary   { @apply bg-aviro-orange text-white font-bold rounded-full px-6 py-2.5 transition-all hover:opacity-90 hover:-translate-y-0.5 hover:shadow-lg active:scale-95; }
-  .btn-secondary { @apply bg-transparent text-white border border-aviro-border font-semibold rounded-full px-6 py-2.5 transition-all hover:border-aviro-orange hover:text-aviro-orange; }
+  .btn-primary   { @apply bg-black text-white font-semibold rounded-full px-6 py-2.5 transition-all hover:bg-neutral-800 active:scale-[0.98]; }
+  .btn-secondary { @apply bg-aviro-card2 text-aviro-fg font-semibold rounded-full px-6 py-2.5 transition-all hover:bg-neutral-200; }
   .card          { @apply bg-aviro-card border border-aviro-border rounded-2xl; }
-  .input-field   { @apply w-full bg-aviro-card2 border border-aviro-border rounded-xl px-4 py-3 text-sm text-white placeholder-aviro-muted focus:outline-none focus:border-aviro-orange transition-colors; }
+  .input-field   { @apply w-full bg-aviro-card2 border border-transparent rounded-xl px-4 py-3 text-sm text-aviro-fg placeholder-aviro-muted focus:outline-none focus:border-black focus:bg-white transition-colors; }
   .section-tag   { @apply inline-block bg-aviro-orange/10 text-aviro-orange px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider; }
-  .gender-male   { @apply bg-blue-500/10 text-blue-400 text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1; }
-  .gender-female { @apply bg-pink-500/10 text-pink-400 text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1; }
-  .sidebar-link  { @apply flex items-center gap-3 px-4 py-3 rounded-xl text-aviro-muted hover:text-white hover:bg-aviro-card2 transition-all font-medium text-sm; }
-  .sidebar-link.active { @apply bg-aviro-orange/10 text-aviro-orange; }
+  .gender-male   { @apply bg-aviro-card2 text-aviro-fg text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1; }
+  .gender-female { @apply bg-aviro-card2 text-aviro-fg text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1; }
+  .sidebar-link  { @apply flex items-center gap-3 px-4 py-3 rounded-xl text-aviro-muted hover:text-aviro-fg hover:bg-aviro-card2 transition-all font-medium text-sm; }
+  .sidebar-link.active { @apply bg-aviro-card2 text-aviro-fg font-semibold; }
 }
 /* ── ADD THIS TO YOUR index.css or tailwind.css ── */
 

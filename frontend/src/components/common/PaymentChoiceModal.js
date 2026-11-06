@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import Icon from './Icon';
 
 const isPhone = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
@@ -41,15 +42,15 @@ function PaymentChoiceContent({ booking, isDriver = false, onClose, onPaid }) {
       <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
         <div className="bg-aviro-card border border-aviro-border rounded-2xl w-full max-w-md shadow-2xl animate-fade-up max-h-[92vh] overflow-y-auto">
           <div className="p-5 border-b border-aviro-border">
-            <h2 className="font-display font-bold text-xl">💵 Cash Payment</h2>
+            <h2 className="font-display font-bold text-xl">Cash Payment</h2>
             <p className="text-aviro-muted text-sm mt-1">
               {riderName} claims to have paid <span className="text-aviro-green font-bold">₹{amount}</span> in cash
             </p>
           </div>
           <div className="p-5 space-y-4">
             <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 text-center">
-              <p className="text-3xl mb-2">💵</p>
-              <p className="font-bold text-white">Did you receive ₹{amount} cash?</p>
+              <p className="text-3xl mb-2"><Icon e="💵" /></p>
+              <p className="font-bold text-aviro-fg">Did you receive ₹{amount} cash?</p>
               <p className="text-xs text-aviro-muted mt-1">from {riderName}</p>
             </div>
             <button onClick={handleDriverConfirmCash} disabled={confirming}
@@ -57,7 +58,7 @@ function PaymentChoiceContent({ booking, isDriver = false, onClose, onPaid }) {
               {confirming ? 'Confirming...' : '✅ Yes, I received the cash!'}
             </button>
             <button onClick={onClose}
-              className="w-full text-xs text-aviro-muted hover:text-white py-2 border border-aviro-border rounded-xl">
+              className="w-full text-xs text-aviro-muted hover:text-aviro-fg py-2 border border-aviro-border rounded-xl">
               Not yet received
             </button>
           </div>
@@ -112,7 +113,7 @@ function PaymentChoiceContent({ booking, isDriver = false, onClose, onPaid }) {
       <div className="bg-aviro-card border border-aviro-border rounded-2xl w-full max-w-md shadow-2xl animate-fade-up max-h-[92vh] overflow-y-auto">
 
         <div className="p-5 border-b border-aviro-border">
-          <h2 className="font-display font-bold text-xl">💰 Payment</h2>
+          <h2 className="font-display font-bold text-xl">Payment</h2>
           <p className="text-aviro-muted text-sm mt-1">
             Pay <span className="text-aviro-green font-bold">₹{amount}</span> to {driverName}
           </p>
@@ -123,27 +124,27 @@ function PaymentChoiceContent({ booking, isDriver = false, onClose, onPaid }) {
           {/* Method Selection */}
           {!method && (
             <>
-              <p className="text-sm font-medium text-white">Choose payment method:</p>
+              <p className="text-sm font-medium text-aviro-fg">Choose payment method:</p>
               <div className="grid grid-cols-2 gap-3">
                 <button onClick={() => setMethod('UPI')} disabled={!driverUpi}
                   className="flex flex-col items-center gap-3 p-5 rounded-2xl border-2 border-aviro-border hover:border-aviro-green hover:bg-aviro-green/5 transition-all
                     disabled:opacity-50 disabled:hover:border-aviro-border disabled:hover:bg-transparent">
-                  <span className="text-4xl">📱</span>
+                  <span className="text-4xl"><Icon e="📱" /></span>
                   <div className="text-center">
                     <p className="font-bold text-sm">UPI</p>
                     <p className="text-xs text-aviro-muted">GPay / PhonePe / Paytm</p>
                     {driverUpi
                       ? <p className="text-xs text-aviro-green mt-1">Pay to driver's UPI ✅</p>
-                      : <p className="text-xs text-yellow-400 mt-1">Driver hasn't added UPI</p>}
+                      : <p className="text-xs text-yellow-600 mt-1">Driver hasn't added UPI</p>}
                   </div>
                 </button>
                 <button onClick={() => setMethod('CASH')}
                   className="flex flex-col items-center gap-3 p-5 rounded-2xl border-2 border-aviro-border hover:border-aviro-orange hover:bg-aviro-orange/5 transition-all">
-                  <span className="text-4xl">💵</span>
+                  <span className="text-4xl"><Icon e="💵" /></span>
                   <div className="text-center">
                     <p className="font-bold text-sm">Cash</p>
                     <p className="text-xs text-aviro-muted">Pay directly to driver</p>
-                    <p className="text-xs text-yellow-400 mt-1">Driver confirms ⏳</p>
+                    <p className="text-xs text-yellow-600 mt-1">Driver confirms ⏳</p>
                   </div>
                 </button>
               </div>
@@ -173,7 +174,7 @@ function PaymentChoiceContent({ booking, isDriver = false, onClose, onPaid }) {
               {isPhone() ? (
                 <button onClick={handleUpiPay}
                   className="w-full bg-gradient-to-r from-aviro-green to-emerald-500 text-white font-bold py-3 rounded-xl text-sm hover:opacity-90">
-                  📱 Open UPI app & pay ₹{amount}
+                  <Icon e="📱" /> Open UPI app & pay ₹{amount}
                 </button>
               ) : null}
 
@@ -205,11 +206,11 @@ function PaymentChoiceContent({ booking, isDriver = false, onClose, onPaid }) {
           {method === 'CASH' && (
             <div className="space-y-3">
               <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
-                <p className="text-3xl text-center mb-2">💵</p>
-                <p className="font-bold text-white text-center">Pay ₹{amount} cash</p>
+                <p className="text-3xl text-center mb-2"><Icon e="💵" /></p>
+                <p className="font-bold text-aviro-fg text-center">Pay ₹{amount} cash</p>
                 <p className="text-xs text-aviro-muted text-center mt-1">Hand over cash to {driverName}</p>
                 <div className="mt-3 bg-aviro-card2 rounded-lg p-3">
-                  <p className="text-xs text-yellow-400 text-center">⚠️ Driver will confirm receipt</p>
+                  <p className="text-xs text-yellow-600 text-center"><Icon e="⚠️" /> Driver will confirm receipt</p>
                   <p className="text-xs text-aviro-muted text-center mt-1">Both will get notified once confirmed</p>
                 </div>
               </div>
@@ -224,7 +225,7 @@ function PaymentChoiceContent({ booking, isDriver = false, onClose, onPaid }) {
 
         <div className="px-5 pb-5">
           <button onClick={onClose}
-            className="w-full text-xs text-aviro-muted hover:text-white py-2 border border-aviro-border rounded-xl">
+            className="w-full text-xs text-aviro-muted hover:text-aviro-fg py-2 border border-aviro-border rounded-xl">
             Pay Later
           </button>
         </div>
