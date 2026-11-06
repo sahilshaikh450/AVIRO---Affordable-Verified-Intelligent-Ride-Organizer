@@ -6,6 +6,7 @@ import NotificationBell from './NotificationBell';
 import TripAlerts from './TripAlerts';
 import PushPrompt from './PushPrompt';
 import { Wordmark } from './Logo';
+import useOpenChats from '../../hooks/useOpenChats';
 
 // ── Bottom nav links (mobile) ──
 // Trips covers rides you booked and rides you offer. Profile and Settings open from the avatar,
@@ -69,12 +70,14 @@ function MobileTopBar() {
 }
 
 // ── Mobile Bottom Navigation ──
-function MobileBottomNav() {
+function MobileBottomNav({ chatOpen }) {
   const { pathname } = useLocation();
+  // Chat shows only while a confirmed ride is on
+  const links = bottomLinks.filter(l => l.to !== '/chat' || chatOpen);
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-20 bg-aviro-card border-t border-aviro-border">
       <div className="flex items-center justify-around px-2 py-1 safe-area-bottom">
-        {bottomLinks.map(l => (
+        {links.map(l => (
           <NavLink
             key={l.to}
             to={l.to}
@@ -95,7 +98,7 @@ function MobileBottomNav() {
 }
 
 // ── Desktop Sidebar ──
-function DesktopSidebar() {
+function DesktopSidebar({ chatOpen }) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { user } = useSelector(s => s.auth);
@@ -123,7 +126,7 @@ function DesktopSidebar() {
 
       {/* Nav */}
       <nav className="flex-1 p-2 space-y-0.5 overflow-y-auto">
-        {sidebarLinks.map(l => (
+        {sidebarLinks.filter(l => l.to !== '/chat' || chatOpen).map(l => (
           <NavLink key={l.to} to={l.to}
             className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
             <span className="text-lg flex-shrink-0">{l.icon}</span>
@@ -167,10 +170,12 @@ function DesktopTopbar() {
 
 // ── Main Layout ──
 export default function AppLayout() {
+  const { chats } = useOpenChats();
+  const chatOpen = chats.length > 0;
   return (
     <div className="flex min-h-screen bg-aviro-dark">
       {/* Desktop sidebar */}
-      <DesktopSidebar />
+      <DesktopSidebar chatOpen={chatOpen} />
 
       <div className="flex-1 flex flex-col min-w-0">
         {/* Mobile topbar */}
@@ -187,7 +192,7 @@ export default function AppLayout() {
       </div>
 
       {/* Mobile bottom nav */}
-      <MobileBottomNav />
+      <MobileBottomNav chatOpen={chatOpen} />
 
       {/* Live notifications and ride request popups */}
       <TripAlerts />
