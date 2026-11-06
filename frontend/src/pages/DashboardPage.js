@@ -10,37 +10,52 @@ import { RideCard, Spinner } from '../components/common/UIComponents';
 import { RouteLines } from '../components/common/RideAlerts';
 import { StatusLine, riderStatus } from '../components/common/Trips';
 import { formatWhen, isPast } from '../utils/when';
+import Icon, { initial } from '../components/common/Icon';
 
 const OPEN_RIDE = ['PENDING', 'ACTIVE', 'IN_PROGRESS'];
+
+// Small status pill for the black card
+const DarkChip = ({ text, tone }) => (
+  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${tone === 'wait' ? 'bg-yellow-400/20 text-yellow-200' : 'bg-white/15 text-white'}`}>{text}</span>
+);
 
 // The one trip that matters most right now, as rider or driver
 function NextTrip({ booking, ride, requests }) {
   if (booking) {
     const st = riderStatus(booking);
     return (
-      <Link to={`/tracking/${booking.id}`} className={`card p-4 block space-y-3 ${st.tone === 'live' ? 'border-aviro-orange/50' : ''}`} data-testid="next-trip">
+      <Link to={`/tracking/${booking.id}`} className="block rounded-2xl bg-black text-white p-4 space-y-3" data-testid="next-trip">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-xs font-semibold text-aviro-muted uppercase tracking-wider">Your next ride</p>
-          <span className="text-xs text-aviro-orange font-semibold">Open →</span>
+          <p className="text-xs font-medium text-white/60">Your next ride</p>
+          <DarkChip {...st} />
         </div>
-        <StatusLine {...st} />
-        <p className="font-bold text-lg">{formatWhen(booking.departureTime)}</p>
-        <RouteLines from={booking.fromLocation} to={booking.toLocation} />
+        <p className="font-bold text-xl tracking-tight">{formatWhen(booking.departureTime)}</p>
+        <RouteLines from={booking.fromLocation} to={booking.toLocation} onDark />
+        {booking.driver && (
+          <div className="flex items-center gap-3 pt-3 border-t border-white/15">
+            <span className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center font-bold text-sm">{initial(booking.driver.fullName)}</span>
+            <span className="flex-1 min-w-0">
+              <span className="block text-sm font-semibold truncate">{booking.driver.fullName}</span>
+              <span className="block text-xs text-white/60 truncate">{[booking.driver.vehicleModel, booking.driver.vehicleColor].filter(Boolean).join(' · ') || 'Driver'}</span>
+            </span>
+            <span className="bg-white text-black text-sm font-semibold px-4 py-2 rounded-full">Open trip</span>
+          </div>
+        )}
       </Link>
     );
   }
   if (ride) {
     return (
-      <Link to="/my-rides" className={`card p-4 block space-y-3 ${requests ? 'border-aviro-blue/50' : ''}`} data-testid="next-trip">
+      <Link to="/my-rides" className="block rounded-2xl bg-black text-white p-4 space-y-3" data-testid="next-trip">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-xs font-semibold text-aviro-muted uppercase tracking-wider">Ride you're offering</p>
-          <span className="text-xs text-aviro-orange font-semibold">Manage →</span>
+          <p className="text-xs font-medium text-white/60">Ride you're offering</p>
+          <DarkChip text={requests ? `${requests} request${requests > 1 ? 's' : ''} waiting` : `${ride.totalSeats - ride.availableSeats} of ${ride.totalSeats} seats booked`} />
         </div>
-        <StatusLine {...(requests
-          ? { icon: '🔔', text: `${requests} request${requests > 1 ? 's' : ''} waiting for you`, tone: 'act' }
-          : { icon: '🟢', text: `${ride.totalSeats - ride.availableSeats} of ${ride.totalSeats} seats booked`, tone: 'good' })} />
-        <p className="font-bold text-lg">{formatWhen(ride.departureTime)}</p>
-        <RouteLines from={ride.fromLocation} to={ride.toLocation} />
+        <p className="font-bold text-xl tracking-tight">{formatWhen(ride.departureTime)}</p>
+        <RouteLines from={ride.fromLocation} to={ride.toLocation} onDark />
+        <div className="pt-3 border-t border-white/15 flex justify-end">
+          <span className="bg-white text-black text-sm font-semibold px-4 py-2 rounded-full">{requests ? 'Answer requests' : 'Manage ride'}</span>
+        </div>
       </Link>
     );
   }
@@ -90,15 +105,21 @@ export default function DashboardPage() {
   return (
     <div className="space-y-5 animate-fade-up">
       <div>
-        <h1 className="font-display font-bold text-2xl">{greeting}, {user?.fullName?.split(' ')[0]} 👋</h1>
-        <p className="text-aviro-muted text-sm mt-0.5">Where are you going today?</p>
+        <p className="text-aviro-muted text-sm">{greeting}, {user?.fullName?.split(' ')[0]}</p>
+        <h1 className="font-display font-extrabold text-3xl tracking-tight mt-0.5">Where to today?</h1>
       </div>
+
+      <Link to="/search" className="flex items-center gap-3 h-[52px] pl-4 pr-2 rounded-2xl bg-aviro-card2 text-aviro-muted" data-testid="home-search">
+        <Icon name="search" size={18} />
+        <span className="flex-1 text-[15px] font-medium">Search a destination</span>
+        <span className="flex items-center gap-1.5 bg-white text-black text-sm font-semibold px-3 py-2 rounded-full"><Icon name="clock" size={14} /> Now</span>
+      </Link>
 
       {!user?.isCollegeVerified && (
         <Link to="/profile?tab=id" className="card p-4 border-yellow-500/40 bg-yellow-500/5 flex items-center gap-3">
-          <span className="text-2xl">🎓</span>
+          <span className="text-2xl"><Icon e="🎓" /></span>
           <span className="flex-1">
-            <span className="font-semibold text-sm text-yellow-300 block">Verify your college ID to start riding</span>
+            <span className="font-semibold text-sm text-yellow-700 block">Verify your college ID to start riding</span>
             <span className="text-xs text-aviro-muted">Upload a photo of your ID card. It takes a minute.</span>
           </span>
           <span className="text-aviro-orange text-sm font-semibold">Verify →</span>
@@ -106,8 +127,8 @@ export default function DashboardPage() {
       )}
 
       {toPay.length > 0 && (
-        <Link to="/bookings" className="card p-4 border-aviro-blue/40 bg-aviro-blue/5 flex items-center gap-3">
-          <span className="text-2xl">💳</span>
+        <Link to="/bookings" className="rounded-2xl p-4 bg-aviro-card2 flex items-center gap-3">
+          <span className="text-2xl"><Icon e="💳" /></span>
           <span className="flex-1 text-sm">
             <span className="font-semibold block">{toPay.length > 1 ? 'Pay for your rides' : 'Pay for your last ride'}</span>
             <span className="text-xs text-aviro-muted">{toPay.length > 1
@@ -126,14 +147,14 @@ export default function DashboardPage() {
 
       {/* The two things people come here to do */}
       <div className="grid grid-cols-2 gap-3">
-        <Link to="/search" className="card p-4 hover:border-aviro-orange/50 transition-colors bg-aviro-orange/5 border-aviro-orange/30" data-testid="action-find">
-          <span className="text-3xl block">🔍</span>
-          <span className="font-bold block mt-2">Find a ride</span>
+        <Link to="/search" className="card p-4 hover:border-black transition-colors" data-testid="action-find">
+          <span className="w-10 h-10 rounded-xl bg-black text-white flex items-center justify-center"><Icon name="search" size={20} /></span>
+          <span className="font-bold block mt-3">Find a ride</span>
           <span className="text-xs text-aviro-muted block mt-0.5">Get a seat with a student going your way</span>
         </Link>
-        <Link to="/offer-ride" className="card p-4 hover:border-aviro-orange/50 transition-colors" data-testid="action-offer">
-          <span className="text-3xl block">🏍️</span>
-          <span className="font-bold block mt-2">Offer a ride</span>
+        <Link to="/offer-ride" className="card p-4 hover:border-black transition-colors" data-testid="action-offer">
+          <span className="w-10 h-10 rounded-xl bg-aviro-card2 flex items-center justify-center"><Icon name="bike" size={22} /></span>
+          <span className="font-bold block mt-3">Offer a ride</span>
           <span className="text-xs text-aviro-muted block mt-0.5">Driving anyway? Share seats, split fuel</span>
         </Link>
       </div>

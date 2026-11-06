@@ -12,14 +12,15 @@ import ReviewModal from '../components/common/ReviewModal';
 import { geocodePlace, fetchRoute, hasRealCoords, googleMapsDirections } from '../utils/geo';
 import { MAP_OPTIONS, addTiles, routeLayer, layerBounds, meIcon, personIcon, vehicleIcon, startIcon, endIcon, VEHICLE_EMOJI } from '../utils/mapStyle';
 import toast from 'react-hot-toast';
+import Icon, { initial } from '../components/common/Icon';
 
 const QUICK_MESSAGES = [
-  { label: '🚗 On my way!',  text: "I'm on my way!" },
-  { label: '📍 I\'m here!',  text: "I've reached the pickup point!" },
-  { label: '⏰ 5 min late',  text: 'Running 5 minutes late, sorry!' },
-  { label: '🅿️ At gate',     text: "I'm waiting at the gate!" },
-  { label: '👀 Can\'t find you', text: "I can't find you, please call me." },
-  { label: '✅ Coming',      text: 'Coming, 1 minute!' },
+  { label: 'On my way!',  text: "I'm on my way!" },
+  { label: 'I\'m here!',  text: "I've reached the pickup point!" },
+  { label: '5 min late',  text: 'Running 5 minutes late, sorry!' },
+  { label: 'At gate',     text: "I'm waiting at the gate!" },
+  { label: 'Can\'t find you', text: "I can't find you, please call me." },
+  { label: 'Coming',      text: 'Coming, 1 minute!' },
 ];
 
 // Trip progress shown to both people, like a cab app
@@ -372,11 +373,11 @@ export default function LiveTrackingPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-display font-bold text-xl">{isDriver ? 'Your Trip 🚗' : 'Your Ride 🗺️'}</h1>
+          <h1 className="font-display font-bold text-xl">{isDriver ? 'Your Trip' : 'Your Ride'}</h1>
           <p className="text-aviro-muted text-sm">{booking.fromLocation} → {booking.toLocation}</p>
         </div>
         <button onClick={() => navigate(isDriver ? '/my-rides' : '/bookings')}
-          className="text-aviro-muted text-sm border border-aviro-border px-3 py-1.5 rounded-lg hover:text-white">
+          className="text-aviro-muted text-sm border border-aviro-border px-3 py-1.5 rounded-lg hover:text-aviro-fg">
           ← Bookings
         </button>
       </div>
@@ -391,7 +392,7 @@ export default function LiveTrackingPage() {
             {STEPS.map((s, i) => (
               <div key={s.key} className="flex flex-col items-center gap-1 z-10">
                 <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center text-lg transition-all
-                  ${i <= stepIndex ? 'bg-aviro-orange border-aviro-orange' : 'bg-aviro-card2 border-aviro-border'}`}>{s.icon}</div>
+                  ${i <= stepIndex ? 'bg-black border-black text-white' : 'bg-aviro-card2 border-aviro-card2 text-aviro-muted'}`}><Icon e={s.icon} size={18} /></div>
                 <span className={`text-xs font-medium text-center w-14 ${i <= stepIndex ? 'text-aviro-orange' : 'text-aviro-muted'}`}>{s.label}</span>
               </div>
             ))}
@@ -407,16 +408,16 @@ export default function LiveTrackingPage() {
             <div className="w-12 h-12 mx-auto border-4 border-aviro-orange/30 border-t-aviro-orange rounded-full animate-spin" />
             <p className="font-bold text-lg">Waiting for {booking.driver?.fullName?.split(' ')[0] || 'the driver'} to accept…</p>
             <p className="text-sm text-aviro-muted">You'll get a notification as soon as they respond.</p>
-            <button onClick={cancelRequest} disabled={busy} className="text-sm text-red-400 hover:underline">Cancel request</button>
+            <button onClick={cancelRequest} disabled={busy} className="text-sm text-red-600 hover:underline">Cancel request</button>
           </div>
         )}
         {stage === 'REQUESTED' && isDriver && (
           <div className="space-y-3">
-            <p className="font-bold text-lg">🔔 New ride request</p>
+            <p className="font-bold text-lg"><Icon e="🔔" /> New ride request</p>
             <p className="text-sm text-aviro-muted">{booking.rider?.fullName} wants {booking.seatsBooked} seat{booking.seatsBooked > 1 ? 's' : ''} · ₹{booking.totalAmount}</p>
             <div className="grid grid-cols-2 gap-3">
-              <button onClick={accept} disabled={busy} className="bg-aviro-green text-white font-bold py-3 rounded-xl">✅ Accept</button>
-              <button onClick={decline} disabled={busy} className="bg-red-500/10 text-red-400 border border-red-500/30 font-bold py-3 rounded-xl">Decline</button>
+              <button onClick={accept} disabled={busy} className="bg-aviro-green text-white font-bold py-3 rounded-xl"><Icon e="✅" /> Accept</button>
+              <button onClick={decline} disabled={busy} className="bg-red-500/10 text-red-600 border border-red-500/30 font-bold py-3 rounded-xl">Decline</button>
             </div>
           </div>
         )}
@@ -427,10 +428,10 @@ export default function LiveTrackingPage() {
             <div>
               <p className="font-bold text-lg">
                 {isRider ? {
-                  ACCEPTED:   `✅ ${other?.fullName?.split(' ')[0]} accepted your ride`,
-                  ON_THE_WAY: `🚗 ${other?.fullName?.split(' ')[0]} is on the way`,
-                  ARRIVED:    `📍 ${other?.fullName?.split(' ')[0]} has arrived!`,
-                  STARTED:    `🏁 On the way to ${booking.toLocation}`,
+                  ACCEPTED:   `${other?.fullName?.split(' ')[0]} accepted your ride`,
+                  ON_THE_WAY: `${other?.fullName?.split(' ')[0]} is on the way`,
+                  ARRIVED:    `${other?.fullName?.split(' ')[0]} has arrived`,
+                  STARTED:    `On the way to ${booking.toLocation}`,
                 }[stage] : {
                   ACCEPTED:   'Head to the pickup when you\'re ready',
                   ON_THE_WAY: `Picking up ${other?.fullName?.split(' ')[0]}`,
@@ -440,18 +441,18 @@ export default function LiveTrackingPage() {
               </p>
               {awayKm != null && !inTrip && (
                 <p className="text-sm text-aviro-muted mt-1">
-                  {isDriver ? 'Rider' : 'Driver'} is <span className="text-white font-semibold">{formatDistance(awayKm)}</span> away
-                  {awayKm > 0.05 && <> · about <span className="text-white font-semibold">{awayMin} min</span></>}
+                  {isDriver ? 'Rider' : 'Driver'} is <span className="text-aviro-fg font-semibold">{formatDistance(awayKm)}</span> away
+                  {awayKm > 0.05 && <> · about <span className="text-aviro-fg font-semibold">{awayMin} min</span></>}
                 </p>
               )}
               {inTrip && (
                 <p className="text-sm text-aviro-muted mt-1" data-testid="trip-eta">
                   {routeNow
-                    ? <>🏁 <span className="text-white font-semibold">{formatDistance(routeNow.distanceKm)}</span> · about <span className="text-white font-semibold">{routeNow.durationMin} min</span> to {booking.toLocation}</>
+                    ? <><Icon e="🏁" /> <span className="text-aviro-fg font-semibold">{formatDistance(routeNow.distanceKm)}</span> · about <span className="text-aviro-fg font-semibold">{routeNow.durationMin} min</span> to {booking.toLocation}</>
                     : <>Finding the route to {booking.toLocation}…</>}
                 </p>
               )}
-              {otherStale && <p className="text-xs text-yellow-400 mt-1">⚠️ {isDriver ? 'Rider' : 'Driver'}'s location hasn't updated for a minute</p>}
+              {otherStale && <p className="text-xs text-yellow-600 mt-1">⚠️ {isDriver ? 'Rider' : 'Driver'}'s location hasn't updated for a minute</p>}
             </div>
 
             {/* Rider: OTP to share at pickup */}
@@ -466,14 +467,14 @@ export default function LiveTrackingPage() {
             {isDriver && (navTarget || inTrip) && (
               <a href={googleMapsDirections(navTarget, booking.toLocation)} target="_blank" rel="noreferrer"
                 className="w-full flex items-center justify-center gap-2 bg-aviro-card2 border border-aviro-border text-sm font-semibold py-2.5 rounded-xl hover:border-aviro-orange/50">
-                🧭 Navigate to {inTrip ? 'drop' : 'pickup'} in Google Maps
+                <Icon e="🧭" /> Navigate to {inTrip ? 'drop' : 'pickup'} in Google Maps
               </a>
             )}
 
             {/* Driver controls */}
             {isDriver && stage === 'ACCEPTED' && (
               <button onClick={() => setTrip('ON_THE_WAY', 'Rider notified that you are on the way')} disabled={busy}
-                className="w-full bg-aviro-orange text-white font-bold py-3 rounded-xl">🚗 Start heading to pickup</button>
+                className="w-full bg-aviro-orange text-white font-bold py-3 rounded-xl"><Icon e="🚗" /> Start heading to pickup</button>
             )}
             {isDriver && stage === 'ON_THE_WAY' && (
               <button onClick={() => setTrip('ARRIVED', 'Rider notified that you arrived')} disabled={busy}
@@ -485,19 +486,19 @@ export default function LiveTrackingPage() {
                   inputMode="numeric" placeholder="Rider's 4-digit OTP" aria-label="Rider OTP"
                   className="input-field text-center font-mono text-2xl tracking-[0.4em]" />
                 <button onClick={startTrip} disabled={busy}
-                  className="w-full bg-aviro-green text-white font-bold py-3 rounded-xl">🏁 Verify OTP & start trip</button>
+                  className="w-full bg-aviro-green text-white font-bold py-3 rounded-xl"><Icon e="🏁" /> Verify OTP & start trip</button>
               </div>
             )}
             {isDriver && stage === 'STARTED' && (
               <button onClick={() => window.confirm('End this trip?') && endTrip()} disabled={busy}
-                className="w-full bg-aviro-blue text-white font-bold py-3 rounded-xl">🏁 End trip</button>
+                className="w-full bg-aviro-blue text-white font-bold py-3 rounded-xl"><Icon e="🏁" /> End trip</button>
             )}
             {isRider && ['ACCEPTED', 'ON_THE_WAY'].includes(stage) && (
-              <button onClick={cancelRequest} disabled={busy} className="w-full text-xs text-red-400 hover:underline">Cancel booking</button>
+              <button onClick={cancelRequest} disabled={busy} className="w-full text-xs text-red-600 hover:underline">Cancel booking</button>
             )}
 
             {gpsStatus === 'denied' && (
-              <p className="text-xs text-red-400">Location permission is off — allow it in the browser so {isDriver ? 'the rider' : 'the driver'} can see you.</p>
+              <p className="text-xs text-red-600">Location permission is off — allow it in the browser so {isDriver ? 'the rider' : 'the driver'} can see you.</p>
             )}
           </>
         )}
@@ -505,21 +506,21 @@ export default function LiveTrackingPage() {
         {/* ── COMPLETED ── */}
         {stage === 'COMPLETED' && (
           <div className="space-y-3 text-center">
-            <p className="text-4xl">🎉</p>
+            <p className="text-4xl"><Icon e="🎉" /></p>
             <p className="font-bold text-lg">Trip completed · ₹{booking.totalAmount}</p>
             {isRider && booking.paymentStatus !== 'COMPLETED' && !booking.paymentMethod && (
-              <button onClick={() => setShowPay(true)} className="w-full bg-aviro-green text-white font-bold py-3 rounded-xl">💳 Pay ₹{booking.totalAmount}</button>
+              <button onClick={() => setShowPay(true)} className="w-full bg-aviro-green text-white font-bold py-3 rounded-xl"><Icon e="💳" /> Pay ₹{booking.totalAmount}</button>
             )}
             {booking.paymentMethod === 'CASH' && booking.paymentStatus !== 'COMPLETED' && (
               isDriver
-                ? <button onClick={confirmCash} disabled={busy} className="w-full bg-aviro-green text-white font-bold py-3 rounded-xl">✅ I received the cash</button>
-                : <p className="text-sm text-yellow-400">💵 Waiting for the driver to confirm your cash payment</p>
+                ? <button onClick={confirmCash} disabled={busy} className="w-full bg-aviro-green text-white font-bold py-3 rounded-xl"><Icon e="✅" /> I received the cash</button>
+                : <p className="text-sm text-yellow-600"><Icon e="💵" /> Waiting for the driver to confirm your cash payment</p>
             )}
             {isDriver && !booking.paymentMethod && <p className="text-sm text-aviro-muted">Waiting for the rider to pay…</p>}
-            {booking.paymentStatus === 'COMPLETED' && <p className="text-sm text-aviro-green">✅ Payment complete</p>}
+            {booking.paymentStatus === 'COMPLETED' && <p className="text-sm text-aviro-green"><Icon e="✅" /> Payment complete</p>}
             {!reviewed && (
-              <button onClick={() => setShowReview(true)} className="w-full bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 font-semibold py-2.5 rounded-xl">
-                ⭐ Rate {other?.fullName?.split(' ')[0] || (isDriver ? 'rider' : 'driver')}
+              <button onClick={() => setShowReview(true)} className="w-full bg-yellow-500/10 text-yellow-600 border border-yellow-500/30 font-semibold py-2.5 rounded-xl">
+                <Icon e="⭐" /> Rate {other?.fullName?.split(' ')[0] || (isDriver ? 'rider' : 'driver')}
               </button>
             )}
           </div>
@@ -562,28 +563,28 @@ export default function LiveTrackingPage() {
       {/* Person card */}
       <div className="card p-4 flex items-center gap-3">
         <div className="w-12 h-12 rounded-full bg-aviro-card2 flex items-center justify-center text-2xl">
-          {other?.gender === 'FEMALE' ? '👩' : '👨'}
+          {initial(other?.fullName)}
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-bold text-sm">{other?.fullName}</p>
-          <p className="text-xs text-aviro-muted">{isDriver ? 'Your rider' : 'Your driver'} · ⭐ {other?.rating?.toFixed(1) || '5.0'}</p>
+          <p className="text-xs text-aviro-muted">{isDriver ? 'Your rider' : 'Your driver'} · <Icon e="★" /> {other?.rating?.toFixed(1) || '5.0'}</p>
           {isRider && booking.driver?.vehicleModel && (
             <p className="text-xs text-aviro-muted truncate">
               {booking.driver.vehicleModel} · {booking.driver.vehicleColor}
-              {booking.driver.vehicleRegistrationNumber && <> · <span className="text-white font-semibold">{booking.driver.vehicleRegistrationNumber}</span></>}
+              {booking.driver.vehicleRegistrationNumber && <> · <span className="text-aviro-fg font-semibold">{booking.driver.vehicleRegistrationNumber}</span></>}
             </p>
           )}
         </div>
         <div className="flex gap-2">
-          {other?.phone && <a href={`tel:${other.phone}`} className="w-10 h-10 rounded-full bg-aviro-green/15 flex items-center justify-center" aria-label="Call">📞</a>}
-          {isLive && <Link to={`/chat?booking=${bookingId}`} className="w-10 h-10 rounded-full bg-aviro-orange/15 flex items-center justify-center" aria-label="Chat">💬</Link>}
+          {other?.phone && <a href={`tel:${other.phone}`} className="w-10 h-10 rounded-full bg-aviro-green/15 flex items-center justify-center" aria-label="Call"><Icon e="📞" /></a>}
+          {isLive && <Link to={`/chat?booking=${bookingId}`} className="w-10 h-10 rounded-full bg-aviro-orange/15 flex items-center justify-center" aria-label="Chat"><Icon e="💬" /></Link>}
         </div>
       </div>
 
       {/* Quick messages */}
       {isLive && (
         <div className="card p-4 space-y-3">
-          <h3 className="font-bold text-sm">💬 Quick messages</h3>
+          <h3 className="font-bold text-sm"><Icon e="💬" /> Quick messages</h3>
           <div className="grid grid-cols-3 gap-2">
             {QUICK_MESSAGES.map(m => (
               <button key={m.label} onClick={() => sendQuickMsg(m.text)}
@@ -607,8 +608,8 @@ export default function LiveTrackingPage() {
       {/* Share with family + SOS */}
       {isLive && (
         <div className="grid grid-cols-2 gap-2">
-          <button onClick={shareTrip} className="w-full bg-aviro-card2 border border-aviro-border text-white font-bold py-3 rounded-xl hover:border-aviro-orange/50">
-            📍 Share trip
+          <button onClick={shareTrip} className="w-full bg-aviro-card2 border border-aviro-border text-aviro-fg font-bold py-3 rounded-xl hover:border-aviro-orange/50">
+            <Icon e="📍" /> Share trip
           </button>
           <button onClick={() => setShowSOS(true)} className="w-full bg-red-500 text-white font-bold py-3 rounded-xl hover:bg-red-600">
             🆘 SOS
@@ -619,13 +620,13 @@ export default function LiveTrackingPage() {
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
           <div className="bg-aviro-card border border-red-500/50 rounded-2xl w-full max-w-sm p-6 space-y-3 text-center">
             <p className="text-4xl">🆘</p>
-            <h3 className="font-bold text-xl text-red-400">Emergency alert</h3>
+            <h3 className="font-bold text-xl text-red-600">Emergency alert</h3>
             <p className="text-aviro-muted text-sm">Sends your live location to your emergency contacts and the {isDriver ? 'rider' : 'driver'}.</p>
             {!sosConfirm
               ? <button onClick={() => setSosConfirm(true)} className="w-full bg-red-500 text-white font-bold py-3 rounded-xl">Yes, send SOS</button>
               : <button onClick={sendSOS} className="w-full bg-red-600 text-white font-bold py-3 rounded-xl">Confirm — SEND NOW</button>}
             <button onClick={() => { setShowSOS(false); setSosConfirm(false); }} className="w-full bg-aviro-card2 text-aviro-muted font-semibold py-3 rounded-xl">Cancel</button>
-            <p className="text-xs text-aviro-muted">Emergency: <span className="text-red-400 font-bold">112</span></p>
+            <p className="text-xs text-aviro-muted">Emergency: <span className="text-red-600 font-bold">112</span></p>
           </div>
         </div>
       )}

@@ -5,6 +5,7 @@ import { loginUser } from '../store/authSlice';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 import { BrandLockup } from '../components/common/Logo';
+import Icon from '../components/common/Icon';
 
 export default function LoginPage() {
 
@@ -201,9 +202,8 @@ export default function LoginPage() {
 
               <div className="mb-6">
 
-                <h2 className="font-bold text-xl text-white">
-                  Welcome back 👋
-                </h2>
+                <h2 className="font-bold text-xl text-aviro-fg">
+                  Welcome back</h2>
 
                 <p className="text-aviro-muted text-sm mt-1">
                   Sign in to your AVIRO account
@@ -281,7 +281,7 @@ export default function LoginPage() {
                       onClick={() =>
                         setShowPass(!showPass)
                       }
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-aviro-muted hover:text-white text-sm"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-aviro-muted hover:text-aviro-fg text-sm"
                     >
                       {showPass ? '🙈' : '👁️'}
                     </button>
@@ -344,7 +344,7 @@ export default function LoginPage() {
 
                 <button
                   onClick={() => setStep(1)}
-                  className="text-aviro-muted text-sm hover:text-white flex items-center gap-1 mb-4"
+                  className="text-aviro-muted text-sm hover:text-aviro-fg flex items-center gap-1 mb-4"
                 >
                   ← Back to Login
                 </button>
@@ -352,10 +352,10 @@ export default function LoginPage() {
                 <div className="text-center">
 
                   <div className="text-4xl mb-3">
-                    🔐
+                    <Icon e="🔐" />
                   </div>
 
-                  <h2 className="font-bold text-xl text-white">
+                  <h2 className="font-bold text-xl text-aviro-fg">
                     Forgot Password?
                   </h2>
 
@@ -430,7 +430,7 @@ export default function LoginPage() {
 
                 <button
                   onClick={() => setStep(3)}
-                  className="text-aviro-muted text-sm hover:text-white flex items-center gap-1 mb-4"
+                  className="text-aviro-muted text-sm hover:text-aviro-fg flex items-center gap-1 mb-4"
                 >
                   ← Back
                 </button>
@@ -438,10 +438,10 @@ export default function LoginPage() {
                 <div className="text-center">
 
                   <div className="text-4xl mb-3">
-                    🔑
+                    <Icon e="🔑" />
                   </div>
 
-                  <h2 className="font-bold text-xl text-white">
+                  <h2 className="font-bold text-xl text-aviro-fg">
                     Reset Password
                   </h2>
 
@@ -519,7 +519,7 @@ export default function LoginPage() {
                       onClick={() =>
                         setShowNewPass(!showNewPass)
                       }
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-aviro-muted hover:text-white text-sm"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-aviro-muted hover:text-aviro-fg text-sm"
                     >
                       {showNewPass ? '🙈' : '👁️'}
                     </button>
@@ -549,7 +549,7 @@ export default function LoginPage() {
                   {confirmPassword &&
                     newPassword !== confirmPassword && (
 
-                      <p className="text-red-400 text-xs mt-1">
+                      <p className="text-red-600 text-xs mt-1">
                         Passwords do not match
                       </p>
 

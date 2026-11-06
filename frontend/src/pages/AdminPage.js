@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import api from '../services/api';
 import { Spinner, GenderBadge } from '../components/common/UIComponents';
 import toast from 'react-hot-toast';
+import Icon, { initial } from '../components/common/Icon';
 
 // The image endpoint needs the JWT, which a plain <img src> or link can't send.
 // Fetch it through the api client (adds the token) and show it as a blob URL.
@@ -159,7 +160,7 @@ export default function AdminPage() {
 
   if (forbidden) return (
     <div className="max-w-md mx-auto text-center py-20 space-y-3">
-      <div className="text-5xl">🔒</div>
+      <div className="text-5xl"><Icon e="🔒" /></div>
       <h1 className="font-display font-bold text-xl">Admin access only</h1>
       <p className="text-aviro-muted text-sm">
         Your account does not have admin rights. Ask the project admin to add your email to AVIRO_ADMIN_EMAILS.
@@ -180,8 +181,8 @@ export default function AdminPage() {
             <img src={expandedImg} alt="College ID Full"
               className="w-full rounded-2xl object-contain max-h-[80vh]"/>
             <button onClick={() => setExpandedImg(null)}
-              className="absolute top-2 right-2 bg-black/50 text-white rounded-full w-8 h-8 flex items-center justify-center text-lg">
-              ✕
+              className="absolute top-2 right-2 bg-black/50 text-aviro-fg rounded-full w-8 h-8 flex items-center justify-center text-lg">
+              <Icon e="✕" />
             </button>
             <p className="text-center text-xs text-gray-400 mt-2">Tap anywhere to close</p>
           </div>
@@ -189,7 +190,7 @@ export default function AdminPage() {
       )}
 
       <div>
-        <h1 className="font-display font-bold text-2xl mb-1">Admin Panel 🛡️</h1>
+        <h1 className="font-display font-bold text-2xl mb-1">Admin Panel</h1>
         <p className="text-aviro-muted text-sm">Review and verify college ID & vehicle submissions</p>
       </div>
 
@@ -205,7 +206,7 @@ export default function AdminPage() {
             <p className="text-xs text-aviro-muted">ID Verified</p>
           </div>
           <div className="card p-4 text-center">
-            <p className="text-2xl font-bold text-yellow-400">{stats.pendingUsers}</p>
+            <p className="text-2xl font-bold text-yellow-600">{stats.pendingUsers}</p>
             <p className="text-xs text-aviro-muted">ID Pending</p>
           </div>
         </div>
@@ -215,7 +216,7 @@ export default function AdminPage() {
       <div className="flex gap-2 bg-aviro-card2 p-1.5 rounded-xl border border-aviro-border">
         <button onClick={() => setTab('college')}
           className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all
-            ${tab === 'college' ? 'bg-aviro-orange text-white' : 'text-aviro-muted hover:text-white'}`}>
+            ${tab === 'college' ? 'bg-aviro-orange text-white' : 'text-aviro-muted hover:text-aviro-fg'}`}>
           🎓 College IDs
           {pending.length > 0 && (
             <span className="ml-2 bg-white/20 text-xs px-1.5 py-0.5 rounded-full">{pending.length}</span>
@@ -223,7 +224,7 @@ export default function AdminPage() {
         </button>
         <button onClick={() => setTab('vehicle')}
           className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all
-            ${tab === 'vehicle' ? 'bg-aviro-orange text-white' : 'text-aviro-muted hover:text-white'}`}>
+            ${tab === 'vehicle' ? 'bg-aviro-orange text-white' : 'text-aviro-muted hover:text-aviro-fg'}`}>
           🏍️ Vehicles
           {pendingVehicles.length > 0 && (
             <span className="ml-2 bg-white/20 text-xs px-1.5 py-0.5 rounded-full">{pendingVehicles.length}</span>
@@ -231,7 +232,7 @@ export default function AdminPage() {
         </button>
         <button onClick={() => setTab('reports')}
           className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all
-            ${tab === 'reports' ? 'bg-aviro-orange text-white' : 'text-aviro-muted hover:text-white'}`}>
+            ${tab === 'reports' ? 'bg-aviro-orange text-white' : 'text-aviro-muted hover:text-aviro-fg'}`}>
           🚩 Reports
           {reports.some(r => r.status === 'OPEN') && (
             <span className="ml-2 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">{reports.filter(r => r.status === 'OPEN').length}</span>
@@ -242,7 +243,7 @@ export default function AdminPage() {
       {/* ── SAFETY REPORTS TAB ── */}
       {tab === 'reports' && (
         <div data-testid="admin-reports">
-          <h2 className="font-bold text-lg mb-3">🚩 Safety reports ({reports.filter(r => r.status === 'OPEN').length} open)</h2>
+          <h2 className="font-bold text-lg mb-3">Safety reports ({reports.filter(r => r.status === 'OPEN').length} open)</h2>
           {reports.length === 0 ? (
             <div className="card p-8 text-center text-aviro-muted text-sm">No reports yet.</div>
           ) : (
@@ -251,10 +252,10 @@ export default function AdminPage() {
                 <div key={r.id} className={`card p-4 space-y-2 ${r.status === 'OPEN' ? 'border-red-500/40' : 'opacity-70'}`}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="font-semibold text-red-300">{r.reason}</p>
+                      <p className="font-semibold text-red-700">{r.reason}</p>
                       <p className="text-xs text-aviro-muted">#{r.id} · {new Date(r.createdAt).toLocaleString('en-IN')} · booking #{r.bookingId}</p>
                     </div>
-                    <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${r.status === 'OPEN' ? 'bg-red-500/15 text-red-300' : 'bg-green-500/15 text-green-300'}`}>
+                    <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${r.status === 'OPEN' ? 'bg-red-500/15 text-red-700' : 'bg-green-500/15 text-green-700'}`}>
                       {r.status === 'OPEN' ? 'Open' : 'Resolved'}
                     </span>
                   </div>
@@ -271,11 +272,11 @@ export default function AdminPage() {
                       <p className="text-aviro-muted break-all">{r.reporterEmail}</p>
                     </div>
                   </div>
-                  <p className="text-xs text-aviro-muted">🗺️ {r.route} · {new Date(r.departureTime).toLocaleString('en-IN')}</p>
+                  <p className="text-xs text-aviro-muted"><Icon e="🗺️" /> {r.route} · {new Date(r.departureTime).toLocaleString('en-IN')}</p>
                   {r.status === 'OPEN' && (
                     <button onClick={() => resolveReport(r.id)} disabled={processingId === `r${r.id}`}
                       className="w-full bg-aviro-green/15 text-aviro-green border border-aviro-green/30 font-bold py-2 rounded-xl text-sm disabled:opacity-50">
-                      ✓ Mark as resolved
+                      <Icon e="✓" /> Mark as resolved
                     </button>
                   )}
                 </div>
@@ -291,7 +292,7 @@ export default function AdminPage() {
           <h2 className="font-bold text-lg mb-3">⏳ Pending College IDs ({pending.length})</h2>
           {pending.length === 0 ? (
             <div className="card p-8 text-center text-aviro-muted text-sm">
-              <div className="text-3xl mb-2">✅</div>No pending college ID verifications!
+              <div className="text-3xl mb-2"><Icon e="✅" /></div>No pending college ID verifications!
             </div>
           ) : (
             <div className="space-y-4">
@@ -300,7 +301,7 @@ export default function AdminPage() {
                   <div className="flex items-start justify-between gap-4 mb-4">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 rounded-full bg-aviro-card2 border border-aviro-border flex items-center justify-center text-xl">
-                        {u.gender === 'FEMALE' ? '👩' : '👨'}
+                        {initial(u?.fullName)}
                       </div>
                       <div>
                         <p className="font-bold text-sm">{u.fullName}</p>
@@ -314,12 +315,12 @@ export default function AdminPage() {
                   {/* College ID image (loaded with the admin's token) */}
                   {u.collegeIdPicUrl ? (
                     <div className="mb-4">
-                      <p className="text-xs text-aviro-muted mb-2">📷 Uploaded College ID:</p>
+                      <p className="text-xs text-aviro-muted mb-2"><Icon e="📷" /> Uploaded College ID:</p>
                       <CollegeIdImage url={u.collegeIdPicUrl} onExpand={setExpandedImg} />
                     </div>
                   ) : (
                     <div className="mb-4 bg-aviro-card2 rounded-xl p-4 text-center text-aviro-muted text-sm">
-                      <span className="text-2xl block mb-1">📷</span>
+                      <span className="text-2xl block mb-1"><Icon e="📷" /></span>
                       No image uploaded yet
                     </div>
                   )}
@@ -330,8 +331,8 @@ export default function AdminPage() {
                       {processingId === u.id ? 'Processing...' : '✅ Approve'}
                     </button>
                     <button onClick={() => handleReject(u.id)} disabled={processingId === u.id}
-                      className="flex-1 bg-red-500/10 text-red-400 border border-red-500/30 font-bold py-2.5 rounded-xl text-sm hover:bg-red-500/20 disabled:opacity-50">
-                      ❌ Reject
+                      className="flex-1 bg-red-500/10 text-red-600 border border-red-500/30 font-bold py-2.5 rounded-xl text-sm hover:bg-red-500/20 disabled:opacity-50">
+                      <Icon e="❌" /> Reject
                     </button>
                   </div>
                 </div>
@@ -347,7 +348,7 @@ export default function AdminPage() {
           <h2 className="font-bold text-lg mb-3">⏳ Pending Vehicles ({pendingVehicles.length})</h2>
           {pendingVehicles.length === 0 ? (
             <div className="card p-8 text-center text-aviro-muted text-sm">
-              <div className="text-3xl mb-2">✅</div>No pending vehicle verifications!
+              <div className="text-3xl mb-2"><Icon e="✅" /></div>No pending vehicle verifications!
             </div>
           ) : (
             <div className="space-y-4">
@@ -383,7 +384,7 @@ export default function AdminPage() {
                     {[['Number plate', v.platePhotoUrl], ['Driving licence', v.licencePhotoUrl]].map(([label, url]) => (
                       <div key={label}>
                         <p className="text-xs text-aviro-muted mb-1">{label}</p>
-                        {url ? <CollegeIdImage url={url} onExpand={setExpandedImg} /> : <p className="text-xs text-red-400">Not uploaded</p>}
+                        {url ? <CollegeIdImage url={url} onExpand={setExpandedImg} /> : <p className="text-xs text-red-600">Not uploaded</p>}
                       </div>
                     ))}
                   </div>
@@ -394,8 +395,8 @@ export default function AdminPage() {
                       {processingId === v.vehicleId ? 'Processing...' : '✅ Approve Vehicle'}
                     </button>
                     <button onClick={() => handleVehicleReject(v.vehicleId)} disabled={processingId === v.vehicleId}
-                      className="flex-1 bg-red-500/10 text-red-400 border border-red-500/30 font-bold py-2.5 rounded-xl text-sm hover:bg-red-500/20 disabled:opacity-50">
-                      ❌ Reject
+                      className="flex-1 bg-red-500/10 text-red-600 border border-red-500/30 font-bold py-2.5 rounded-xl text-sm hover:bg-red-500/20 disabled:opacity-50">
+                      <Icon e="❌" /> Reject
                     </button>
                   </div>
                 </div>

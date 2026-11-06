@@ -4,22 +4,24 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        // "Mono" look: white surfaces, black text and buttons, one green for good news
         aviro: {
-          orange:  "#FF6B2B",
-          dark:    "#0D0F14",
-          card:    "#161A22",
-          card2:   "#1E2330",
-          border:  "#2A2F3E",
-          muted:   "#8B93A8",
-          green:   "#22C55E",
-          blue:    "#3B82F6",
-          purple:  "#A855F7",
-          yellow:  "#FBBF24",
+          orange:  "#000000",   // accent (buttons, active tab, links)
+          dark:    "#FFFFFF",   // page background
+          card:    "#FFFFFF",
+          card2:   "#F3F3F3",   // inputs, chips, inner panels
+          border:  "#E8E8E8",
+          muted:   "#6B6B6B",
+          fg:      "#000000",   // main text
+          green:   "#05944F",
+          blue:    "#276EF1",
+          purple:  "#7356BF",
+          yellow:  "#B7791F",
         }
       },
       fontFamily: {
-        sans:    ["Space Grotesk", "sans-serif"],
-        display: ["Syne", "sans-serif"],
+        sans:    ["Inter", "system-ui", "sans-serif"],
+        display: ["Inter", "system-ui", "sans-serif"],
       },
       animation: {
         // "backwards", not "both": once it ends no transform stays on the page, which would

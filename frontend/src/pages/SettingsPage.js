@@ -6,6 +6,7 @@ import { logoutUser, logout } from '../store/authSlice';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 import { BrandLockup } from '../components/common/Logo';
+import Icon, { initial } from '../components/common/Icon';
 
 // ── Help Chatbot ──
 const HELP_RESPONSES = {
@@ -63,7 +64,7 @@ function HelpChatbot({ onClose }) {
       <div className="bg-aviro-card border border-aviro-border rounded-2xl w-full max-w-md shadow-2xl flex flex-col" style={{ height: '540px' }}>
         <div className="flex items-center justify-between p-4 border-b border-aviro-border">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-aviro-orange/20 flex items-center justify-center text-xl">🤖</div>
+            <div className="w-10 h-10 rounded-full bg-aviro-orange/20 flex items-center justify-center text-xl"><Icon e="🤖" /></div>
             <div>
               <p className="font-bold text-sm">AVIRO Support Bot</p>
               <div className="flex items-center gap-1">
@@ -72,26 +73,26 @@ function HelpChatbot({ onClose }) {
               </div>
             </div>
           </div>
-          <button onClick={onClose} className="text-aviro-muted hover:text-white text-xl w-8 h-8 flex items-center justify-center">✕</button>
+          <button onClick={onClose} className="text-aviro-muted hover:text-aviro-fg text-xl w-8 h-8 flex items-center justify-center"><Icon e="✕" /></button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {messages.map((m, i) => (
             <div key={i} className={`flex ${m.from === 'user' ? 'justify-end' : 'justify-start'}`}>
               {m.from === 'bot' && (
-                <div className="w-7 h-7 rounded-full bg-aviro-orange/20 flex items-center justify-center text-sm mr-2 flex-shrink-0 mt-1">🤖</div>
+                <div className="w-7 h-7 rounded-full bg-aviro-orange/20 flex items-center justify-center text-sm mr-2 flex-shrink-0 mt-1"><Icon e="🤖" /></div>
               )}
               <div className={`max-w-xs rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap
                 ${m.from === 'user'
                   ? 'bg-aviro-orange text-white rounded-br-sm'
-                  : 'bg-aviro-card2 text-white rounded-bl-sm border border-aviro-border'}`}>
+                  : 'bg-aviro-card2 text-aviro-fg rounded-bl-sm border border-aviro-border'}`}>
                 {m.text}
               </div>
             </div>
           ))}
           {typing && (
             <div className="flex justify-start">
-              <div className="w-7 h-7 rounded-full bg-aviro-orange/20 flex items-center justify-center text-sm mr-2">🤖</div>
+              <div className="w-7 h-7 rounded-full bg-aviro-orange/20 flex items-center justify-center text-sm mr-2"><Icon e="🤖" /></div>
               <div className="bg-aviro-card2 border border-aviro-border rounded-2xl rounded-bl-sm px-4 py-3 flex gap-1 items-center">
                 <div className="w-2 h-2 bg-aviro-muted rounded-full animate-bounce" style={{ animationDelay: '0ms' }}/>
                 <div className="w-2 h-2 bg-aviro-muted rounded-full animate-bounce" style={{ animationDelay: '150ms' }}/>
@@ -162,14 +163,14 @@ function ResetPasswordModal({ onClose }) {
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-aviro-card border border-aviro-border rounded-2xl w-full max-w-sm p-6 space-y-5">
         <div className="flex items-center justify-between">
-          <h3 className="font-bold text-lg">🔐 Reset Password</h3>
-          <button onClick={onClose} className="text-aviro-muted hover:text-white w-8 h-8 flex items-center justify-center">✕</button>
+          <h3 className="font-bold text-lg"><Icon e="🔐" /> Reset Password</h3>
+          <button onClick={onClose} className="text-aviro-muted hover:text-aviro-fg w-8 h-8 flex items-center justify-center"><Icon e="✕" /></button>
         </div>
         {step === 1 && (
           <>
             <div className="bg-aviro-card2 rounded-xl p-4">
               <p className="text-sm text-aviro-muted">OTP will be sent to:</p>
-              <p className="font-semibold text-white mt-1">{user?.email}</p>
+              <p className="font-semibold text-aviro-fg mt-1">{user?.email}</p>
             </div>
             <button onClick={sendOtp} disabled={loading}
               className="w-full bg-aviro-orange text-white font-bold py-3 rounded-xl disabled:opacity-50 flex items-center justify-center gap-2">
@@ -201,7 +202,7 @@ function ResetPasswordModal({ onClose }) {
               <input type="password" value={confirmPass} onChange={e => setConfirmPass(e.target.value)}
                 placeholder="Re-enter password" className="input-field"/>
               {confirmPass && newPass !== confirmPass && (
-                <p className="text-red-400 text-xs mt-1">Passwords do not match</p>
+                <p className="text-red-600 text-xs mt-1">Passwords do not match</p>
               )}
             </div>
             <button onClick={resetPassword}
@@ -229,24 +230,24 @@ function InfoModal({ type, onClose }) {
             <p className="text-xs mt-2">Version 1.0.0</p>
           </div>
           <div className="bg-aviro-card2 rounded-xl p-4 space-y-2">
-            <p className="font-semibold text-white">What is AVIRO?</p>
+            <p className="font-semibold text-aviro-fg">What is AVIRO?</p>
             <p>AVIRO is a college ride-sharing platform built exclusively for Pune college students. Students with empty seats can offer rides, and other verified students can book those seats and split the travel cost.</p>
           </div>
           <div className="bg-aviro-card2 rounded-xl p-4 space-y-2">
-            <p className="font-semibold text-white">Our Mission</p>
+            <p className="font-semibold text-aviro-fg">Our Mission</p>
             <p>To make daily college commuting affordable, safe, and transparent for every Pune college student — eliminating meter disputes, surge pricing, and unsafe travel.</p>
           </div>
           <div className="bg-aviro-card2 rounded-xl p-4 space-y-2">
-            <p className="font-semibold text-white">Key Features</p>
-            <p>✅ AI-powered College ID Verification</p>
-            <p>🗺️ Live GPS Tracking (Zomato-style)</p>
+            <p className="font-semibold text-aviro-fg">Key Features</p>
+            <p><Icon e="✅" /> AI-powered College ID Verification</p>
+            <p><Icon e="🗺️" /> Live GPS Tracking (Zomato-style)</p>
             <p>🆘 SOS Emergency Alerts</p>
-            <p>🚺 Women-Only Ride Mode</p>
-            <p>💰 Fixed Upfront Pricing</p>
-            <p>💬 Real-time WebSocket Chat</p>
+            <p><Icon e="🚺" /> Women-Only Ride Mode</p>
+            <p><Icon e="💰" /> Fixed Upfront Pricing</p>
+            <p><Icon e="💬" /> Real-time WebSocket Chat</p>
           </div>
           <div className="bg-aviro-card2 rounded-xl p-4 space-y-2">
-            <p className="font-semibold text-white">Tech Stack</p>
+            <p className="font-semibold text-aviro-fg">Tech Stack</p>
             <p>Frontend: React.js 18 + Redux Toolkit</p>
             <p>Backend: Spring Boot 3.2 + Java 17</p>
             <p>Database: MySQL + Redis</p>
@@ -254,14 +255,14 @@ function InfoModal({ type, onClose }) {
             <p>Real-time: WebSocket + STOMP</p>
           </div>
           <div className="bg-aviro-card2 rounded-xl p-4 space-y-2">
-            <p className="font-semibold text-white">Developed by</p>
+            <p className="font-semibold text-aviro-fg">Developed by</p>
             <p>Sahil Shaikh</p>
             <p>MCA Student, MIT World Peace University, Pune</p>
           
           </div>
           <div className="text-center text-xs">
-            <p>📧 aviro.support@gmail.com</p>
-            <p className="mt-1">Made with ❤️ for Pune College Students</p>
+            <p><Icon e="📧" /> aviro.support@gmail.com</p>
+            <p className="mt-1">Made with <Icon e="❤️" /> for Pune College Students</p>
           </div>
         </div>
       )
@@ -275,7 +276,7 @@ function InfoModal({ type, onClose }) {
       <div className="bg-aviro-card border border-aviro-border rounded-2xl w-full max-w-md shadow-2xl flex flex-col" style={{ maxHeight: '85vh' }}>
         <div className="flex items-center justify-between p-4 border-b border-aviro-border flex-shrink-0">
           <h3 className="font-bold text-base">{c.title}</h3>
-          <button onClick={onClose} className="text-aviro-muted hover:text-white w-8 h-8 flex items-center justify-center text-xl">✕</button>
+          <button onClick={onClose} className="text-aviro-muted hover:text-aviro-fg w-8 h-8 flex items-center justify-center text-xl"><Icon e="✕" /></button>
         </div>
         <div className="flex-1 overflow-y-auto p-4">
           {c.body}
@@ -371,11 +372,11 @@ export default function SettingsPage() {
       {/* Header with back button */}
       <div className="flex items-center gap-3">
         <button onClick={() => navigate(-1)}
-          className="w-9 h-9 rounded-xl bg-aviro-card2 border border-aviro-border flex items-center justify-center text-aviro-muted hover:text-white hover:border-aviro-orange/50 transition-all">
+          className="w-9 h-9 rounded-xl bg-aviro-card2 border border-aviro-border flex items-center justify-center text-aviro-muted hover:text-aviro-fg hover:border-aviro-orange/50 transition-all">
           ←
         </button>
         <div>
-          <h1 className="font-display font-bold text-2xl">Settings ⚙️</h1>
+          <h1 className="font-display font-bold text-2xl">Settings</h1>
           <p className="text-aviro-muted text-sm">Manage your AVIRO account</p>
         </div>
       </div>
@@ -383,15 +384,15 @@ export default function SettingsPage() {
       {/* User card */}
       <div className="card p-5 flex items-center gap-4">
         <div className="w-14 h-14 rounded-full bg-aviro-orange/20 border-2 border-aviro-orange/30 flex items-center justify-center text-3xl">
-          {user?.gender === 'FEMALE' ? '👩' : '👨'}
+          {initial(user?.fullName)}
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-bold text-lg truncate">{user?.fullName}</p>
           <p className="text-aviro-muted text-sm truncate">{user?.email}</p>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
-            {user?.isCollegeVerified && <span className="text-xs bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full">✓ Verified</span>}
-            <span className="text-xs text-aviro-orange">⭐ {user?.rating?.toFixed(1) || '5.0'}</span>
-            <span className="text-xs text-aviro-muted">🪙 {user?.aviroCredits || 0} credits</span>
+            {user?.isCollegeVerified && <span className="text-xs bg-green-500/10 text-green-600 px-2 py-0.5 rounded-full"><Icon e="✓" /> Verified</span>}
+            <span className="text-xs text-aviro-orange"><Icon e="⭐" /> {user?.rating?.toFixed(1) || '5.0'}</span>
+            <span className="text-xs text-aviro-muted"><Icon e="🪙" /> {user?.aviroCredits || 0} credits</span>
           </div>
         </div>
       </div>
@@ -407,12 +408,12 @@ export default function SettingsPage() {
               <button key={ii} onClick={item.action}
                 className={`w-full flex items-center gap-4 px-5 py-4 hover:bg-aviro-card2 transition-colors text-left
                   ${item.highlight ? 'bg-aviro-orange/5' : ''}`}>
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0
-                  ${item.highlight ? 'bg-aviro-orange/20' : 'bg-aviro-card2'}`}>
-                  {item.icon}
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0
+                  ${item.highlight ? 'bg-black text-white' : 'bg-aviro-card2'}`}>
+                  <Icon e={item.icon} size={18} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className={`font-semibold text-sm ${item.highlight ? 'text-aviro-orange' : 'text-white'}`}>
+                  <p className={`font-semibold text-sm ${item.highlight ? 'text-aviro-orange' : 'text-aviro-fg'}`}>
                     {item.label}
                   </p>
                   <p className="text-xs text-aviro-muted truncate">{item.sub}</p>
@@ -427,9 +428,9 @@ export default function SettingsPage() {
       {/* Logout */}
       <button onClick={handleLogout}
         className="w-full card p-4 flex items-center gap-4 hover:bg-red-500/5 hover:border-red-500/30 transition-all">
-        <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center text-xl">🚪</div>
+        <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center text-xl"><Icon e="🚪" /></div>
         <div className="flex-1 text-left">
-          <p className="font-semibold text-sm text-red-400">Log Out</p>
+          <p className="font-semibold text-sm text-red-600">Log Out</p>
           <p className="text-xs text-aviro-muted">Sign out from your account</p>
         </div>
         <span className="text-aviro-muted text-lg">›</span>
@@ -437,13 +438,13 @@ export default function SettingsPage() {
 
       {/* Delete Account */}
       <button onClick={() => setShowDeleteConfirm(true)}
-        className="w-full text-xs text-red-400/50 hover:text-red-400 text-center py-2 transition-colors">
+        className="w-full text-xs text-red-600/50 hover:text-red-600 text-center py-2 transition-colors">
         Delete Account
       </button>
 
       {/* App version */}
       <p className="text-center text-xs text-aviro-muted pb-2">
-        AVIRO v1.0.0 · Made with ❤️ for Pune Students
+        AVIRO v1.0.0 · Made with <Icon e="❤️" /> for Pune Students
       </p>
 
       {/* Delete Confirm (portal: the page wrapper is animated with a transform,
@@ -453,7 +454,7 @@ export default function SettingsPage() {
           <form onSubmit={handleDeleteAccount}
             className="bg-aviro-card border border-aviro-border rounded-2xl w-full max-w-sm p-6 space-y-4">
             <div className="text-center">
-              <p className="text-4xl mb-3">⚠️</p>
+              <p className="text-4xl mb-3"><Icon e="⚠️" /></p>
               <h3 className="font-bold text-lg">Delete Account?</h3>
               <p className="text-aviro-muted text-sm mt-2">
                 This cannot be undone. Your profile, college ID, vehicle and notifications will be removed,
@@ -479,7 +480,7 @@ export default function SettingsPage() {
                 Cancel
               </button>
               <button type="submit" disabled={deleting || !deletePassword}
-                className="flex-1 bg-red-500/10 border border-red-500/30 text-red-400 font-bold py-2.5 rounded-xl text-sm disabled:opacity-50">
+                className="flex-1 bg-red-500/10 border border-red-500/30 text-red-600 font-bold py-2.5 rounded-xl text-sm disabled:opacity-50">
                 {deleting ? 'Deleting...' : 'Delete Forever'}
               </button>
             </div>

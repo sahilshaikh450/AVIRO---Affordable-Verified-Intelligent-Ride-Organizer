@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { verifyOtp } from '../store/authSlice';
 import api from '../services/api';
 import toast from 'react-hot-toast';
+import Icon from '../components/common/Icon';
 
 export default function VerifyOtpPage() {
   const [otp, setOtp]   = useState(['','','','','','']);
@@ -51,9 +52,9 @@ export default function VerifyOtpPage() {
   return (
     <div className="min-h-screen bg-aviro-dark flex items-center justify-center p-4">
       <div className="w-full max-w-sm text-center">
-        <div className="text-5xl mb-4 animate-float">📧</div>
+        <div className="text-5xl mb-4 animate-float"><Icon e="📧" /></div>
         <h1 className="font-display font-bold text-2xl mb-2">Check your email</h1>
-        <p className="text-aviro-muted text-sm mb-8">We sent a 6-digit OTP to<br/><span className="text-white font-medium">{email}</span></p>
+        <p className="text-aviro-muted text-sm mb-8">We sent a 6-digit OTP to<br/><span className="text-aviro-fg font-medium">{email}</span></p>
 
         <form onSubmit={handleSubmit}>
           <div className="flex gap-2 justify-center mb-6">
@@ -67,7 +68,7 @@ export default function VerifyOtpPage() {
                 value={digit}
                 onChange={e => handleChange(e.target.value, i)}
                 onKeyDown={e => handleKeyDown(e, i)}
-                className="w-12 h-14 text-center text-xl font-bold bg-aviro-card2 border-2 border-aviro-border rounded-xl focus:outline-none focus:border-aviro-orange text-white transition-colors"
+                className="w-12 h-14 text-center text-xl font-bold bg-aviro-card2 border-2 border-aviro-border rounded-xl focus:outline-none focus:border-aviro-orange text-aviro-fg transition-colors"
               />
             ))}
           </div>

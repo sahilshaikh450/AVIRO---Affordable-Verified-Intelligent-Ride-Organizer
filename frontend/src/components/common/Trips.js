@@ -2,16 +2,17 @@ import React from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { RouteLines } from './RideAlerts';
 import { formatWhen } from '../../utils/when';
+import Icon from './Icon';
 
 const firstName = (p) => p?.fullName?.split(' ')[0] || '';
 
 const TONES = {
-  wait:  'bg-yellow-500/10 text-yellow-300 border-yellow-500/25',
-  good:  'bg-green-500/10 text-green-300 border-green-500/25',
+  wait:  'bg-yellow-500/10 text-yellow-700 border-yellow-500/25',
+  good:  'bg-green-500/10 text-green-700 border-green-500/25',
   live:  'bg-aviro-orange/10 text-aviro-orange border-aviro-orange/30',
-  act:   'bg-aviro-blue/10 text-blue-300 border-aviro-blue/30',
+  act:   'bg-aviro-blue/10 text-blue-700 border-aviro-blue/30',
   done:  'bg-aviro-card2 text-aviro-muted border-aviro-border',
-  bad:   'bg-red-500/10 text-red-300 border-red-500/25',
+  bad:   'bg-red-500/10 text-red-700 border-red-500/25',
 };
 
 // What is happening with a booking, in words a rider understands
@@ -38,7 +39,7 @@ export function StatusLine({ icon, text, tone }) {
   return (
     <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border ${TONES[tone] || TONES.done}`}>
       {tone === 'live' && <span className="w-1.5 h-1.5 rounded-full bg-aviro-orange animate-pulse" />}
-      <span aria-hidden="true">{icon}</span>{text}
+      <span aria-hidden="true"><Icon e={icon} /></span>{text}
     </span>
   );
 }
@@ -46,12 +47,12 @@ export function StatusLine({ icon, text, tone }) {
 // "My bookings" (as a rider) and "My rides" (as a driver) are two halves of one Trips section
 export function TripsSwitch({ requests = 0 }) {
   const tab = ({ isActive }) => `flex-1 py-2.5 rounded-xl text-sm font-semibold text-center transition-all
-    ${isActive ? 'bg-aviro-orange text-white' : 'text-aviro-muted hover:text-white'}`;
+    ${isActive ? 'bg-aviro-orange text-white' : 'text-aviro-muted hover:text-aviro-fg'}`;
   return (
     <nav className="flex bg-aviro-card2 p-1 rounded-2xl border border-aviro-border gap-1" aria-label="Trips">
-      <NavLink to="/bookings" className={tab}>🎒 Rides I booked</NavLink>
+      <NavLink to="/bookings" className={tab}><Icon e="🎒" /> Rides I booked</NavLink>
       <NavLink to="/my-rides" className={tab}>
-        🏍️ Rides I offer
+        <Icon e="🏍️" /> Rides I offer
         {requests > 0 && <span className="ml-1.5 bg-white text-aviro-orange text-[11px] font-bold px-1.5 py-0.5 rounded-full">{requests}</span>}
       </NavLink>
     </nav>
@@ -65,7 +66,7 @@ export function Segments({ value, onChange, options }) {
       {options.map(o => (
         <button key={o.key} role="tab" aria-selected={value === o.key} onClick={() => onChange(o.key)}
           className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all
-            ${value === o.key ? 'bg-white text-aviro-dark' : 'bg-aviro-card2 text-aviro-muted border border-aviro-border'}`}>
+            ${value === o.key ? 'bg-black text-white' : 'bg-aviro-card2 text-aviro-muted'}`}>
           {o.label}{o.count > 0 && <span className="ml-1.5 opacity-70">{o.count}</span>}
         </button>
       ))}
@@ -93,9 +94,8 @@ export function BookingCard({ b, onPay, onRate, onCancel }) {
       </div>
       {b.driver && (
         <p className="text-xs text-aviro-muted flex items-center gap-1.5">
-          <span>{b.driver.gender === 'FEMALE' ? '👩' : '👨'}</span>
-          <span className="text-white">{b.driver.fullName}</span>
-          {b.driver.rating != null && <span>· ⭐ {Number(b.driver.rating).toFixed(1)}</span>}
+          <span className="text-aviro-fg">{b.driver.fullName}</span>
+          {b.driver.rating != null && <span>· <Icon e="⭐" /> {Number(b.driver.rating).toFixed(1)}</span>}
           {b.driver.vehicleModel && <span className="truncate">· {b.driver.vehicleModel}</span>}
         </p>
       )}
@@ -104,14 +104,14 @@ export function BookingCard({ b, onPay, onRate, onCancel }) {
           <Link to={`/tracking/${b.id}`} className="flex-1 btn-primary text-center py-2.5 text-sm">
             {b.status === 'CONFIRMED' ? 'Open trip · OTP & map' : 'View request'}
           </Link>
-          <button onClick={() => onCancel(b)} className="text-xs text-red-400 font-medium px-2 py-2">Cancel</button>
+          <button onClick={() => onCancel(b)} className="text-xs text-red-600 font-medium px-2 py-2">Cancel</button>
         </div>
       )}
       {st.needsAction && (
-        <button onClick={() => onPay(b)} className="w-full bg-aviro-green text-white font-bold py-2.5 rounded-xl text-sm">💳 Pay ₹{b.totalAmount}</button>
+        <button onClick={() => onPay(b)} className="w-full bg-aviro-green text-white font-bold py-2.5 rounded-xl text-sm"><Icon e="💳" /> Pay ₹{b.totalAmount}</button>
       )}
       {onRate && (
-        <button onClick={() => onRate(b)} className="w-full bg-yellow-500/10 text-yellow-300 border border-yellow-500/30 font-semibold py-2 rounded-xl text-sm">⭐ Rate {firstName(b.driver) || 'the driver'}</button>
+        <button onClick={() => onRate(b)} className="w-full bg-yellow-500/10 text-yellow-700 border border-yellow-500/30 font-semibold py-2 rounded-xl text-sm"><Icon e="⭐" /> Rate {firstName(b.driver) || 'the driver'}</button>
       )}
     </div>
   );

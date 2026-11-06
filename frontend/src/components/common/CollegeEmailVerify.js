@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import Icon from './Icon';
 
 export default function CollegeEmailVerify({ user, onVerified }) {
   const [step, setStep]             = useState(1);
@@ -47,9 +48,9 @@ export default function CollegeEmailVerify({ user, onVerified }) {
   if (user?.isCollegeVerified) {
     return (
       <div className="card p-5">
-        <h3 className="font-semibold mb-3">🎓 College Verification</h3>
+        <h3 className="font-semibold mb-3"><Icon e="🎓" /> College Verification</h3>
         <div className="flex items-center gap-3 bg-aviro-green/10 border border-aviro-green/20 rounded-xl p-4">
-          <span className="text-2xl">✅</span>
+          <span className="text-2xl"><Icon e="✅" /></span>
           <div>
             <p className="text-sm font-semibold text-aviro-green">College Verified!</p>
             <p className="text-xs text-aviro-muted">Your college identity has been confirmed</p>
@@ -61,7 +62,7 @@ export default function CollegeEmailVerify({ user, onVerified }) {
 
   return (
     <div className="card p-5">
-      <h3 className="font-semibold mb-1">🎓 College Email Verification</h3>
+      <h3 className="font-semibold mb-1"><Icon e="🎓" /> College Email Verification</h3>
       <p className="text-aviro-muted text-sm mb-4">
         Verify using your <span className="text-aviro-orange font-medium">college email</span>
       </p>
@@ -102,7 +103,7 @@ export default function CollegeEmailVerify({ user, onVerified }) {
             </div>
             <button
               onClick={() => { setStep(1); setOtp(''); }}
-              className="text-xs text-aviro-muted hover:text-white"
+              className="text-xs text-aviro-muted hover:text-aviro-fg"
             >
               Change
             </button>

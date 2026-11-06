@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import api from '../services/api';
 import { Spinner, StatCard } from '../components/common/UIComponents';
+import Icon from '../components/common/Icon';
 
 export default function AnalyticsPage() {
   const { user } = useSelector(s => s.auth);
@@ -61,7 +62,7 @@ export default function AnalyticsPage() {
   return (
     <div className="space-y-6 animate-fade-up">
       <div>
-        <h1 className="font-display font-bold text-2xl mb-1">Your Impact 📊</h1>
+        <h1 className="font-display font-bold text-2xl mb-1">Your Impact</h1>
         <p className="text-aviro-muted text-sm">See how much you've saved with AVIRO</p>
       </div>
 
@@ -78,7 +79,7 @@ export default function AnalyticsPage() {
       {/* Spending Trend */}
       <div className="card p-5">
         <h3 className="font-semibold text-sm text-aviro-muted uppercase tracking-wider mb-4">
-          💸 Spending Trend (Last 6 Months)
+          <Icon e="💸" /> Spending Trend (Last 6 Months)
         </h3>
         {months.length === 0 ? (
           <div className="text-center py-8 text-aviro-muted text-sm">
@@ -110,7 +111,7 @@ export default function AnalyticsPage() {
       <div className="grid md:grid-cols-2 gap-4">
         <div className="card p-5">
           <h3 className="font-semibold text-sm text-aviro-muted uppercase tracking-wider mb-4">
-            💵 Cost Comparison
+            <Icon e="💵" /> Cost Comparison
           </h3>
           <div className="space-y-4">
             <div>
@@ -142,7 +143,7 @@ export default function AnalyticsPage() {
         {/* Top Routes */}
         <div className="card p-5">
           <h3 className="font-semibold text-sm text-aviro-muted uppercase tracking-wider mb-4">
-            🗺️ Your Favorite Routes
+            <Icon e="🗺️" /> Your Favorite Routes
           </h3>
           {topRoutes.length === 0 ? (
             <div className="text-center py-8 text-aviro-muted text-sm">
@@ -152,7 +153,7 @@ export default function AnalyticsPage() {
             <div className="space-y-3">
               {topRoutes.map(([route, count], i) => (
                 <div key={i} className="flex items-center justify-between">
-                  <span className="text-sm text-white truncate flex-1">{route}</span>
+                  <span className="text-sm text-aviro-fg truncate flex-1">{route}</span>
                   <span className="text-xs bg-aviro-card2 text-aviro-orange font-semibold px-2.5 py-1 rounded-full ml-2">
                     {count}x
                   </span>

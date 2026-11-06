@@ -7,6 +7,7 @@ import LiveMap from '../components/common/LiveMap';
 import useBookRide from '../hooks/useBookRide';
 import { RouteLines } from '../components/common/RideAlerts';
 import { timeOf, dayOf, isPast } from '../utils/when';
+import Icon, { initial } from '../components/common/Icon';
 
 const OPEN = ['PENDING', 'ACTIVE'];
 const cap = (s) => (s ? s.charAt(0) + s.slice(1).toLowerCase() : '');
@@ -29,7 +30,7 @@ export default function RideDetailPage() {
   if (!ride) {
     return (
       <div className="text-center py-20 space-y-3">
-        <p className="text-4xl">🔍</p>
+        <p className="text-4xl"><Icon e="🔍" /></p>
         <p className="font-semibold">This ride is no longer available</p>
         <Link to="/search" className="btn-primary inline-block">Find another ride</Link>
       </div>
@@ -47,7 +48,7 @@ export default function RideDetailPage() {
   return (
     <div className="max-w-2xl mx-auto space-y-4 animate-fade-up pb-24 md:pb-6">
       <button onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/search'))}
-        className="text-aviro-muted text-sm hover:text-white">← Back</button>
+        className="text-aviro-muted text-sm hover:text-aviro-fg">← Back</button>
 
       {/* When, where, how much */}
       <div className="card p-5 space-y-4">
@@ -63,8 +64,8 @@ export default function RideDetailPage() {
         </div>
         <RouteLines from={ride.fromLocation} to={ride.toLocation} size="lg" />
         <div className="flex flex-wrap gap-2 text-xs">
-          <span className="bg-aviro-card2 border border-aviro-border rounded-full px-2.5 py-1">💺 {ride.availableSeats} of {ride.totalSeats} seats left</span>
-          {ride.womenOnly && <span className="bg-pink-500/10 text-pink-400 rounded-full px-2.5 py-1 font-semibold">🚺 Women-only</span>}
+          <span className="bg-aviro-card2 border border-aviro-border rounded-full px-2.5 py-1"><Icon e="💺" /> {ride.availableSeats} of {ride.totalSeats} seats left</span>
+          {ride.womenOnly && <span className="bg-pink-500/10 text-pink-600 rounded-full px-2.5 py-1 font-semibold"><Icon e="🚺" /> Women-only</span>}
         </div>
         {ride.notes && (
           <p className="text-sm bg-aviro-card2 rounded-xl p-3"><span className="text-aviro-muted">Driver's note: </span>{ride.notes}</p>
@@ -76,10 +77,10 @@ export default function RideDetailPage() {
         <p className="text-xs font-semibold text-aviro-muted uppercase tracking-wider">Driver</p>
         <div className="flex items-center gap-3">
           <span className="w-12 h-12 rounded-full bg-aviro-card2 border border-aviro-border flex items-center justify-center text-2xl flex-shrink-0">
-            {d.gender === 'FEMALE' ? '👩' : '👨'}
+            {initial(d?.fullName)}
           </span>
           <div className="min-w-0">
-            <p className="font-bold">{d.fullName}{d.isCollegeVerified && <span className="text-aviro-green text-sm ml-1.5">✓ Verified</span>}</p>
+            <p className="font-bold">{d.fullName}{d.isCollegeVerified && <span className="text-aviro-green text-sm ml-1.5"><Icon e="✓" /> Verified</span>}</p>
             <p className="text-xs text-aviro-muted truncate">{d.collegeName}{d.department ? ` · ${d.department}` : ''}</p>
             <p className="text-xs text-aviro-muted">⭐ {d.rating != null ? Number(d.rating).toFixed(1) : '–'}{d.totalRides ? ` · ${d.totalRides} rides` : ''}</p>
           </div>

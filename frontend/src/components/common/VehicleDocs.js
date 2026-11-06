@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 import PrivatePhoto from './PrivatePhoto';
+import Icon from './Icon';
 
 const DOCS = [
   { kind: 'plate',   field: 'platePhotoUrl',   icon: '🔢', title: 'Number plate', hint: 'Clear photo of the plate on your vehicle' },
@@ -34,7 +35,7 @@ export default function VehicleDocs({ vehicle, onChanged }) {
   const status = vehicle.isVerified && both
     ? { cls: 'bg-aviro-green/10 border-aviro-green/20 text-aviro-green', text: '✓ Verified. You can offer rides.' }
     : both
-      ? { cls: 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400', text: '⏳ An admin is checking your photos.' }
+      ? { cls: 'bg-yellow-500/10 border-yellow-500/20 text-yellow-600', text: '⏳ An admin is checking your photos.' }
       : { cls: 'bg-aviro-orange/10 border-aviro-orange/20 text-aviro-orange', text: 'Upload both photos to get verified and start offering rides.' };
 
   return (
@@ -47,7 +48,7 @@ export default function VehicleDocs({ vehicle, onChanged }) {
             className="text-left bg-aviro-card2 border border-dashed border-aviro-border rounded-xl p-3 hover:border-aviro-orange/50 transition-colors disabled:opacity-60">
             {vehicle[d.field]
               ? <PrivatePhoto url={vehicle[d.field]} alt={d.title} className="w-full h-24 object-cover rounded-lg mb-2" />
-              : <div className="w-full h-24 rounded-lg mb-2 bg-aviro-card flex items-center justify-center text-3xl">{d.icon}</div>}
+              : <div className="w-full h-24 rounded-lg mb-2 bg-aviro-card flex items-center justify-center text-3xl"><Icon e={d.icon} /></div>}
             <p className="text-sm font-semibold">{d.title}</p>
             <p className="text-[11px] text-aviro-muted leading-snug">
               {busy === d.kind ? 'Uploading…' : vehicle[d.field] ? 'Tap to replace' : d.hint}

@@ -8,6 +8,7 @@ import { EmptyState, Spinner } from '../components/common/UIComponents';
 import { RouteLines } from '../components/common/RideAlerts';
 import { TripsSwitch, Segments, StatusLine, firstName } from '../components/common/Trips';
 import { formatWhen, isPast } from '../utils/when';
+import Icon, { initial } from '../components/common/Icon';
 
 const PAGE = 10;
 const OPEN = ['PENDING', 'ACTIVE', 'IN_PROGRESS'];
@@ -38,7 +39,7 @@ function RiderRow({ b, onAnswer, onCash, busy }) {
   return (
     <div className="rounded-xl bg-aviro-card2 border border-aviro-border p-3 space-y-2.5">
       <div className="flex items-center gap-3">
-        <span className="w-9 h-9 rounded-full bg-aviro-card flex items-center justify-center flex-shrink-0">{r.gender === 'FEMALE' ? '👩' : '👨'}</span>
+        <span className="w-9 h-9 rounded-full bg-aviro-card flex items-center justify-center flex-shrink-0">{initial(r.fullName)}</span>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold truncate">{r.fullName || 'Rider'}</p>
           <p className="text-xs text-aviro-muted truncate">
@@ -63,7 +64,7 @@ function RiderRow({ b, onAnswer, onCash, busy }) {
       )}
       {cashToConfirm && (
         <button onClick={() => onCash(b)} disabled={busy}
-          className="w-full bg-aviro-green text-white font-bold py-2 rounded-lg text-sm disabled:opacity-50">✅ Yes, I got the cash</button>
+          className="w-full bg-aviro-green text-white font-bold py-2 rounded-lg text-sm disabled:opacity-50"><Icon e="✅" /> Yes, I got the cash</button>
       )}
     </div>
   );
@@ -171,8 +172,8 @@ export default function MyRidesPage() {
                   </div>
                 </div>
                 <p className="text-xs text-aviro-muted">
-                  💺 {booked} of {ride.totalSeats} seat{ride.totalSeats > 1 ? 's' : ''} booked
-                  {ride.womenOnly && <span className="text-pink-400"> · 🚺 Women-only</span>}
+                  <Icon e="💺" /> {booked} of {ride.totalSeats} seat{ride.totalSeats > 1 ? 's' : ''} booked
+                  {ride.womenOnly && <span className="text-pink-600"> · <Icon e="🚺" /> Women-only</span>}
                 </p>
 
                 {active.length > 0 && (
@@ -184,7 +185,7 @@ export default function MyRidesPage() {
                   <p className="text-xs text-aviro-muted bg-aviro-card2 rounded-xl p-3">No requests yet. You'll get a notification when a student books.</p>
                 )}
                 {upcomingRide && (
-                  <button onClick={() => cancel(ride)} className="text-xs text-red-400 font-medium">Cancel this ride</button>
+                  <button onClick={() => cancel(ride)} className="text-xs text-red-600 font-medium">Cancel this ride</button>
                 )}
               </div>
             );
