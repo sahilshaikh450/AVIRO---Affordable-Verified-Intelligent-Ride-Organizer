@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useSelector } from 'react-redux';
+import { useSearchParams, Link } from 'react-router-dom';
+import { formatWhen } from '../utils/when';
 import api from '../services/api';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
@@ -14,75 +16,35 @@ export default function ChatPage() {
   const [selected, setSelected]   = useState(null);
   const [msgs, setMsgs]           = useState([]);
   const [connected, setConnected] = useState(false);
-  const [deletedChats, setDeletedChats] = useState(() => {
-    // Load deleted chats from localStorage
-    try { return JSON.parse(localStorage.getItem('aviro_deleted_chats') || '[]'); }
-    catch { return []; }
-  });
   const bottomRef   = useRef(null);
   const clientRef   = useRef(null);
   const selectedRef = useRef(null);
 
-  // Load contacts. Last list is cached so the sidebar shows instantly on revisit.
-  const contactsCacheKey = user?.id ? `aviro_chat_contacts_${user.id}` : null;
+  // People you can chat with: one per confirmed ride (chat closes when the trip ends)
   const [contactsLoading, setContactsLoading] = useState(true);
-
-  useEffect(() => {
-    if (!user?.id) return;
+  const [params] = useSearchParams();
+  const loadContacts = useCallback(async () => {
     try {
-      const cached = JSON.parse(sessionStorage.getItem(contactsCacheKey) || 'null');
-      if (Array.isArray(cached)) { setContacts(cached); setContactsLoading(false); }
+      const res = await api.get('/chat/active');
+      const list = (res.data.data || []).map(c => ({
+        id: c.otherId, name: c.otherName, gender: c.otherGender, rideId: c.rideId, bookingId: c.bookingId,
+        role: c.role, route: `${c.fromLocation} → ${c.toLocation}`, departureTime: c.departureTime,
+      }));
+      setContacts(list);
+      // Opened from a trip screen: go straight to that chat
+      const want = params.get('booking');
+      if (want) {
+        const hit = list.find(c => String(c.bookingId) === want);
+        if (hit) { setSelected(hit); selectedRef.current = hit; }
+      }
+      // The trip ended while this chat was open
+      if (selectedRef.current && !list.some(c => c.bookingId === selectedRef.current.bookingId)) {
+        setSelected(null); selectedRef.current = null; setMsgs([]);
+      }
     } catch {}
-
-    const loadAllContacts = async () => {
-      const allContacts = [];
-      // Independent calls run in parallel instead of one after another
-      const [bookingsRes, ridesRes] = await Promise.allSettled([
-        api.get('/bookings/my'),
-        api.get('/rides/my'),
-      ]);
-
-      if (bookingsRes.status === 'fulfilled') {
-        (bookingsRes.value.data.data || []).forEach(b => {
-          if (b.driver?.id && b.driver.id !== user.id) {
-            allContacts.push({
-              id: b.driver.id, name: b.driver.fullName,
-              gender: b.driver.gender, rideId: b.rideId,
-              route: `${b.fromLocation} → ${b.toLocation}`, role: 'Driver'
-            });
-          }
-        });
-      }
-
-      if (ridesRes.status === 'fulfilled') {
-        const rides = ridesRes.value.data.data || [];
-        const rideBookings = await Promise.allSettled(
-          rides.map(ride => api.get(`/bookings/ride/${ride.id}`))
-        );
-        rideBookings.forEach((res, idx) => {
-          if (res.status !== 'fulfilled') return;
-          const ride = rides[idx];
-          (res.value.data.data || []).forEach(b => {
-            if (b.rider?.id && b.rider.id !== user.id) {
-              allContacts.push({
-                id: b.rider.id, name: b.rider.fullName || 'Rider',
-                gender: b.rider.gender, rideId: ride.id,
-                route: `${ride.fromLocation} → ${ride.toLocation}`, role: 'Rider'
-              });
-            }
-          });
-        });
-      }
-
-      const unique = allContacts.filter((c, i, self) =>
-        c.id && i === self.findIndex(x => x.id === c.id && x.rideId === c.rideId)
-      );
-      setContacts(unique);
-      setContactsLoading(false);
-      try { sessionStorage.setItem(contactsCacheKey, JSON.stringify(unique)); } catch {}
-    };
-    loadAllContacts();
-  }, [user?.id, contactsCacheKey]);
+    setContactsLoading(false);
+  }, [params]);
+  useEffect(() => { if (user?.id) loadContacts(); }, [user?.id, loadContacts]);
 
   // WebSocket
   useEffect(() => {
@@ -148,35 +110,6 @@ export default function ChatPage() {
     fetchMessages(contact);
   };
 
-  // ── Delete chat (local only) ──
-  const deleteChat = (contact, e) => {
-    e.stopPropagation();
-    const key = `${contact.id}-${contact.rideId}`;
-    const updated = [...deletedChats, key];
-    setDeletedChats(updated);
-    localStorage.setItem('aviro_deleted_chats', JSON.stringify(updated));
-    if (selected?.id === contact.id && selected?.rideId === contact.rideId) {
-      setSelected(null);
-      setMsgs([]);
-    }
-    toast.success('Chat deleted');
-  };
-
-  // ── Clear all chats ──
-  const clearAllChats = () => {
-    const allKeys = contacts.map(c => `${c.id}-${c.rideId}`);
-    setDeletedChats(allKeys);
-    localStorage.setItem('aviro_deleted_chats', JSON.stringify(allKeys));
-    setSelected(null);
-    setMsgs([]);
-    toast.success('All chats cleared');
-  };
-
-  // ── Delete single message (local only) ──
-  const deleteMessage = (index) => {
-    setMsgs(prev => prev.filter((_, i) => i !== index));
-  };
-
   const handleSend = async (e) => {
     e.preventDefault();
     if (!input.trim() || !selected || !user?.id) return;
@@ -193,11 +126,14 @@ export default function ChatPage() {
         return;
       } catch {}
     }
-    try { await api.post('/chat/send', msgPayload); } catch {}
+    try { await api.post('/chat/send', msgPayload); }
+    catch (err) {
+      toast.error(err.response?.data?.message || 'Message not sent');
+      loadContacts();
+    }
   };
 
-  // Filter out deleted chats
-  const visibleContacts = contacts.filter(c => !deletedChats.includes(`${c.id}-${c.rideId}`));
+  const visibleContacts = contacts;
 
   return (
     <div className="h-[calc(100dvh-10.5rem)] md:h-[calc(100vh-8rem)] flex md:gap-4 animate-fade-up">
@@ -212,12 +148,6 @@ export default function ChatPage() {
               <div className={`w-2 h-2 rounded-full ${connected ? 'bg-aviro-green animate-pulse' : 'bg-aviro-muted'}`} />
               {connected ? 'Live' : 'Offline'}
             </div>
-            {visibleContacts.length > 0 && (
-              <button onClick={clearAllChats}
-                className="text-xs text-red-400 hover:underline ml-1" title="Clear all chats">
-                🗑️ All
-              </button>
-            )}
           </div>
         </div>
 
@@ -229,8 +159,9 @@ export default function ChatPage() {
         ) : visibleContacts.length === 0 ? (
           <div className="p-6 text-center text-aviro-muted text-sm flex-1 flex flex-col items-center justify-center">
             <div className="text-3xl mb-2">💬</div>
-            <p>No contacts yet</p>
-            <p className="text-xs mt-1">Book a ride or get a booking to chat!</p>
+            <p className="font-semibold text-white">No open chats</p>
+            <p className="text-xs mt-1 max-w-[16rem]">Chat opens when a driver confirms your ride, and closes when the trip ends.</p>
+            <Link to="/bookings" className="text-xs text-aviro-orange font-semibold mt-3">Go to my trips</Link>
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto">
@@ -249,14 +180,8 @@ export default function ChatPage() {
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold text-sm truncate">{c.name}</p>
                   <p className="text-xs text-aviro-muted truncate">{c.role} · {c.route}</p>
+                  {c.departureTime && <p className="text-[11px] text-aviro-muted">{formatWhen(c.departureTime)}</p>}
                 </div>
-                {/* Delete button — shows on hover */}
-                <button
-                  onClick={(e) => deleteChat(c, e)}
-                  className="md:opacity-0 md:group-hover:opacity-100 transition-opacity text-red-400 hover:text-red-300 p-2 rounded-lg hover:bg-red-500/10 flex-shrink-0"
-                  title="Delete chat">
-                  🗑️
-                </button>
               </div>
             ))}
           </div>
@@ -289,13 +214,6 @@ export default function ChatPage() {
                     ${connected ? 'bg-aviro-green animate-pulse' : 'bg-yellow-400'}`} />
                   <span className="hidden sm:inline">{connected ? 'Live' : 'Reconnecting'}</span>
                 </div>
-                {/* Clear this chat */}
-                <button
-                  onClick={() => { setMsgs([]); toast.success('Messages cleared'); }}
-                  className="text-xs text-aviro-muted hover:text-red-400 transition-colors px-2 py-1 rounded-lg hover:bg-red-500/10"
-                  title="Clear messages">
-                  🗑️<span className="hidden sm:inline"> Clear</span>
-                </button>
               </div>
             </div>
 
@@ -305,6 +223,7 @@ export default function ChatPage() {
                 <div className="text-center text-aviro-muted text-sm py-12">
                   <div className="text-3xl mb-2">👋</div>
                   No messages yet. Say hi!
+                  <p className="text-xs mt-1">This chat closes when the trip ends.</p>
                 </div>
               )}
               {msgs.map((m, i) => {
@@ -319,13 +238,6 @@ export default function ChatPage() {
                       </div>
                     )}
                     <div className="flex items-end gap-1 max-w-[85%] sm:max-w-none">
-                      {/* Delete message button */}
-                      {isMine && (
-                        <button onClick={() => deleteMessage(i)}
-                          className="opacity-50 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-xs text-red-400 hover:text-red-300 mb-1 p-1">
-                          ✕
-                        </button>
-                      )}
                       <div className={`max-w-full sm:max-w-xs lg:max-w-sm rounded-2xl px-3.5 py-2 md:px-4 md:py-2.5 text-sm break-words
                         ${isMine
                           ? 'bg-aviro-orange text-white rounded-br-sm'

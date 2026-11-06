@@ -576,7 +576,7 @@ export default function LiveTrackingPage() {
         </div>
         <div className="flex gap-2">
           {other?.phone && <a href={`tel:${other.phone}`} className="w-10 h-10 rounded-full bg-aviro-green/15 flex items-center justify-center" aria-label="Call">📞</a>}
-          {isLive && <Link to="/chat" className="w-10 h-10 rounded-full bg-aviro-orange/15 flex items-center justify-center" aria-label="Chat">💬</Link>}
+          {isLive && <Link to={`/chat?booking=${bookingId}`} className="w-10 h-10 rounded-full bg-aviro-orange/15 flex items-center justify-center" aria-label="Chat">💬</Link>}
         </div>
       </div>
 

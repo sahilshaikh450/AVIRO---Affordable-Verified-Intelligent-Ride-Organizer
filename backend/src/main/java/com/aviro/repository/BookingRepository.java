@@ -51,6 +51,23 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
         """)
     boolean sharesRide(@Param("rideId") Long rideId, @Param("userA") Long userA, @Param("userB") Long userB);
 
+    // Chat is open only while the two share a confirmed booking (driver accepted, trip not over)
+    @Query("""
+        SELECT COUNT(b) > 0 FROM Booking b
+        WHERE b.ride.id = :rideId AND b.status = com.aviro.enums.BookingStatus.CONFIRMED
+        AND ((b.rider.id = :userA AND b.ride.driver.id = :userB) OR (b.rider.id = :userB AND b.ride.driver.id = :userA))
+        """)
+    boolean sharesConfirmedRide(@Param("rideId") Long rideId, @Param("userA") Long userA, @Param("userB") Long userB);
+
+    // Confirmed bookings the user is on, as rider or driver: their open chats
+    @Query("""
+        SELECT b FROM Booking b JOIN FETCH b.ride r JOIN FETCH r.driver JOIN FETCH b.rider
+        WHERE (b.rider.id = :userId OR r.driver.id = :userId)
+          AND b.status = com.aviro.enums.BookingStatus.CONFIRMED AND r.departureTime >= :since
+        ORDER BY r.departureTime ASC
+        """)
+    List<Booking> findOpenChats(@Param("userId") Long userId, @Param("since") java.time.LocalDateTime since);
+
     @Query("SELECT b FROM Booking b WHERE b.ride.id = :rideId AND b.status IN ('REQUESTED', 'CONFIRMED')")
     List<Booking> findActiveBookingsForRide(@Param("rideId") Long rideId);
 
