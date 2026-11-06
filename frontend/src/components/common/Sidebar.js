@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { logoutUser } from '../../store/authSlice';
 import Logo, { Wordmark } from './Logo';
+import Icon, { initial } from './Icon';
 
 const links = [
   { to: '/dashboard',  icon: '🏠', label: 'Dashboard'   },
@@ -32,10 +33,10 @@ export default function Sidebar({ open }) {
       {open && user && (
         <div className="m-3 p-3 bg-aviro-card2 rounded-xl flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-full bg-aviro-orange/20 flex items-center justify-center text-sm flex-shrink-0">
-            {user.gender === 'FEMALE' ? '👩' : '👨'}
+            {initial(user?.fullName)}
           </div>
           <div className="min-w-0">
-            <p className="text-xs font-semibold text-white truncate">{user.fullName}</p>
+            <p className="text-xs font-semibold text-aviro-fg truncate">{user.fullName}</p>
             <p className="text-xs text-aviro-muted truncate">{user.collegeName}</p>
           </div>
         </div>
@@ -51,7 +52,7 @@ export default function Sidebar({ open }) {
               `sidebar-link ${isActive ? 'active' : ''} ${!open ? 'justify-center px-0' : ''}`
             }
           >
-            <span className="text-lg flex-shrink-0">{l.icon}</span>
+            <span className="text-lg flex-shrink-0"><Icon e={l.icon} /></span>
             {open && <span>{l.label}</span>}
           </NavLink>
         ))}
@@ -61,7 +62,7 @@ export default function Sidebar({ open }) {
       {open && user && (
         <div className="mx-3 mb-2 p-3 bg-aviro-orange/10 border border-aviro-orange/20 rounded-xl">
           <p className="text-xs text-aviro-muted">AVIRO Credits</p>
-          <p className="text-aviro-orange font-bold text-lg">🪙 {user.aviroCredits || 0}</p>
+          <p className="text-aviro-orange font-bold text-lg"><Icon e="🪙" /> {user.aviroCredits || 0}</p>
         </div>
       )}
 
@@ -69,9 +70,9 @@ export default function Sidebar({ open }) {
       <div className="p-2 border-t border-aviro-border">
         <button
           onClick={handleLogout}
-          className={`sidebar-link w-full text-red-400 hover:bg-red-500/10 hover:text-red-400 ${!open ? 'justify-center px-0' : ''}`}
+          className={`sidebar-link w-full text-red-600 hover:bg-red-500/10 hover:text-red-600 ${!open ? 'justify-center px-0' : ''}`}
         >
-          <span className="text-lg">🚪</span>
+          <span className="text-lg"><Icon e="🚪" /></span>
           {open && <span>Log Out</span>}
         </button>
       </div>

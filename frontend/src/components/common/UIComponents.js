@@ -2,6 +2,7 @@ import React from 'react';
 import { useSelector } from 'react-redux';
 import { RouteLines } from './RideAlerts';
 import { timeOf, dayOf } from '../../utils/when';
+import Icon, { initial } from './Icon';
 
 // ─── GENDER BADGE ─────────────────────────────────────────────────
 // label: who the badge describes ("driver" on ride cards); empty for a person's own gender
@@ -58,20 +59,20 @@ export const RideCard = ({ ride, onBook, onClick, booking = false }) => {
       <div className="flex flex-wrap gap-1.5 mt-3">
         <Pill icon="💺" label={seats === 1 ? '1 seat left' : `${seats} seats left`} />
         {driver?.vehicleType && <Pill icon={<VehicleIcon type={driver.vehicleType} />} label={driver.vehicleType.charAt(0) + driver.vehicleType.slice(1).toLowerCase()} />}
-        {ride.womenOnly && <span className="bg-pink-500/10 text-pink-400 text-xs px-2 py-0.5 rounded-full font-semibold">🚺 Women-only</span>}
+        {ride.womenOnly && <span className="bg-pink-500/10 text-pink-600 text-xs px-2 py-0.5 rounded-full font-semibold"><Icon e="🚺" /> Women-only</span>}
       </div>
 
       <div className="flex items-center justify-between gap-3 mt-3 pt-3 border-t border-aviro-border">
         <div className="flex items-center gap-2.5 min-w-0">
           <span className="w-9 h-9 rounded-full bg-aviro-card2 border border-aviro-border flex items-center justify-center flex-shrink-0">
-            {driver?.gender === 'FEMALE' ? '👩' : '👨'}
+            {initial(driver?.fullName)}
           </span>
           <div className="min-w-0">
             <p className="text-sm font-semibold truncate">
-              {driver?.fullName}{driver?.isCollegeVerified && <span className="text-aviro-green text-xs ml-1" title="College verified">✓</span>}
+              {driver?.fullName}{driver?.isCollegeVerified && <span className="text-aviro-green text-xs ml-1" title="College verified"><Icon e="✓" /></span>}
             </p>
             <p className="text-xs text-aviro-muted truncate">
-              {driver?.rating != null && `⭐ ${Number(driver.rating).toFixed(1)} · `}{driver?.gender === 'FEMALE' ? 'Female' : 'Male'} driver
+              {driver?.rating != null && `★ ${Number(driver.rating).toFixed(1)} · `}{driver?.gender === 'FEMALE' ? 'Female' : 'Male'} driver
             </p>
           </div>
         </div>
@@ -91,7 +92,7 @@ export const RideCard = ({ ride, onBook, onClick, booking = false }) => {
 // ─── PILL ─────────────────────────────────────────────────────────
 export const Pill = ({ icon, label }) => (
   <span className="bg-aviro-card2 border border-aviro-border text-aviro-muted text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
-    <span>{icon}</span>{label}
+    <span><Icon e={icon} /></span>{label}
   </span>
 );
 
@@ -106,7 +107,7 @@ export const Spinner = ({ size = 'md' }) => {
 // ─── EMPTY STATE ──────────────────────────────────────────────────
 export const EmptyState = ({ icon, title, subtitle, action }) => (
   <div className="flex flex-col items-center justify-center py-16 text-center">
-    <div className="text-5xl mb-4 animate-float">{icon}</div>
+    <div className="text-5xl mb-4 animate-float"><Icon e={icon} /></div>
     <h3 className="font-bold text-lg mb-1">{title}</h3>
     <p className="text-aviro-muted text-sm mb-6 max-w-xs">{subtitle}</p>
     {action}
@@ -138,11 +139,11 @@ export const StatCard = ({ icon, label, value, color = 'orange', trend }) => {
 // ─── BOOKING STATUS BADGE ─────────────────────────────────────────
 export const StatusBadge = ({ status }) => {
   const styles = {
-    CONFIRMED: 'bg-green-500/10 text-green-400',
-    REQUESTED: 'bg-yellow-500/10 text-yellow-400',
-    CANCELLED: 'bg-red-500/10 text-red-400',
-    COMPLETED: 'bg-blue-500/10 text-blue-400',
-    REJECTED:  'bg-red-500/10 text-red-400',
+    CONFIRMED: 'bg-green-500/10 text-green-600',
+    REQUESTED: 'bg-yellow-500/10 text-yellow-600',
+    CANCELLED: 'bg-red-500/10 text-red-600',
+    COMPLETED: 'bg-blue-500/10 text-blue-600',
+    REJECTED:  'bg-red-500/10 text-red-600',
   };
   return (
     <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${styles[status] || 'bg-aviro-card2 text-aviro-muted'}`}>

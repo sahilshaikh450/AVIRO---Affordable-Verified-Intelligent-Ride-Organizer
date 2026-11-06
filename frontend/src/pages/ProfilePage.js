@@ -10,19 +10,14 @@ import UpiIdCard from '../components/common/UpiIdCard';
 import VehicleDocs from '../components/common/VehicleDocs';
 import api from '../services/api';
 import toast from 'react-hot-toast';
+import Icon, { initial } from '../components/common/Icon';
 
 function StatCard({ icon, label, value, color }) {
-  const colors = {
-    green:  'bg-aviro-green/10  border-aviro-green/20  text-aviro-green',
-    orange: 'bg-aviro-orange/10 border-aviro-orange/20 text-aviro-orange',
-    yellow: 'bg-yellow-500/10   border-yellow-500/20   text-yellow-400',
-    blue:   'bg-aviro-blue/10   border-aviro-blue/20   text-aviro-blue',
-  };
   return (
-    <div className={`rounded-2xl border p-4 text-center ${colors[color] || colors.orange}`}>
-      <div className="text-2xl mb-1">{icon}</div>
-      <div className="font-bold text-lg">{value}</div>
-      <div className="text-xs opacity-70 mt-0.5">{label}</div>
+    <div className="rounded-2xl bg-aviro-card2 p-4">
+      <div className="text-aviro-muted"><Icon e={icon} size={20} /></div>
+      <div className="font-bold text-2xl mt-2 tracking-tight">{value}</div>
+      <div className="text-xs text-aviro-muted mt-0.5">{label}</div>
     </div>
   );
 }
@@ -69,7 +64,7 @@ function AnalyticsTab() {
       {/* Spending chart */}
       <div className="card p-5">
         <h3 className="font-semibold text-sm text-aviro-muted uppercase tracking-wider mb-4">
-          💸 Spending Trend (Last 6 Months)
+          <Icon e="💸" /> Spending Trend (Last 6 Months)
         </h3>
         {months.length === 0 ? (
           <div className="text-center py-8 text-aviro-muted text-sm">No completed rides yet.</div>
@@ -97,7 +92,7 @@ function AnalyticsTab() {
       {topRoutes.length > 0 && (
         <div className="card p-5">
           <h3 className="font-semibold text-sm text-aviro-muted uppercase tracking-wider mb-4">
-            🗺️ Favourite Routes
+            <Icon e="🗺️" /> Favourite Routes
           </h3>
           <div className="space-y-3">
             {topRoutes.map(([route, count], i) => (
@@ -185,21 +180,21 @@ export default function ProfilePage() {
       <div className="flex items-center justify-between gap-3">
         <h1 className="font-display font-bold text-2xl">My Profile</h1>
         <Link to="/settings" className="flex items-center gap-1.5 text-sm font-semibold bg-aviro-card2 border border-aviro-border rounded-xl px-3 py-2 hover:border-aviro-orange/50">
-          ⚙️ Settings
+          <Icon e="⚙️" /> Settings
         </Link>
       </div>
 
       {/* Profile Header */}
       <div className="card p-6 text-center">
         <div className="w-20 h-20 rounded-full bg-aviro-orange/20 border-4 border-aviro-orange/30 flex items-center justify-center text-4xl mx-auto mb-3">
-          {user?.gender === 'FEMALE' ? '👩' : '👨'}
+          {initial(user?.fullName)}
         </div>
         <h2 className="font-bold text-xl">{user?.fullName}</h2>
         <p className="text-aviro-muted text-sm mt-0.5">{user?.collegeName} · {user?.department}</p>
         <div className="flex items-center justify-center gap-3 mt-3 flex-wrap">
           <GenderBadge gender={user?.gender} label="" />
-          {user?.isCollegeVerified && <span className="text-xs bg-green-500/10 text-green-400 px-2.5 py-1 rounded-full font-semibold">✓ College Verified</span>}
-          {user?.isVerified && <span className="text-xs bg-blue-500/10 text-blue-400 px-2.5 py-1 rounded-full font-semibold">✓ Email Verified</span>}
+          {user?.isCollegeVerified && <span className="text-xs bg-green-500/10 text-green-600 px-2.5 py-1 rounded-full font-semibold"><Icon e="✓" /> College Verified</span>}
+          {user?.isVerified && <span className="text-xs bg-blue-500/10 text-blue-600 px-2.5 py-1 rounded-full font-semibold"><Icon e="✓" /> Email Verified</span>}
         </div>
       </div>
 
@@ -208,8 +203,8 @@ export default function ProfilePage() {
         {TABS.map(t => (
           <button key={t.key} role="tab" aria-selected={activeTab === t.key} onClick={() => setActiveTab(t.key)}
             className={`relative flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 py-2 sm:py-2.5 rounded-xl text-[11px] sm:text-sm font-semibold transition-all
-              ${activeTab === t.key ? 'bg-aviro-orange text-white' : 'text-aviro-muted hover:text-white'}`}>
-            <span className="text-base sm:text-sm leading-none">{t.icon}</span>
+              ${activeTab === t.key ? 'bg-aviro-orange text-white' : 'text-aviro-muted hover:text-aviro-fg'}`}>
+            <span className="text-base sm:text-sm leading-none"><Icon e={t.icon} /></span>
             <span className="whitespace-nowrap">{t.label}</span>
             {needsAction[t.key] && (
               <span className={`absolute top-1.5 right-1.5 w-2 h-2 rounded-full ${activeTab === t.key ? 'bg-white' : 'bg-aviro-orange'}`} />
@@ -232,7 +227,7 @@ export default function ProfilePage() {
           {/* ── Personal Info — hide/show toggle ── */}
           <div className="card p-5">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold">📋 Personal Information</h3>
+              <h3 className="font-semibold"><Icon e="📋" /> Personal Information</h3>
               <div className="flex items-center gap-2">
                 {!editPersonalInfo && (
                   <button onClick={() => setShowPersonalInfo(!showPersonalInfo)}
@@ -243,7 +238,7 @@ export default function ProfilePage() {
                 {showPersonalInfo && !editPersonalInfo && (
                   <button onClick={() => { setEditPersonalInfo(true); setShowPersonalInfo(false); }}
                     className="text-xs text-aviro-blue border border-aviro-blue/30 px-3 py-1.5 rounded-lg hover:bg-aviro-blue/10 transition-colors">
-                    ✏️ Edit
+                    <Icon e="✏️" /> Edit
                   </button>
                 )}
               </div>
@@ -335,7 +330,7 @@ export default function ProfilePage() {
       {activeTab === 'vehicle' && (
           <div className="card p-5">
             <div className="mb-3">
-              <h3 className="font-semibold">🏍️ My Vehicle</h3>
+              <h3 className="font-semibold"><Icon e="🏍️" /> My Vehicle</h3>
               <p className="text-xs text-aviro-muted mt-0.5">Needed only if you want to offer rides.</p>
             </div>
 
@@ -346,8 +341,8 @@ export default function ProfilePage() {
                   <p className="font-semibold">{[user.vehicle.make, user.vehicle.model].filter(Boolean).join(' ') || user.vehicle.vehicleType}{user.vehicle.color ? ` · ${user.vehicle.color}` : ''}</p>
                   <p className="text-xs text-aviro-muted">{user.vehicle.registrationNumber} · {user.vehicle.totalSeats} seats</p>
                   {vehicleVerified
-                    ? <span className="text-xs text-green-400 font-semibold">✓ Verified</span>
-                    : <span className="text-xs text-yellow-400">⏳ Not verified yet</span>}
+                    ? <span className="text-xs text-green-600 font-semibold"><Icon e="✓" /> Verified</span>
+                    : <span className="text-xs text-yellow-600">⏳ Not verified yet</span>}
                 </div>
               </div>
             )}
@@ -374,7 +369,7 @@ export default function ProfilePage() {
                   <div>
                     <label className="text-xs text-aviro-muted font-medium block mb-1">Registration No.</label>
                     <input {...vReg('registrationNumber', { required: true, validate: v => /^([A-Z]{2}\d{1,2}[A-Z]{0,3}\d{1,4}|\d{2}BH\d{4}[A-Z]{1,2})$/.test(v.toUpperCase().replace(/[\s-]/g, '')) || 'Like MH12AB1234' })} placeholder="MH12AB1234" autoCapitalize="characters" className="input-field" />
-                    {vErrors?.registrationNumber && <p className="text-red-400 text-xs mt-1">{vErrors.registrationNumber.message}</p>}
+                    {vErrors?.registrationNumber && <p className="text-red-600 text-xs mt-1">{vErrors.registrationNumber.message}</p>}
                   </div>
                   <div>
                     <label className="text-xs text-aviro-muted font-medium block mb-1">Make</label>
@@ -409,7 +404,7 @@ export default function ProfilePage() {
               </form>
             ) : (
               <button onClick={() => setAddingVehicle(true)}
-                className="w-full bg-aviro-card2 border border-dashed border-aviro-border text-aviro-muted py-2.5 rounded-xl text-sm hover:border-aviro-orange/50 hover:text-white transition-all">
+                className="w-full bg-aviro-card2 border border-dashed border-aviro-border text-aviro-muted py-2.5 rounded-xl text-sm hover:border-aviro-orange/50 hover:text-aviro-fg transition-all">
                 {user?.vehicle ? '+ Update Vehicle' : '+ Add Vehicle'}
               </button>
             )}

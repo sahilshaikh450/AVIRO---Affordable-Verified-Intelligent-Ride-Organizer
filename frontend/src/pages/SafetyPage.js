@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 import { formatWhen } from '../components/common/RideAlerts';
+import Icon from '../components/common/Icon';
 
 const MAX_CONTACTS = 3;
 const EMAIL = /^[\w.+-]+@[\w-]+(\.[\w-]+)+$/;
@@ -47,7 +48,7 @@ function Section({ icon, title, sub, children, className = '' }) {
   return (
     <section className={`card p-5 space-y-4 ${className}`}>
       <div className="flex items-start gap-3">
-        <span className="text-2xl leading-none mt-0.5" aria-hidden="true">{icon}</span>
+        <span className="text-2xl leading-none mt-0.5" aria-hidden="true"><Icon e={icon} /></span>
         <div>
           <h2 className="font-bold text-base">{title}</h2>
           {sub && <p className="text-xs text-aviro-muted mt-0.5">{sub}</p>}
@@ -82,7 +83,7 @@ function SosCard({ contacts, currentTrip }) {
       <div className="flex items-center gap-3">
         <span className="text-3xl" aria-hidden="true">🆘</span>
         <div className="flex-1">
-          <h2 className="font-bold text-red-400">Feel unsafe?</h2>
+          <h2 className="font-bold text-red-600">Feel unsafe?</h2>
           <p className="text-xs text-aviro-muted">
             Sends your location to {contacts.length ? `your ${contacts.length} emergency contact${contacts.length > 1 ? 's' : ''}` : 'your emergency contacts'}
             {currentTrip ? ` and your ${currentTrip.role === 'DRIVER' ? 'rider' : 'driver'}` : ''}.
@@ -90,15 +91,15 @@ function SosCard({ contacts, currentTrip }) {
         </div>
       </div>
       {!contacts.length && !currentTrip && (
-        <p className="text-xs text-yellow-400">⚠️ Add an emergency contact below, or SOS will have no one to alert.</p>
+        <p className="text-xs text-yellow-600"><Icon e="⚠️" /> Add an emergency contact below, or SOS will have no one to alert.</p>
       )}
       <div className="grid grid-cols-2 gap-2">
         <button onClick={() => { setResult(null); setOpen(true); }}
           className="bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-xl">Send SOS</button>
-        <a href="tel:112" className="bg-aviro-card2 border border-red-500/40 text-red-400 font-bold py-3 rounded-xl text-center">📞 Call 112</a>
+        <a href="tel:112" className="bg-aviro-card2 border border-red-500/40 text-red-600 font-bold py-3 rounded-xl text-center"><Icon e="📞" /> Call 112</a>
       </div>
       {result && (
-        <div className={`rounded-xl p-3 text-sm ${result.ok ? 'bg-green-500/10 text-green-300 border border-green-500/30' : 'bg-red-500/15 text-red-300 border border-red-500/40'}`} role="status">
+        <div className={`rounded-xl p-3 text-sm ${result.ok ? 'bg-green-500/10 text-green-700 border border-green-500/30' : 'bg-red-500/15 text-red-700 border border-red-500/40'}`} role="status">
           {result.ok ? '✅ ' : '⚠️ '}{result.text}
           {result.noLocation && <span className="block text-xs mt-1 opacity-80">Your location was not available, so it was sent without it.</span>}
         </div>
@@ -108,7 +109,7 @@ function SosCard({ contacts, currentTrip }) {
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
           <div className="bg-aviro-card border border-red-500/50 rounded-2xl w-full max-w-sm p-6 space-y-3 text-center">
             <p className="text-4xl">🆘</p>
-            <h3 className="font-bold text-xl text-red-400">Send SOS now?</h3>
+            <h3 className="font-bold text-xl text-red-600">Send SOS now?</h3>
             <p className="text-aviro-muted text-sm">
               We'll send your live location{contacts.length ? ` to ${contacts.join(', ')}` : ''}
               {currentTrip ? `${contacts.length ? ' and' : ''} to your ${currentTrip.role === 'DRIVER' ? 'rider' : 'driver'} ${currentTrip.otherName}` : ''}.
@@ -119,7 +120,7 @@ function SosCard({ contacts, currentTrip }) {
             </button>
             <button onClick={() => setOpen(false)} disabled={sending}
               className="w-full bg-aviro-card2 text-aviro-muted font-semibold py-3 rounded-xl">Cancel</button>
-            <p className="text-xs text-aviro-muted">In danger right now? <a href="tel:112" className="text-red-400 font-bold">Call 112</a></p>
+            <p className="text-xs text-aviro-muted">In danger right now? <a href="tel:112" className="text-red-600 font-bold">Call 112</a></p>
           </div>
         </div>
       )}
@@ -160,17 +161,17 @@ function ContactsCard({ contacts, onSaved, loading }) {
       {loading ? (
         <div className="h-12 rounded-xl bg-aviro-card2 animate-pulse" />
       ) : contacts.length === 0 ? (
-        <p className="text-xs text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3">
-          ⚠️ No emergency contacts yet. Add a parent, sibling or friend.
+        <p className="text-xs text-yellow-600 bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3">
+          <Icon e="⚠️" /> No emergency contacts yet. Add a parent, sibling or friend.
         </p>
       ) : (
         <ul className="space-y-2" data-testid="contact-list">
           {contacts.map(c => (
             <li key={c} className="flex items-center gap-3 bg-aviro-card2 rounded-xl px-3 py-2.5">
-              <span aria-hidden="true">📧</span>
+              <span aria-hidden="true"><Icon e="📧" /></span>
               <span className="flex-1 text-sm truncate">{c}</span>
               <button onClick={() => save(contacts.filter(x => x !== c), 'Contact removed')} disabled={busy}
-                aria-label={`Remove ${c}`} className="text-aviro-muted hover:text-red-400 w-8 h-8 rounded-lg flex items-center justify-center">✕</button>
+                aria-label={`Remove ${c}`} className="text-aviro-muted hover:text-red-600 w-8 h-8 rounded-lg flex items-center justify-center"><Icon e="✕" /></button>
             </li>
           ))}
         </ul>
@@ -261,15 +262,15 @@ function ShareCard({ trips, loading }) {
             <div key={t.bookingId} className="rounded-xl border border-aviro-border bg-aviro-card2 p-3 space-y-3">
               <div>
                 <p className="text-sm font-semibold">{tripLabel(t)}</p>
-                <p className="text-xs text-aviro-muted mt-0.5">🕘 {formatWhen(t.departureTime)} · {withWhom(t)}</p>
+                <p className="text-xs text-aviro-muted mt-0.5"><Icon e="🕘" /> {formatWhen(t.departureTime)} · {withWhom(t)}</p>
               </div>
               <div className="grid grid-cols-3 gap-2">
                 <button onClick={() => shareLink(t)} disabled={busy === t.bookingId}
-                  className="bg-aviro-orange text-white text-xs font-bold py-2.5 rounded-lg disabled:opacity-50">🔗 Share link</button>
+                  className="bg-aviro-orange text-white text-xs font-bold py-2.5 rounded-lg disabled:opacity-50"><Icon e="🔗" /> Share link</button>
                 <button onClick={() => whatsapp(t)} disabled={busy === t.bookingId}
                   className="bg-[#25D366] text-white text-xs font-bold py-2.5 rounded-lg disabled:opacity-50">WhatsApp</button>
                 <button onClick={() => { setEmailFor(emailFor === t.bookingId ? null : t.bookingId); setEmail(''); }}
-                  className="bg-aviro-card border border-aviro-border text-xs font-bold py-2.5 rounded-lg">📧 Email</button>
+                  className="bg-aviro-card border border-aviro-border text-xs font-bold py-2.5 rounded-lg"><Icon e="📧" /> Email</button>
               </div>
               {emailFor === t.bookingId && (
                 <form onSubmit={(e) => sendEmail(e, t)} className="flex gap-2">
@@ -347,7 +348,7 @@ function ReportCard({ trips, loading }) {
               {reasons.map(r => (
                 <button type="button" key={r} onClick={() => setReason(r)} aria-pressed={reason === r}
                   className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${reason === r
-                    ? 'bg-red-500/20 border-red-500/60 text-red-300' : 'border-aviro-border text-aviro-muted hover:text-white'}`}>
+                    ? 'bg-red-500/20 border-red-500/60 text-red-700' : 'border-aviro-border text-aviro-muted hover:text-aviro-fg'}`}>
                   {r}
                 </button>
               ))}
@@ -355,14 +356,14 @@ function ReportCard({ trips, loading }) {
           </div>
           <div>
             <label htmlFor="report-details" className="text-xs text-aviro-muted font-medium block mb-1">
-              Details {needsDetails ? <span className="text-red-400">*</span> : <span>(optional)</span>}
+              Details {needsDetails ? <span className="text-red-600">*</span> : <span>(optional)</span>}
             </label>
             <textarea id="report-details" value={details} onChange={e => setDetails(e.target.value.slice(0, 1000))} rows={3}
               placeholder="What happened, and when?" className="input-field resize-none" />
             <p className="text-[11px] text-aviro-muted text-right">{details.length}/1000</p>
           </div>
           <button type="submit" disabled={sending}
-            className="w-full bg-red-500/10 border border-red-500/30 text-red-400 font-bold py-3 rounded-xl text-sm disabled:opacity-50 hover:bg-red-500/20">
+            className="w-full bg-red-500/10 border border-red-500/30 text-red-600 font-bold py-3 rounded-xl text-sm disabled:opacity-50 hover:bg-red-500/20">
             {sending ? 'Submitting…' : 'Submit report'}
           </button>
         </form>
@@ -390,7 +391,7 @@ export default function SafetyPage() {
   return (
     <div className="max-w-2xl mx-auto space-y-5 animate-fade-up pb-10">
       <div>
-        <h1 className="font-display font-bold text-2xl">Safety Center 🛡️</h1>
+        <h1 className="font-display font-bold text-2xl">Safety Center</h1>
         <p className="text-aviro-muted text-sm">SOS, trusted contacts and trip sharing</p>
       </div>
 
@@ -400,21 +401,21 @@ export default function SafetyPage() {
       <ReportCard trips={trips} loading={loading} />
 
       <section className="card p-5">
-        <h2 className="font-bold text-base mb-3">💡 Before every ride</h2>
+        <h2 className="font-bold text-base mb-3">Before every ride</h2>
         <ul className="space-y-2">
           {TIPS.map(tip => (
-            <li key={tip} className="flex gap-2 text-sm text-aviro-muted"><span className="text-aviro-green">✓</span>{tip}</li>
+            <li key={tip} className="flex gap-2 text-sm text-aviro-muted"><span className="text-aviro-green"><Icon e="✓" /></span>{tip}</li>
           ))}
         </ul>
       </section>
 
       <section className="bg-red-500/10 border border-red-500/20 rounded-2xl p-5">
-        <h2 className="font-bold text-sm text-red-400 mb-3">📞 Emergency numbers</h2>
+        <h2 className="font-bold text-sm text-red-600 mb-3">Emergency numbers</h2>
         <div className="grid grid-cols-4 gap-2">
           {EMERGENCY_NUMBERS.map(e => (
             <a key={e.number} href={`tel:${e.number}`}
               className="flex flex-col items-center bg-aviro-card2 rounded-xl py-3 hover:bg-red-500/20 transition-colors">
-              <span className="text-red-400 font-bold text-lg">{e.number}</span>
+              <span className="text-red-600 font-bold text-lg">{e.number}</span>
               <span className="text-[11px] text-aviro-muted mt-0.5">{e.label}</span>
             </a>
           ))}

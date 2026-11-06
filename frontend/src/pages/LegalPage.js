@@ -23,13 +23,13 @@ export default function LegalPage({ type }) {
         <div className="flex items-center gap-3">
           <button
             onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/'))}
-            className="w-9 h-9 rounded-xl bg-aviro-card border border-aviro-border flex items-center justify-center text-aviro-muted hover:text-white"
+            className="w-9 h-9 rounded-xl bg-aviro-card border border-aviro-border flex items-center justify-center text-aviro-muted hover:text-aviro-fg"
             aria-label="Go back"
           >
             ←
           </button>
           <div>
-            <h1 className="font-display font-bold text-2xl text-white">{page.title}</h1>
+            <h1 className="font-display font-bold text-2xl text-aviro-fg">{page.title}</h1>
             <p className="text-xs text-aviro-muted">Last updated: {LEGAL_LAST_UPDATED}</p>
           </div>
         </div>
@@ -37,7 +37,7 @@ export default function LegalPage({ type }) {
         <div className="space-y-3 text-sm text-aviro-muted">
           {page.sections.map((s, i) => (
             <div key={i} className="card p-4 space-y-1">
-              <h2 className="font-semibold text-white">{s.title}</h2>
+              <h2 className="font-semibold text-aviro-fg">{s.title}</h2>
               <p>{s.content}</p>
             </div>
           ))}

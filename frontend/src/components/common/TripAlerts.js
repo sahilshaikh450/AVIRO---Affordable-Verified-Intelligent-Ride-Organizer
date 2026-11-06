@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import api from '../../services/api';
 import { WS_URL } from '../../services/websocket';
 import { getErrorMessage } from '../../store/authSlice';
+import Icon, { initial } from './Icon';
 
 // Fired on window for every live notification (NotificationBell listens to it)
 export const NOTIFICATION_EVENT = 'aviro:notification';
@@ -164,15 +165,15 @@ export default function TripAlerts() {
       <div className="bg-aviro-card border border-aviro-orange/40 rounded-2xl w-full max-w-sm p-5 space-y-4 animate-fade-up">
         {kind === 'request' && (
           <>
-            <p className="text-xs font-bold text-aviro-orange uppercase tracking-wider">🔔 New ride request</p>
+            <p className="text-xs font-bold text-aviro-orange uppercase tracking-wider"><Icon e="🔔" /> New ride request</p>
             <div className="flex items-center gap-3">
               <div className="w-14 h-14 rounded-full bg-aviro-card2 flex items-center justify-center text-3xl">
-                {rider?.gender === 'FEMALE' ? '👩' : '👨'}
+                {initial(rider?.fullName)}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-bold">{rider?.fullName}</p>
                 <p className="text-xs text-aviro-muted truncate">{rider?.collegeName}</p>
-                <p className="text-xs text-aviro-muted">⭐ {rider?.rating?.toFixed(1) || '5.0'}</p>
+                <p className="text-xs text-aviro-muted"><Icon e="⭐" /> {rider?.rating?.toFixed(1) || '5.0'}</p>
               </div>
               <div className="text-right">
                 <p className="text-aviro-green font-bold text-xl">₹{booking.totalAmount}</p>
@@ -189,11 +190,11 @@ export default function TripAlerts() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <button onClick={() => respond('REJECTED')} disabled={busy}
-                className="bg-red-500/10 text-red-400 border border-red-500/30 font-bold py-3 rounded-xl">Decline</button>
+                className="bg-red-500/10 text-red-600 border border-red-500/30 font-bold py-3 rounded-xl">Decline</button>
               <button onClick={() => respond('CONFIRMED')} disabled={busy}
-                className="bg-aviro-green text-white font-bold py-3 rounded-xl">✅ Accept</button>
+                className="bg-aviro-green text-white font-bold py-3 rounded-xl"><Icon e="✅" /> Accept</button>
             </div>
-            <button onClick={close} className="w-full text-xs text-aviro-muted hover:text-white">Decide later</button>
+            <button onClick={close} className="w-full text-xs text-aviro-muted hover:text-aviro-fg">Decide later</button>
           </>
         )}
 
@@ -206,7 +207,7 @@ export default function TripAlerts() {
               {kind !== 'completed' && driver?.vehicleModel && (
                 <p className="text-xs text-aviro-muted">
                   {driver.vehicleModel} · {driver.vehicleColor}
-                  {driver.vehicleRegistrationNumber && <> · <span className="text-white font-semibold">{driver.vehicleRegistrationNumber}</span></>}
+                  {driver.vehicleRegistrationNumber && <> · <span className="text-aviro-fg font-semibold">{driver.vehicleRegistrationNumber}</span></>}
                 </p>
               )}
             </div>
@@ -215,7 +216,7 @@ export default function TripAlerts() {
                 ? 'View trip'
                 : { accepted: 'Track your ride', arrived: 'Show my OTP', completed: 'Pay & rate' }[kind]}
             </button>
-            <button onClick={close} className="w-full text-xs text-aviro-muted hover:text-white">Close</button>
+            <button onClick={close} className="w-full text-xs text-aviro-muted hover:text-aviro-fg">Close</button>
           </>
         )}
       </div>

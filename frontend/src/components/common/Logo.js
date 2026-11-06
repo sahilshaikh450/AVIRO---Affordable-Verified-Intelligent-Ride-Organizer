@@ -11,10 +11,10 @@ export function Wordmark({ height = 28, className = '' }) {
     <svg viewBox="0 -164.11 384.12 166.11" height={height} className={`flex-shrink-0 ${className}`} role="img" aria-label="AVIRO">
       <defs>
         <linearGradient id={id} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#FF9A3C" /><stop offset="1" stopColor="#FF4D1A" />
+          <stop offset="0" stopColor="#000" /><stop offset="1" stopColor="#000" />
         </linearGradient>
       </defs>
-      <path d={LETTERS} fill="#fff" />
+      <path d={LETTERS} fill="currentColor" />
       <path d={PIN} fill={`url(#${id})`} fillRule="evenodd" />
     </svg>
   );
@@ -32,12 +32,11 @@ export default function Logo({ size = 32, className = '' }) {
 export function BrandLockup({ height = 52, className = '' }) {
   return (
     <div className={`relative inline-flex flex-col items-center ${className}`}>
-      <div aria-hidden="true" className="absolute -inset-x-10 -inset-y-6 rounded-full bg-aviro-orange/15 blur-3xl" />
-      <Wordmark height={height} className="relative" />
+            <Wordmark height={height} className="relative" />
       <div className="relative flex items-center gap-2 mt-3">
-        <span className="h-[3px] w-6 rounded-full bg-gradient-to-r from-[#FFA24C] to-[#FF4D1A]" />
+        <span className="h-[3px] w-6 rounded-full bg-black" />
         <span className="text-[11px] font-semibold tracking-[0.3em] text-aviro-muted">PUNE · RIDE · SHARE</span>
-        <span className="h-[3px] w-6 rounded-full bg-gradient-to-r from-[#FF4D1A] to-[#FFA24C]" />
+        <span className="h-[3px] w-6 rounded-full bg-black" />
       </div>
     </div>
   );
