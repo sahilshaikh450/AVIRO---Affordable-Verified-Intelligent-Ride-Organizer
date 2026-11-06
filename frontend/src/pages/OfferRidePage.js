@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import { geocodePlace, fetchRoute, PUNE_CENTRE } from '../utils/geo';
 import api from '../services/api';
 import { StudentsNeedRides } from '../components/common/RideAlerts';
+import Icon from '../components/common/Icon';
  
 // Rough petrol cost per km, one way
 const PER_KM = { BIKE: 2.5, SCOOTY: 2.5, CAR: 7 };
@@ -135,7 +136,7 @@ export default function OfferRidePage() {
   return ( 
     <div className="max-w-2xl mx-auto space-y-6 animate-fade-up"> 
       <div> 
-        <h1 className="font-display font-bold text-2xl mb-1">Offer a Ride 🏍️</h1> 
+        <h1 className="font-display font-bold text-2xl mb-1">Offer a Ride</h1> 
         <p className="text-aviro-muted text-sm">
           Going to college anyway? Share your empty seats and split the petrol cost.
         </p> 
@@ -153,19 +154,19 @@ export default function OfferRidePage() {
         const icon = { BIKE: '🏍️', SCOOTY: '🛵', CAR: '🚗' }[v?.vehicleType] || '🚗';
         return ready ? (
           <div className="card p-4 flex items-center gap-3" data-testid="offer-vehicle">
-            <span className="text-2xl">{icon}</span>
+            <span className="text-2xl"><Icon e={icon} /></span>
             <span className="flex-1 min-w-0">
               <span className="text-xs text-aviro-muted block">You're driving</span>
               <span className="font-semibold text-sm block truncate">{[v.make, v.model].filter(Boolean).join(' ') || v.vehicleType} · {v.registrationNumber}</span>
-              {!verified && <span className="text-[11px] text-yellow-400 block">Not verified yet · allowed during testing</span>}
+              {!verified && <span className="text-[11px] text-yellow-600 block">Not verified yet · allowed during testing</span>}
             </span>
             <Link to="/profile?tab=vehicle" className="text-xs text-aviro-orange font-semibold">Change</Link>
           </div>
         ) : (
           <Link to="/profile?tab=vehicle" className="card p-4 flex items-center gap-3 border-yellow-500/40 bg-yellow-500/5" data-testid="offer-vehicle">
-            <span className="text-2xl">{icon}</span>
+            <span className="text-2xl"><Icon e={icon} /></span>
             <span className="flex-1 text-sm">
-              <span className="font-semibold block text-yellow-300">{v ? 'Your vehicle is not verified yet' : 'Add your vehicle first'}</span>
+              <span className="font-semibold block text-yellow-700">{v ? 'Your vehicle is not verified yet' : 'Add your vehicle first'}</span>
               <span className="text-xs text-aviro-muted">{v ? 'Upload the number plate and licence photos. You can post rides once an admin approves them.' : 'Add your bike or car with number plate and licence photos to offer rides.'}</span>
             </span>
             <span className="text-aviro-orange text-sm">→</span>
@@ -176,7 +177,7 @@ export default function OfferRidePage() {
       {/* Without a UPI ID riders can only pay cash */}
       {user && !user.upiId && (
         <Link to="/profile" className="card p-4 flex items-center gap-3 border-yellow-500/30 bg-yellow-500/5 hover:border-yellow-500/60">
-          <span className="text-2xl">💳</span>
+          <span className="text-2xl"><Icon e="💳" /></span>
           <span className="flex-1 text-sm">
             <span className="font-semibold block">Add your UPI ID to get paid</span>
             <span className="text-xs text-aviro-muted">Riders can only pay you cash until you add it in Profile.</span>
@@ -190,7 +191,7 @@ export default function OfferRidePage() {
         {/* Route */} 
         <div className="card p-5 space-y-4"> 
           <h3 className="font-semibold text-sm text-aviro-muted uppercase tracking-wider">
-            📍 Route
+            <Icon e="📍" /> Route
           </h3> 
  
           <LocationInput 
@@ -231,7 +232,7 @@ export default function OfferRidePage() {
  
           <div> 
             <label className="text-xs text-aviro-muted font-medium block mb-1.5 uppercase tracking-wider">
-              🕐 Departure Time
+              <Icon e="🕐" /> Departure Time
             </label> 
  
             <input 
@@ -240,11 +241,11 @@ export default function OfferRidePage() {
               className="input-field" 
             /> 
             {!errors.departureTime && (
-              <p className="text-aviro-muted text-xs mt-1">🌙 Rides run from 6:00 AM to 8:00 PM (college hours)</p>
+              <p className="text-aviro-muted text-xs mt-1"><Icon e="🌙" /> Rides run from 6:00 AM to 8:00 PM (college hours)</p>
             )}
  
             {errors.departureTime && (
-              <p className="text-red-400 text-xs mt-1">
+              <p className="text-red-600 text-xs mt-1">
                 {errors.departureTime.message}
               </p>
             )} 
@@ -254,7 +255,7 @@ export default function OfferRidePage() {
         {/* Seats & cost split */}
         <div className="card p-5 space-y-4" data-testid="cost-split">
           <div>
-            <h3 className="font-semibold text-sm text-aviro-muted uppercase tracking-wider">💺 Seats & cost split</h3>
+            <h3 className="font-semibold text-sm text-aviro-muted uppercase tracking-wider"><Icon e="💺" /> Seats & cost split</h3>
             <p className="text-xs text-aviro-muted mt-1">Enter what the trip costs you (petrol). It is split equally between you and your riders.</p>
           </div>
 
@@ -306,13 +307,13 @@ export default function OfferRidePage() {
           ) : (
             <p className="text-xs text-aviro-muted bg-aviro-card2 rounded-xl p-3">Typical one-way college trip: ₹30–₹60 on a bike, ₹100–₹200 in a car.</p>
           )}
-          {errors.pricePerSeat && <p className="text-red-400 text-xs">{errors.pricePerSeat.message}</p>}
+          {errors.pricePerSeat && <p className="text-red-600 text-xs">{errors.pricePerSeat.message}</p>}
         </div>
 
         {/* Preferences */} 
         <div className="card p-5 space-y-4"> 
           <h3 className="font-semibold text-sm text-aviro-muted uppercase tracking-wider">
-            ⚙️ Preferences
+            <Icon e="⚙️" /> Preferences
           </h3> 
  
           <label className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all 
@@ -335,8 +336,8 @@ export default function OfferRidePage() {
             </div> 
  
             <div> 
-              <p className="font-medium text-sm text-pink-400">
-                🚺 Women-only ride
+              <p className="font-medium text-sm text-pink-600">
+                <Icon e="🚺" /> Women-only ride
               </p> 
               <p className="text-xs text-aviro-muted">
                 Only female riders can book this ride
@@ -365,7 +366,7 @@ export default function OfferRidePage() {
  
             <div> 
               <p className="font-medium text-sm text-aviro-blue">
-                🔁 Recurring ride
+                <Icon e="🔁" /> Recurring ride
               </p> 
               <p className="text-xs text-aviro-muted">
                 Repeat this ride on selected days

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import Icon from './Icon';
 
 // ══════════════════════════════════════════════════
 // RIDER SIDE — OTP Display Card
@@ -34,7 +35,7 @@ export function RiderOTPCard({ bookingId }) {
 
   if (verified) return (
     <div className="bg-aviro-green/10 border border-aviro-green/30 rounded-2xl p-4 text-center">
-      <p className="text-2xl mb-1">🚗</p>
+      <p className="text-2xl mb-1"><Icon e="🚗" /></p>
       <p className="font-bold text-aviro-green">Ride Started!</p>
       <p className="text-xs text-aviro-muted">Driver verified your OTP. Have a safe journey!</p>
     </div>
@@ -43,8 +44,8 @@ export function RiderOTPCard({ bookingId }) {
   return (
     <div className="bg-aviro-orange/10 border-2 border-aviro-orange/30 rounded-2xl p-5">
       <div className="flex items-center gap-2 mb-3">
-        <span className="text-xl">🔐</span>
-        <p className="font-bold text-sm text-white">Your Ride OTP</p>
+        <span className="text-xl"><Icon e="🔐" /></span>
+        <p className="font-bold text-sm text-aviro-fg">Your Ride OTP</p>
         <span className="ml-auto text-xs text-aviro-muted">Show to driver</span>
       </div>
 
@@ -60,10 +61,10 @@ export function RiderOTPCard({ bookingId }) {
 
       <div className="bg-aviro-card2 rounded-xl p-3 text-center">
         <p className="text-xs text-aviro-muted">
-          🔒 Share this OTP with your driver to start the ride
+          <Icon e="🔒" /> Share this OTP with your driver to start the ride
         </p>
-        <p className="text-xs text-yellow-400 mt-1 font-semibold">
-          ⚠️ Do not share with anyone else!
+        <p className="text-xs text-yellow-600 mt-1 font-semibold">
+          <Icon e="⚠️" /> Do not share with anyone else!
         </p>
       </div>
 
@@ -73,8 +74,8 @@ export function RiderOTPCard({ bookingId }) {
           navigator.clipboard.writeText(otp);
           toast.success('OTP copied!');
         }}
-        className="w-full mt-3 bg-aviro-card2 border border-aviro-border text-aviro-muted text-sm py-2 rounded-xl hover:text-white transition-colors">
-        📋 Copy OTP
+        className="w-full mt-3 bg-aviro-card2 border border-aviro-border text-aviro-muted text-sm py-2 rounded-xl hover:text-aviro-fg transition-colors">
+        <Icon e="📋" /> Copy OTP
       </button>
     </div>
   );
@@ -137,7 +138,7 @@ export function DriverOTPVerifyCard({ bookingId, onVerified }) {
 
   if (verified) return (
     <div className="bg-aviro-green/10 border border-aviro-green/30 rounded-2xl p-4 text-center">
-      <p className="text-3xl mb-2">✅</p>
+      <p className="text-3xl mb-2"><Icon e="✅" /></p>
       <p className="font-bold text-aviro-green text-lg">Ride Started!</p>
       <p className="text-xs text-aviro-muted mt-1">OTP verified. Have a safe journey!</p>
     </div>
@@ -146,8 +147,8 @@ export function DriverOTPVerifyCard({ bookingId, onVerified }) {
   return (
     <div className="bg-aviro-card2 border border-aviro-border rounded-2xl p-5">
       <div className="flex items-center gap-2 mb-4">
-        <span className="text-xl">🔐</span>
-        <p className="font-bold text-sm text-white">Verify Rider OTP</p>
+        <span className="text-xl"><Icon e="🔐" /></span>
+        <p className="font-bold text-sm text-aviro-fg">Verify Rider OTP</p>
       </div>
 
       <p className="text-xs text-aviro-muted mb-4 text-center">
@@ -169,10 +170,10 @@ export function DriverOTPVerifyCard({ bookingId, onVerified }) {
             className={`w-14 h-16 text-center text-2xl font-bold rounded-2xl border-2 bg-aviro-card
               focus:outline-none transition-all
               ${error
-                ? 'border-red-500 text-red-400'
+                ? 'border-red-500 text-red-600'
                 : digit
                   ? 'border-aviro-orange text-aviro-orange'
-                  : 'border-aviro-border text-white'}`}
+                  : 'border-aviro-border text-aviro-fg'}`}
           />
         ))}
       </div>
@@ -180,7 +181,7 @@ export function DriverOTPVerifyCard({ bookingId, onVerified }) {
       {/* Error */}
       {error && (
         <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2 mb-3 text-center">
-          <p className="text-xs text-red-400 font-semibold">{error}</p>
+          <p className="text-xs text-red-600 font-semibold">{error}</p>
         </div>
       )}
 
@@ -195,7 +196,7 @@ export function DriverOTPVerifyCard({ bookingId, onVerified }) {
       </button>
 
       <p className="text-xs text-aviro-muted text-center mt-2">
-        ⚠️ Ride will only start after OTP verification
+        <Icon e="⚠️" /> Ride will only start after OTP verification
       </p>
     </div>
   );

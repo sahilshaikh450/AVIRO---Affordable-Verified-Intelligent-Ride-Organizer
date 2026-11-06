@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
+import Icon from '../components/common/Icon';
 
 // Onboarding shown once after signup (route: /welcome)
 export const onboardingKey = (userId) => `aviro_onboarded_${userId}`;
@@ -55,14 +56,14 @@ export default function IntroPage() {
           <p className="text-sm text-aviro-muted">
             Welcome{user?.fullName ? `, ${user.fullName.split(' ')[0]}` : ''} 👋
           </p>
-          <button onClick={() => finish()} className="text-sm text-aviro-muted hover:text-white">
+          <button onClick={() => finish()} className="text-sm text-aviro-muted hover:text-aviro-fg">
             Skip
           </button>
         </div>
 
         <div className="card p-6 text-center space-y-4">
-          <div className="text-5xl">{current.icon}</div>
-          <h1 className="font-display font-bold text-2xl text-white">{current.title}</h1>
+          <div className="text-5xl"><Icon e={current.icon} /></div>
+          <h1 className="font-display font-bold text-2xl text-aviro-fg">{current.title}</h1>
           <p className="text-aviro-muted text-sm leading-relaxed">{current.text}</p>
           <button
             onClick={() => finish(current.cta.to)}

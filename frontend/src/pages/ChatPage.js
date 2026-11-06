@@ -7,6 +7,7 @@ import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { WS_URL } from '../services/websocket';
 import toast from 'react-hot-toast';
+import Icon, { initial } from '../components/common/Icon';
 
 
 export default function ChatPage() {
@@ -141,7 +142,7 @@ export default function ChatPage() {
       {/* ── Contacts sidebar ── */}
       <div className={`${selected ? 'hidden md:flex' : 'flex'} w-full md:w-72 card overflow-hidden flex-shrink-0 flex-col`}>
         <div className="p-4 border-b border-aviro-border flex items-center justify-between">
-          <h2 className="font-bold text-sm">💬 Messages</h2>
+          <h2 className="font-bold text-sm">Messages</h2>
           <div className="flex items-center gap-2">
             <div className={`flex items-center gap-1 text-xs font-medium
               ${connected ? 'text-aviro-green' : 'text-aviro-muted'}`}>
@@ -158,8 +159,8 @@ export default function ChatPage() {
           </div>
         ) : visibleContacts.length === 0 ? (
           <div className="p-6 text-center text-aviro-muted text-sm flex-1 flex flex-col items-center justify-center">
-            <div className="text-3xl mb-2">💬</div>
-            <p className="font-semibold text-white">No open chats</p>
+            <div className="text-3xl mb-2"><Icon e="💬" /></div>
+            <p className="font-semibold text-aviro-fg">No open chats</p>
             <p className="text-xs mt-1 max-w-[16rem]">Chat opens when a driver confirms your ride, and closes when the trip ends.</p>
             <Link to="/bookings" className="text-xs text-aviro-orange font-semibold mt-3">Go to my trips</Link>
           </div>
@@ -175,7 +176,7 @@ export default function ChatPage() {
               >
                 <div className="w-10 h-10 rounded-full bg-aviro-card2 border border-aviro-border
                   flex items-center justify-center text-lg flex-shrink-0">
-                  {c.gender === 'FEMALE' ? '👩' : '👨'}
+                  {initial(c.name)}
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold text-sm truncate">{c.name}</p>
@@ -196,11 +197,11 @@ export default function ChatPage() {
             <div className="px-3 py-3 md:p-4 border-b border-aviro-border flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 md:gap-3 min-w-0">
                 <button onClick={() => setSelected(null)} aria-label="Back to chats"
-                  className="md:hidden w-9 h-9 -ml-1 rounded-lg flex items-center justify-center text-lg text-aviro-muted hover:text-white flex-shrink-0">
+                  className="md:hidden w-9 h-9 -ml-1 rounded-lg flex items-center justify-center text-lg text-aviro-muted hover:text-aviro-fg flex-shrink-0">
                   ←
                 </button>
                 <div className="w-10 h-10 rounded-full bg-aviro-card2 flex items-center justify-center text-lg flex-shrink-0">
-                  {selected.gender === 'FEMALE' ? '👩' : '👨'}
+                  {initial(selected.name)}
                 </div>
                 <div className="min-w-0">
                   <p className="font-semibold text-sm truncate">{selected.name}</p>
@@ -209,7 +210,7 @@ export default function ChatPage() {
               </div>
               <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
                 <div className={`flex items-center gap-1.5 text-xs font-medium
-                  ${connected ? 'text-aviro-green' : 'text-yellow-400'}`} title={connected ? 'Real-time' : 'Reconnecting'}>
+                  ${connected ? 'text-aviro-green' : 'text-yellow-600'}`} title={connected ? 'Real-time' : 'Reconnecting'}>
                   <div className={`w-2 h-2 rounded-full
                     ${connected ? 'bg-aviro-green animate-pulse' : 'bg-yellow-400'}`} />
                   <span className="hidden sm:inline">{connected ? 'Live' : 'Reconnecting'}</span>
@@ -234,16 +235,16 @@ export default function ChatPage() {
                     {!isMine && (
                       <div className="hidden sm:flex w-8 h-8 rounded-full bg-aviro-card2 border border-aviro-border
                         items-center justify-center text-sm flex-shrink-0">
-                        {selected.gender === 'FEMALE' ? '👩' : '👨'}
+                        {initial(selected.name)}
                       </div>
                     )}
                     <div className="flex items-end gap-1 max-w-[85%] sm:max-w-none">
                       <div className={`max-w-full sm:max-w-xs lg:max-w-sm rounded-2xl px-3.5 py-2 md:px-4 md:py-2.5 text-sm break-words
                         ${isMine
                           ? 'bg-aviro-orange text-white rounded-br-sm'
-                          : 'bg-aviro-card2 text-white rounded-bl-sm border border-aviro-border'}`}>
+                          : 'bg-aviro-card2 text-aviro-fg rounded-bl-sm border border-aviro-border'}`}>
                         <p>{m.content}</p>
-                        <p className={`text-xs mt-1 ${isMine ? 'text-white/60' : 'text-aviro-muted'}`}>
+                        <p className={`text-xs mt-1 ${isMine ? 'text-aviro-fg/60' : 'text-aviro-muted'}`}>
                           {m.createdAt
                             ? new Date(m.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
                             : 'now'}
@@ -253,7 +254,7 @@ export default function ChatPage() {
                     {isMine && (
                       <div className="hidden sm:flex w-8 h-8 rounded-full bg-aviro-orange/20 border border-aviro-orange/30
                         items-center justify-center text-sm flex-shrink-0">
-                        {user?.gender === 'FEMALE' ? '👩' : '👨'}
+                        {initial(user?.fullName)}
                       </div>
                     )}
                   </div>
@@ -279,7 +280,7 @@ export default function ChatPage() {
           </>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-            <div className="text-6xl mb-4">💬</div>
+            <div className="text-6xl mb-4"><Icon e="💬" /></div>
             <h3 className="font-bold text-xl mb-2">Your Messages</h3>
             <p className="text-aviro-muted text-sm max-w-xs leading-relaxed">
               Select a contact from the left to start chatting in real-time!

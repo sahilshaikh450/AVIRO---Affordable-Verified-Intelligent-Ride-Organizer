@@ -3,12 +3,12 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <!-- Dark bars, matching the app header and bottom nav -->
-    <meta name="theme-color" content="#161A22" />
+    <!-- Light bars, matching the app header and bottom nav -->
+    <meta name="theme-color" content="#FFFFFF" />
     <meta name="description" content="AVIRO - Affordable Verified Intelligent Ride Organizer. Pune's #1 College Ride Sharing Platform." />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="AVIRO" />
 
     <!-- PWA -->
@@ -22,8 +22,8 @@
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
       body {
-        background-color: #0D0F14;
-        color: #f0f2f8;
+        background-color: #FFFFFF;
+        color: #000000;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         -webkit-font-smoothing: antialiased;
         overscroll-behavior: none;
@@ -36,7 +36,7 @@
         align-items: center;
         justify-content: center;
         min-height: 100vh;
-        background: #0D0F14;
+        background: #FFFFFF;
         gap: 16px;
       }
       .app-loading-logo {
@@ -54,19 +54,19 @@
         50% { transform: scale(1.05); opacity: 0.8; }
       }
       /* Opening animation: a pin drops, then becomes the dot of the "i". Once per visit. */
-      #splash { position: fixed; inset: 0; z-index: 9999; background: #0D0F14; overflow: hidden; transition: opacity .35s ease; }
+      #splash { position: fixed; inset: 0; z-index: 9999; background: #FFFFFF; overflow: hidden; transition: opacity .35s ease; }
       #splash.out { opacity: 0; pointer-events: none; }
       #splash .stage { position: absolute; left: 50%; top: 50%; width: 390px; height: 844px; margin: -422px 0 0 -195px; }
-      #splash .glow { position: absolute; left: 50%; top: 46%; width: 520px; height: 520px; transform: translate(-50%,-50%); background: radial-gradient(circle, rgba(255,107,43,.22), rgba(255,107,43,0) 60%); opacity: 0; animation: sp-fade .8s ease-out 1.3s forwards; }
+      #splash .glow { position: absolute; left: 50%; top: 46%; width: 520px; height: 520px; transform: translate(-50%,-50%); background: radial-gradient(circle, rgba(0,0,0,.06), rgba(0,0,0,0) 60%); opacity: 0; animation: sp-fade .8s ease-out 1.3s forwards; }
       #splash .bigpin { position: absolute; left: 50%; top: 250px; width: 70px; margin-left: -35px; animation: sp-drop .7s cubic-bezier(.3,1.5,.5,1) .1s both, sp-shrink .45s ease-in 1.05s forwards; }
-      #splash .ripple { position: absolute; left: 50%; top: 340px; width: 120px; height: 34px; margin-left: -60px; border: 3px solid #FF6B2B; border-radius: 50%; opacity: 0; animation: sp-rip .9s ease-out .7s; }
+      #splash .ripple { position: absolute; left: 50%; top: 340px; width: 120px; height: 34px; margin-left: -60px; border: 3px solid #000; border-radius: 50%; opacity: 0; animation: sp-rip .9s ease-out .7s; }
       #splash .brand { position: absolute; left: 0; right: 0; top: 360px; display: flex; flex-direction: column; align-items: center; }
       #splash .wm { width: 190px; height: auto; overflow: visible; }
       #splash .letters { opacity: 0; animation: sp-up .55s 1.25s forwards; }
       #splash .pin { opacity: 0; animation: sp-fade .25s 1.45s forwards; }
-      #splash .bar { margin-top: 12px; height: 5px; width: 0; border-radius: 3px; background: linear-gradient(90deg,#FFA24C,#FF4D1A); animation: sp-bar .5s 1.6s forwards; }
-      #splash .tag { margin-top: 14px; display: flex; align-items: center; gap: 8px; font-size: 11px; letter-spacing: .32em; color: #8B93A8; font-weight: 600; opacity: 0; animation: sp-up .5s 1.95s forwards; }
-      #splash .tag i { display: block; width: 22px; height: 3px; border-radius: 2px; background: linear-gradient(90deg,#FFA24C,#FF4D1A); }
+      #splash .bar { margin-top: 12px; height: 5px; width: 0; border-radius: 3px; background: #000; animation: sp-bar .5s 1.6s forwards; }
+      #splash .tag { margin-top: 14px; display: flex; align-items: center; gap: 8px; font-size: 11px; letter-spacing: .32em; color: #6B6B6B; font-weight: 600; opacity: 0; animation: sp-up .5s 1.95s forwards; }
+      #splash .tag i { display: block; width: 22px; height: 3px; border-radius: 2px; background: #000; }
       @keyframes sp-fade { to { opacity: 1; } }
       @keyframes sp-up { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
       @keyframes sp-drop { from { transform: translateY(-320px); } to { transform: none; } }
@@ -79,9 +79,9 @@
     <div id="splash" aria-hidden="true">
       <div class="stage">
         <div class="glow"></div>
-        <svg class="bigpin" viewBox="0 0 512 640"><defs><linearGradient id="splash-o" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF9A3C"/><stop offset="1" stop-color="#FF4D1A"/></linearGradient></defs><path fill-rule="evenodd" fill="url(#splash-o)" d="M256 620C200 540 40 420 40 256A216 216 0 1 1 472 256C472 420 312 540 256 620Z M256 170a86 86 0 1 0 .01 0Z"/></svg>
+        <svg class="bigpin" viewBox="0 0 512 640"><defs><linearGradient id="splash-o" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#000"/><stop offset="1" stop-color="#000"/></linearGradient></defs><path fill-rule="evenodd" fill="url(#splash-o)" d="M256 620C200 540 40 420 40 256A216 216 0 1 1 472 256C472 420 312 540 256 620Z M256 170a86 86 0 1 0 .01 0Z"/></svg>
         <div class="ripple"></div>
-        <div class="brand"><svg class="wm" viewBox="0 -164.11 384.12 166.11"><defs><linearGradient id="splash-g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF9A3C"/><stop offset="1" stop-color="#FF4D1A"/></linearGradient></defs><path class="letters" d="M31.939453125 1.388671875C43.1259765625 1.388671875 51.53515625 -2.46875 56.78125 -12.189453125H57.3984375V0.0H86.40625V-59.095703125C86.40625 -74.98828125 70.66796875 -87.33203125 46.134765625 -87.33203125C21.91015625 -87.33203125 8.7177734375 -75.5283203125 6.326171875 -61.1015625L34.25390625 -58.32421875C35.2568359375 -63.5703125 39.80859375 -66.0390625 45.671875 -66.0390625C51.6123046875 -66.0390625 55.392578125 -63.4931640625 55.392578125 -59.095703125V-58.787109375C55.392578125 -53.7724609375 49.9150390625 -52.2294921875 35.48828125 -51.2265625C17.6669921875 -49.9150390625 3.857421875 -42.6630859375 3.857421875 -23.76171875C3.857421875 -6.634765625 15.3525390625 1.388671875 31.939453125 1.388671875ZM41.96875 -18.20703125C36.72265625 -18.20703125 33.01953125 -20.7529296875 33.01953125 -25.61328125C33.01953125 -30.0107421875 36.10546875 -33.4052734375 43.357421875 -34.5625C48.2177734375 -35.333984375 52.3837890625 -36.3369140625 55.701171875 -37.6484375V-30.55078125C55.701171875 -22.681640625 48.9892578125 -18.20703125 41.96875 -18.20703125Z M119.90625 0.0H156.3203125L187.1796875 -86.251953125H155.0859375L144.2080078125 -46.90625C142.0478515625 -39.037109375 140.2734375 -31.16796875 138.6533203125 -22.52734375C136.9560546875 -31.16796875 135.181640625 -39.037109375 132.9443359375 -46.90625L121.7578125 -86.251953125H89.201171875Z M189.974609375 0.0H220.98828125V-86.251953125H189.974609375Z M230.7265625 0.0H261.740234375V-44.900390625C261.740234375 -54.775390625 268.4521484375 -61.255859375 277.6328125 -61.255859375C280.7958984375 -61.255859375 285.96484375 -60.79296875 289.05078125 -59.712890625V-86.09765625C286.58203125 -86.869140625 283.8818359375 -87.33203125 281.181640625 -87.33203125C272.0009765625 -87.33203125 264.826171875 -81.931640625 261.740234375 -69.7421875H260.814453125V-86.251953125H230.7265625Z M334.8173828125 1.54296875C362.822265625 1.54296875 379.33203125 -16.35546875 379.33203125 -42.89453125C379.33203125 -69.3564453125 362.822265625 -87.33203125 334.8173828125 -87.33203125C306.658203125 -87.33203125 290.1484375 -69.3564453125 290.1484375 -42.89453125C290.1484375 -16.35546875 306.658203125 1.54296875 334.8173828125 1.54296875ZM334.8173828125 -21.6015625C326.6396484375 -21.6015625 321.779296875 -29.5478515625 321.779296875 -43.048828125C321.779296875 -56.626953125 326.6396484375 -64.1875 334.8173828125 -64.1875C342.8408203125 -64.1875 347.701171875 -56.626953125 347.701171875 -43.048828125C347.701171875 -29.5478515625 342.8408203125 -21.6015625 334.8173828125 -21.6015625Z" fill="#fff"/><path class="pin" d="M205.48 -98.25C197.61 -116.02 183 -127.26 183 -139.62A22.48 22.48 0 1 1 227.97 -139.62C227.97 -127.26 213.35 -116.02 205.48 -98.25Z M205.48 -149.06a9.44 9.44 0 1 0 0.01 0Z" fill="url(#splash-g)" fill-rule="evenodd"/></svg><div class="bar"></div><div class="tag"><i></i>PUNE · RIDE · SHARE<i></i></div></div>
+        <div class="brand"><svg class="wm" viewBox="0 -164.11 384.12 166.11"><defs><linearGradient id="splash-g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#000"/><stop offset="1" stop-color="#000"/></linearGradient></defs><path class="letters" d="M31.939453125 1.388671875C43.1259765625 1.388671875 51.53515625 -2.46875 56.78125 -12.189453125H57.3984375V0.0H86.40625V-59.095703125C86.40625 -74.98828125 70.66796875 -87.33203125 46.134765625 -87.33203125C21.91015625 -87.33203125 8.7177734375 -75.5283203125 6.326171875 -61.1015625L34.25390625 -58.32421875C35.2568359375 -63.5703125 39.80859375 -66.0390625 45.671875 -66.0390625C51.6123046875 -66.0390625 55.392578125 -63.4931640625 55.392578125 -59.095703125V-58.787109375C55.392578125 -53.7724609375 49.9150390625 -52.2294921875 35.48828125 -51.2265625C17.6669921875 -49.9150390625 3.857421875 -42.6630859375 3.857421875 -23.76171875C3.857421875 -6.634765625 15.3525390625 1.388671875 31.939453125 1.388671875ZM41.96875 -18.20703125C36.72265625 -18.20703125 33.01953125 -20.7529296875 33.01953125 -25.61328125C33.01953125 -30.0107421875 36.10546875 -33.4052734375 43.357421875 -34.5625C48.2177734375 -35.333984375 52.3837890625 -36.3369140625 55.701171875 -37.6484375V-30.55078125C55.701171875 -22.681640625 48.9892578125 -18.20703125 41.96875 -18.20703125Z M119.90625 0.0H156.3203125L187.1796875 -86.251953125H155.0859375L144.2080078125 -46.90625C142.0478515625 -39.037109375 140.2734375 -31.16796875 138.6533203125 -22.52734375C136.9560546875 -31.16796875 135.181640625 -39.037109375 132.9443359375 -46.90625L121.7578125 -86.251953125H89.201171875Z M189.974609375 0.0H220.98828125V-86.251953125H189.974609375Z M230.7265625 0.0H261.740234375V-44.900390625C261.740234375 -54.775390625 268.4521484375 -61.255859375 277.6328125 -61.255859375C280.7958984375 -61.255859375 285.96484375 -60.79296875 289.05078125 -59.712890625V-86.09765625C286.58203125 -86.869140625 283.8818359375 -87.33203125 281.181640625 -87.33203125C272.0009765625 -87.33203125 264.826171875 -81.931640625 261.740234375 -69.7421875H260.814453125V-86.251953125H230.7265625Z M334.8173828125 1.54296875C362.822265625 1.54296875 379.33203125 -16.35546875 379.33203125 -42.89453125C379.33203125 -69.3564453125 362.822265625 -87.33203125 334.8173828125 -87.33203125C306.658203125 -87.33203125 290.1484375 -69.3564453125 290.1484375 -42.89453125C290.1484375 -16.35546875 306.658203125 1.54296875 334.8173828125 1.54296875ZM334.8173828125 -21.6015625C326.6396484375 -21.6015625 321.779296875 -29.5478515625 321.779296875 -43.048828125C321.779296875 -56.626953125 326.6396484375 -64.1875 334.8173828125 -64.1875C342.8408203125 -64.1875 347.701171875 -56.626953125 347.701171875 -43.048828125C347.701171875 -29.5478515625 342.8408203125 -21.6015625 334.8173828125 -21.6015625Z" fill="#000"/><path class="pin" d="M205.48 -98.25C197.61 -116.02 183 -127.26 183 -139.62A22.48 22.48 0 1 1 227.97 -139.62C227.97 -127.26 213.35 -116.02 205.48 -98.25Z M205.48 -149.06a9.44 9.44 0 1 0 0.01 0Z" fill="url(#splash-g)" fill-rule="evenodd"/></svg><div class="bar"></div><div class="tag"><i></i>PUNE · RIDE · SHARE<i></i></div></div>
       </div>
     </div>
     <script>

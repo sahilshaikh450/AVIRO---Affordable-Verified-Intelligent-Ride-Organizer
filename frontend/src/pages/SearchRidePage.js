@@ -7,6 +7,7 @@ import { RideCard, EmptyState, Spinner } from '../components/common/UIComponents
 import LocationInput from '../components/common/LocationInput';
 import toast from 'react-hot-toast';
 import { RideAlertOffer, MyRideAlerts } from '../components/common/RideAlerts';
+import Icon from '../components/common/Icon';
 
 export default function SearchRidePage() {
   const dispatch = useDispatch();
@@ -48,7 +49,7 @@ export default function SearchRidePage() {
   return (
     <div className="space-y-6 animate-fade-up">
       <div>
-        <h1 className="font-display font-bold text-2xl mb-1">Find a Ride 🔍</h1>
+        <h1 className="font-display font-bold text-2xl mb-1">Find a Ride</h1>
         <p className="text-aviro-muted text-sm">Search rides on your college route</p>
       </div>
 
@@ -92,7 +93,7 @@ export default function SearchRidePage() {
         {/* Filters */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div>
-            <label className="text-xs text-aviro-muted font-medium block mb-1.5 uppercase tracking-wider">💺 Seats</label>
+            <label className="text-xs text-aviro-muted font-medium block mb-1.5 uppercase tracking-wider"><Icon e="💺" /> Seats</label>
             <select
               value={form.seatsNeeded}
               onChange={e => setForm({ ...form, seatsNeeded: +e.target.value })}
@@ -103,15 +104,15 @@ export default function SearchRidePage() {
           </div>
 
           <div>
-            <label className="text-xs text-aviro-muted font-medium block mb-1.5 uppercase tracking-wider">👤 Driver Gender</label>
+            <label className="text-xs text-aviro-muted font-medium block mb-1.5 uppercase tracking-wider"><Icon e="👤" /> Driver Gender</label>
             <select
               value={form.driverGender}
               onChange={e => setForm({ ...form, driverGender: e.target.value })}
               className="input-field"
             >
               <option value="">Any</option>
-              <option value="MALE">👨 Male</option>
-              <option value="FEMALE">👩 Female</option>
+              <option value="MALE"><Icon e="👨" /> Male</option>
+              <option value="FEMALE"><Icon e="👩" /> Female</option>
             </select>
           </div>
 
@@ -128,7 +129,7 @@ export default function SearchRidePage() {
                 ${form.womenOnly ? 'bg-pink-500 border-pink-500 text-white' : 'border-aviro-border'}`}>
                 {form.womenOnly && '✓'}
               </div>
-              <span className="text-xs font-medium text-pink-400">🚺 Women-only</span>
+              <span className="text-xs font-medium text-pink-600"><Icon e="🚺" /> Women-only</span>
             </label>
           </div>
 
@@ -153,7 +154,7 @@ export default function SearchRidePage() {
           <p className="text-aviro-muted text-sm mb-3">
             {loading ? 'Searching...' : `${list.length} ride${list.length !== 1 ? 's' : ''} found`}
             {form.fromLocation && form.toLocation && !loading &&
-              <span className="ml-2 text-white font-medium">
+              <span className="ml-2 text-aviro-fg font-medium">
                 {form.fromLocation} → {form.toLocation}
               </span>
             }

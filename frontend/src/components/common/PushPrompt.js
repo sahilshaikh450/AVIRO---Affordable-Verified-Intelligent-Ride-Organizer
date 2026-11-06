@@ -89,7 +89,7 @@ export default function PushPrompt() {
               Turn on
             </button>
           )}
-          <button onClick={dismiss} className="text-xs text-aviro-muted hover:text-white px-2">
+          <button onClick={dismiss} className="text-xs text-aviro-muted hover:text-aviro-fg px-2">
             {mode === 'ask' ? 'Not now' : 'Got it'}
           </button>
         </div>

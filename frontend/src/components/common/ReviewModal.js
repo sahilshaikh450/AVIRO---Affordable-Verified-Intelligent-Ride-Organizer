@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import { initial } from './Icon';
 
 function ReviewModalContent({ booking, revieweeId, revieweeName, revieweeGender, onClose, onSubmitted }) {
   const [rating, setRating] = useState(0);
@@ -50,7 +51,7 @@ function ReviewModalContent({ booking, revieweeId, revieweeName, revieweeGender,
 
         <div className="text-center mb-5">
           <div className="w-16 h-16 rounded-full bg-aviro-card2 border-2 border-aviro-border flex items-center justify-center text-3xl mx-auto mb-3">
-            {revieweeGender === 'FEMALE' ? '👩' : '👨'}
+            {initial(revieweeName)}
           </div>
           <h3 className="font-bold text-lg">Rate {revieweeName}</h3>
           <p className="text-xs text-aviro-muted mt-1">
@@ -69,7 +70,7 @@ function ReviewModalContent({ booking, revieweeId, revieweeName, revieweeGender,
               onMouseLeave={() => setHoverRating(0)}
               className="text-4xl transition-transform hover:scale-110"
             >
-              {(hoverRating || rating) >= star ? '⭐' : '☆'}
+              {(hoverRating || rating) >= star ? '★' : '☆'}
             </button>
           ))}
         </div>
@@ -89,7 +90,7 @@ function ReviewModalContent({ booking, revieweeId, revieweeName, revieweeGender,
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 bg-aviro-card2 border border-aviro-border text-white font-semibold py-2.5 rounded-xl text-sm hover:border-aviro-orange/40 transition-colors"
+            className="flex-1 bg-aviro-card2 border border-aviro-border text-aviro-fg font-semibold py-2.5 rounded-xl text-sm hover:border-aviro-orange/40 transition-colors"
           >
             Skip
           </button>
