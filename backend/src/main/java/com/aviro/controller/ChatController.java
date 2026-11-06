@@ -1,7 +1,9 @@
 package com.aviro.controller;
 
 import com.aviro.dto.response.ApiResponse;
+import com.aviro.entity.Booking;
 import com.aviro.entity.ChatMessage;
+import com.aviro.entity.User;
 import com.aviro.exception.AviroException;
 import com.aviro.repository.BookingRepository;
 import com.aviro.repository.UserRepository;
@@ -19,13 +21,20 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/chat")
 @RequiredArgsConstructor
 @Slf4j
 public class ChatController {
+
+    // A confirmed ride stuck open (never ended) stops showing a chat this long after departure
+    private static final int OPEN_HOURS_AFTER_DEPARTURE = 12;
 
     private final ChatService chatService;
     private final SimpMessagingTemplate messagingTemplate;
@@ -71,6 +80,7 @@ public class ChatController {
             @PathVariable Long otherUserId,
             @RequestParam(required = false) Long myId) {
         Long me = currentUserId(userDetails);
+        requireOpenChat(rideId, me, otherUserId);
         List<ChatMessage> messages = chatService.getConversation(rideId, me, otherUserId);
         return ResponseEntity.ok(ApiResponse.success(messages));
     }
@@ -98,11 +108,11 @@ public class ChatController {
     }
 
     private ChatMessage saveAndDeliver(Long senderId, ChatSocketMessage message) {
-        // Only the driver and a rider of the same ride can message each other
-        if (message.getRideId() == null || message.getReceiverId() == null
-                || !bookingRepository.sharesRide(message.getRideId(), senderId, message.getReceiverId())) {
+        // Only the driver and a rider of the same ride, once the booking is confirmed and until the trip ends
+        if (message.getRideId() == null || message.getReceiverId() == null) {
             throw new AccessDeniedException("You can only message people on your rides");
         }
+        requireOpenChat(message.getRideId(), senderId, message.getReceiverId());
         String content = message.getContent() == null ? "" : message.getContent().trim();
         if (content.isEmpty() || content.length() > MAX_MESSAGE_LENGTH) {
             throw new AviroException("Messages must be 1 to " + MAX_MESSAGE_LENGTH + " characters");
@@ -123,6 +133,39 @@ public class ChatController {
                 saved
         );
         return saved;
+    }
+
+    // People the user can chat with now: one entry per confirmed booking they are on
+    @GetMapping("/active")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> activeChats(@AuthenticationPrincipal UserDetails userDetails) {
+        Long me = currentUserId(userDetails);
+        List<Map<String, Object>> chats = new ArrayList<>();
+        for (Booking b : bookingRepository.findOpenChats(me, LocalDateTime.now().minusHours(OPEN_HOURS_AFTER_DEPARTURE))) {
+            boolean iDrive = b.getRide().getDriver().getId().equals(me);
+            User other = iDrive ? b.getRider() : b.getRide().getDriver();
+            Map<String, Object> c = new LinkedHashMap<>();
+            c.put("bookingId", b.getId());
+            c.put("rideId", b.getRide().getId());
+            c.put("otherId", other.getId());
+            c.put("otherName", other.getFullName());
+            c.put("otherGender", other.getGender());
+            c.put("role", iDrive ? "Rider" : "Driver");
+            c.put("fromLocation", b.getRide().getFromLocation());
+            c.put("toLocation", b.getRide().getToLocation());
+            c.put("departureTime", b.getRide().getDepartureTime());
+            c.put("tripStage", b.getTripStage());
+            chats.add(c);
+        }
+        return ResponseEntity.ok(ApiResponse.success(chats));
+    }
+
+    private void requireOpenChat(Long rideId, Long a, Long b) {
+        if (!bookingRepository.sharesRide(rideId, a, b)) {
+            throw new AccessDeniedException("You can only message people on your rides");
+        }
+        if (!bookingRepository.sharesConfirmedRide(rideId, a, b)) {
+            throw new AviroException("Chat opens when the driver confirms the ride and closes when the trip ends");
+        }
     }
 
     private Long currentUserId(UserDetails userDetails) {
