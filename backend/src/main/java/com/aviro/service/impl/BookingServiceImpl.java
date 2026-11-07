@@ -492,11 +492,10 @@ public class BookingServiceImpl implements BookingService {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new AviroException("Booking not found"));
 
-        boolean isRider  = booking.getRider().getId().equals(user.getId());
-        boolean isDriver = booking.getRide().getDriver().getId().equals(user.getId());
-
-        if (!isRider && !isDriver) {
-            throw new AviroException("Not authorized to view this OTP");
+        // Only the rider sees the start OTP: the driver must hear it from the rider at the pickup,
+        // or the trip could be "started" without them meeting
+        if (!booking.getRider().getId().equals(user.getId())) {
+            throw new AviroException("Only the rider can see the start OTP");
         }
 
         if (booking.getStatus() != BookingStatus.CONFIRMED) {

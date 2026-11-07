@@ -10,7 +10,7 @@ import { getErrorMessage } from '../store/authSlice';
 import PaymentChoiceModal from '../components/common/PaymentChoiceModal';
 import ReviewModal from '../components/common/ReviewModal';
 import { geocodePlace, fetchRoute, hasRealCoords, googleMapsDirections } from '../utils/geo';
-import { MAP_OPTIONS, addTiles, routeLayer, layerBounds, meIcon, personIcon, vehicleIcon, startIcon, endIcon, VEHICLE_EMOJI } from '../utils/mapStyle';
+import { esc, MAP_OPTIONS, addTiles, routeLayer, layerBounds, meIcon, personIcon, vehicleIcon, startIcon, endIcon, VEHICLE_EMOJI } from '../utils/mapStyle';
 import toast from 'react-hot-toast';
 import Icon, { initial } from '../components/common/Icon';
 
@@ -194,7 +194,8 @@ export default function LiveTrackingPage() {
       return;
     }
     if (existing) existing.setLatLng([loc.lat, loc.lng]);
-    else markersRef.current[key] = L.marker([loc.lat, loc.lng], { icon }).addTo(map).bindPopup(popup);
+    // Popup text holds names and places typed by users: escape it, it is rendered as HTML
+    else markersRef.current[key] = L.marker([loc.lat, loc.lng], { icon }).addTo(map).bindPopup(esc(popup));
   }, []);
 
   const fitAll = useCallback(() => {
