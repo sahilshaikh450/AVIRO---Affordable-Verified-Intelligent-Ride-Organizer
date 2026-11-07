@@ -70,7 +70,8 @@ public class SecurityConfig {
         List<String> origins = new ArrayList<>(List.of(
             "http://localhost:3000",
             "http://localhost:3001",
-            "https://aviro-*.vercel.app"
+            "https://aviro.vercel.app",      // short address
+            "https://aviro-*.vercel.app"     // the old long address and Vercel previews
         ));
         Arrays.stream(extraOrigins.split(",")).map(String::trim).filter(o -> !o.isEmpty()).forEach(origins::add);
         config.setAllowedOriginPatterns(origins);
