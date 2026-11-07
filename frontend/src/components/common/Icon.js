@@ -50,6 +50,8 @@ export const VEHICLE_ICON = { BIKE: MdOutlineTwoWheeler, SCOOTY: MdOutlineTwoWhe
 const DOTS = { '🟠': 'bg-black', '🟢': 'bg-aviro-green', '🔴': 'bg-red-600', '🟡': 'bg-yellow-500', '⚪': 'bg-neutral-300' };
 
 export default function Icon({ e, name, size = '1.15em', className = '', ...rest }) {
+  // Callers sometimes pass a ready element (e.g. <VehicleIcon />) or a number: show it as it is
+  if (!name && e != null && typeof e !== 'string') return React.isValidElement(e) ? e : <span className={className}>{String(e)}</span>;
   if (DOTS[e]) return <span className={`inline-block w-2.5 h-2.5 rounded-full ${DOTS[e]} ${className}`} aria-hidden="true" />;
   const Cmp = name ? BY_NAME[name] : BY_EMOJI[e] || BY_EMOJI[(e || '').replace(/️/g, '')];
   if (!Cmp) return e ? <span className={className}>{e}</span> : null;

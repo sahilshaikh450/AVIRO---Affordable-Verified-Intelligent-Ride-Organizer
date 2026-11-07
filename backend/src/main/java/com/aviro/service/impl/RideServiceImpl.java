@@ -51,6 +51,9 @@ public class RideServiceImpl implements RideService {
     @Value("${aviro.vehicle.require-verification:false}")
     private boolean requireVehicleVerification;
 
+    // Plans further out than this are usually mistakes (wrong year) and clutter search
+    static final int MAX_DAYS_AHEAD = 30;
+
     @Value("${aviro.ride.first-departure:06:00}")
     private LocalTime firstDeparture;
     @Value("${aviro.ride.last-departure:20:00}")
@@ -100,6 +103,9 @@ public class RideServiceImpl implements RideService {
         if (request.getDepartureTime() == null ||
             request.getDepartureTime().isBefore(LocalDateTime.now().plusMinutes(15))) {
             throw new AviroException("⏰ Departure time must be at least 15 minutes from now.");
+        }
+        if (request.getDepartureTime().isAfter(LocalDateTime.now().plusDays(MAX_DAYS_AHEAD))) {
+            throw new AviroException("📅 Rides can be posted up to " + MAX_DAYS_AHEAD + " days ahead.");
         }
 
         // 4b. Only during college hours: no rides leaving at night

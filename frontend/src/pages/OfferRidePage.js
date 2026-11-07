@@ -8,10 +8,17 @@ import toast from 'react-hot-toast';
 import { geocodePlace, fetchRoute, PUNE_CENTRE } from '../utils/geo';
 import api from '../services/api';
 import { StudentsNeedRides } from '../components/common/RideAlerts';
+import { toRupees, splitShare, driverShare, estimateCost as estimateTripCost, PER_KM } from '../utils/split';
 import Icon from '../components/common/Icon';
  
-// Rough petrol cost per km, one way
-const PER_KM = { BIKE: 2.5, SCOOTY: 2.5, CAR: 7 };
+// Same as the server: rides up to this many days ahead
+const MAX_DAYS_AHEAD = 30;
+// "YYYY-MM-DDTHH:mm" in local time, days from now, for the date picker's min/max
+const localInput = (days) => {
+  const d = new Date(Date.now() + days * 86400000);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
 
 // College hours, same as the server: departures from 06:00 up to 20:00
 const inCollegeHours = (value) => {
@@ -59,8 +66,8 @@ export default function OfferRidePage() {
 
   // Cost split: the trip cost is shared equally by the driver and the riders
   const [tripCost, setTripCost] = React.useState('');
-  const cost = Math.max(0, Math.round(Number(tripCost) || 0));
-  const perSeat = cost > 0 ? Math.ceil(cost / (seats + 1)) : 0;
+  const cost = toRupees(tripCost);
+  const perSeat = splitShare(cost, seats);
   React.useEffect(() => {
     setValue('pricePerSeat', perSeat || '', { shouldValidate: perSeat > 0 });
   }, [perSeat, setValue]);
@@ -79,7 +86,7 @@ export default function OfferRidePage() {
     setEstimating(false);
     if (!route) { toast.error("Couldn't measure the route. Enter the cost yourself."); return; }
     const rate = PER_KM[vehicleType] || PER_KM.CAR;
-    const estimate = Math.max(10, Math.round((route.distanceKm * rate) / 5) * 5);
+    const estimate = estimateTripCost(route.distanceKm, vehicleType);
     setTripCost(String(estimate));
     setEstimateNote(`About ${route.distanceKm.toFixed(1)} km × ₹${rate}/km. Change it if your cost is different.`);
   };
@@ -236,8 +243,9 @@ export default function OfferRidePage() {
             </label> 
  
             <input 
-              {...register('departureTime', { required: 'Required', validate: v => inCollegeHours(v) || 'Pick a time between 6:00 AM and 8:00 PM' })} 
+              {...register('departureTime', { required: 'Required', validate: v => (inCollegeHours(v) || 'Pick a time between 6:00 AM and 8:00 PM') && (v <= localInput(MAX_DAYS_AHEAD) || `Rides can be posted up to ${MAX_DAYS_AHEAD} days ahead`) })} 
               type="datetime-local" 
+              min={localInput(0)} max={localInput(MAX_DAYS_AHEAD)} 
               className="input-field" 
             /> 
             {!errors.departureTime && (
@@ -300,7 +308,7 @@ export default function OfferRidePage() {
                 <span className="text-aviro-green font-bold text-lg">₹{perSeat}</span> <span className="text-aviro-muted">per rider</span>
               </p>
               <p className="text-xs text-aviro-muted">
-                You pay your own share (₹{Math.max(0, cost - perSeat * seats)}).
+                You pay your own share (₹{driverShare(cost, seats)}).
                 {seats > 1 && ` If fewer riders book, each still pays ₹${perSeat}.`}
               </p>
             </div>
