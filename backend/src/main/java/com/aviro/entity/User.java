@@ -6,7 +6,9 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "users")
@@ -105,13 +107,16 @@ public class User extends BaseEntity {
         joinColumns = @JoinColumn(name = "user_id"),
         inverseJoinColumns = @JoinColumn(name = "buddy_id")
     )
+    // A Set, so Hibernate gives the join table a primary key (user_id, buddy_id):
+    // Aiven MySQL refuses to create tables without one
     @Builder.Default
     @JsonIgnore // self-referencing many-to-many, also a loop risk
-    private List<User> rideBuddies = new ArrayList<>();
+    private Set<User> rideBuddies = new LinkedHashSet<>();
 
     @ElementCollection
     @CollectionTable(name = "emergency_contacts", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "emergency_contacts", nullable = false) // not null, so it can be part of the primary key
     @Builder.Default
     @JsonIgnore // CRITICAL: prevents lazy-load DB crash when User is serialized (table may not exist)
-    private List<String> emergencyContacts = new ArrayList<>();
+    private Set<String> emergencyContacts = new LinkedHashSet<>(); // a Set for the same primary-key reason
 }
