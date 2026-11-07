@@ -61,12 +61,36 @@ public class UserController {
         if (file.getSize() > MAX_ID_PHOTO_BYTES) {
             throw new AviroException("Photo is too large. Please use one under 5 MB.");
         }
+        String actual = sniffImageExtension(file);
+        if (actual == null) {
+            throw new AviroException("This file is not a photo. Please upload a JPG, PNG or WEBP image.");
+        }
+        extension = actual;
         Path uploadPath = Paths.get(UPLOAD_DIR);
         Files.createDirectories(uploadPath);
         // Extension from the checked type, not the user's file name
         String filename = prefix + "_" + userId + "_" + UUID.randomUUID() + extension;
         Files.copy(file.getInputStream(), uploadPath.resolve(filename));
         return filename;
+    }
+
+    // Extension from the file's own signature bytes, or null when it isn't a JPG, PNG or WEBP
+    static String sniffImageExtension(MultipartFile file) throws IOException {
+        byte[] head = new byte[12];
+        int n;
+        try (java.io.InputStream in = file.getInputStream()) {
+            n = in.readNBytes(head, 0, head.length);
+        }
+        return sniffImageExtension(head, n);
+    }
+
+    static String sniffImageExtension(byte[] b, int n) {
+        if (n >= 3 && (b[0] & 0xFF) == 0xFF && (b[1] & 0xFF) == 0xD8 && (b[2] & 0xFF) == 0xFF) return ".jpg";
+        if (n >= 8 && (b[0] & 0xFF) == 0x89 && b[1] == 'P' && b[2] == 'N' && b[3] == 'G'
+                && b[4] == 0x0D && b[5] == 0x0A && b[6] == 0x1A && b[7] == 0x0A) return ".png";
+        if (n >= 12 && b[0] == 'R' && b[1] == 'I' && b[2] == 'F' && b[3] == 'F'
+                && b[8] == 'W' && b[9] == 'E' && b[10] == 'B' && b[11] == 'P') return ".webp";
+        return null;
     }
 
     // Removes a photo saved earlier ("/api/users/college-id-image/<file>"); missing files are fine

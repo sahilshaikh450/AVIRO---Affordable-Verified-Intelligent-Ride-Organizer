@@ -110,7 +110,9 @@ public class LocationController {
 
         Long riderId  = bookingRepository.findRiderIdByBookingId(bookingId).orElse(null);
         Long driverId = bookingRepository.findDriverIdByBookingId(bookingId).orElse(null);
-        if (senderId == null || riderId == null
+        // Like chat: only while the booking is confirmed, so a declined or past rider can't keep pinging
+        BookingStatus status = bookingRepository.findById(bookingId).map(Booking::getStatus).orElse(null);
+        if (senderId == null || riderId == null || status != BookingStatus.CONFIRMED
                 || (!senderId.equals(riderId) && !senderId.equals(driverId))) {
             log.warn("Rejected location.message for booking {} from user {}", bookingId, senderId);
             return;

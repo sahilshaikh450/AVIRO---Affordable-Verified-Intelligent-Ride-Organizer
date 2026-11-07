@@ -17,3 +17,6 @@ frontend/build/
 
 # Redis local dump
 dump.rdb
+
+# Photos saved by the app or the test suite
+backend/uploads/

@@ -111,6 +111,13 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- In-memory database for the test suite (no MySQL needed) -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <!-- Error tracking (disabled unless SENTRY_DSN is set) -->
         <dependency>
             <groupId>io.sentry</groupId>
@@ -143,6 +150,17 @@
                             <artifactId>lombok</artifactId>
                         </exclude>
                     </excludes>
+                </configuration>
+            </plugin>
+            <!-- Unit tests (*Test) and API tests on H2 (*IT) both run with "mvn test" -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <includes>
+                        <include>**/*Test.java</include>
+                        <include>**/*IT.java</include>
+                    </includes>
                 </configuration>
             </plugin>
         </plugins>

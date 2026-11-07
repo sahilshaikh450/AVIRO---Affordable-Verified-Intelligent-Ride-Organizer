@@ -13,6 +13,7 @@ public class RideRequest {
     public static class Create {
         @NotBlank(message = "From location is required")
         @Size(max = 200)
+        @Pattern(regexp = "^[^<>]*$", message = "Use plain text: < and > are not allowed")
         private String fromLocation;
 
         @NotNull @DecimalMin("-90") @DecimalMax("90") private Double fromLat;
@@ -20,6 +21,7 @@ public class RideRequest {
 
         @NotBlank(message = "To location is required")
         @Size(max = 200)
+        @Pattern(regexp = "^[^<>]*$", message = "Use plain text: < and > are not allowed")
         private String toLocation;
 
         @NotNull @DecimalMin("-90") @DecimalMax("90") private Double toLat;
@@ -44,6 +46,7 @@ public class RideRequest {
         private Boolean womenOnly = false;
         private Gender allowedGender;
         @Size(max = 500, message = "Notes can be at most 500 characters")
+        @Pattern(regexp = "^[^<>]*$", message = "Use plain text: < and > are not allowed")
         private String notes;
     }
 

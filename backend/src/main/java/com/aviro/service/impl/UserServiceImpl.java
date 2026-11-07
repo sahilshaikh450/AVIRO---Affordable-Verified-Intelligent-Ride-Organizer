@@ -61,7 +61,7 @@ public class UserServiceImpl implements UserService {
         if (request.getDepartment() != null) user.setDepartment(request.getDepartment());
         if (request.getYearOfStudy() != null) user.setYearOfStudy(request.getYearOfStudy());
         if (request.getWomenOnlyMode() != null) user.setWomenOnlyMode(request.getWomenOnlyMode());
-        if (request.getEmergencyContacts() != null) user.setEmergencyContacts(request.getEmergencyContacts());
+        // Emergency contacts are changed only through /safety/emergency-contacts, which checks them
         userRepository.save(user);
         return ApiResponse.success("Profile updated successfully", toResponse(user));
     }
