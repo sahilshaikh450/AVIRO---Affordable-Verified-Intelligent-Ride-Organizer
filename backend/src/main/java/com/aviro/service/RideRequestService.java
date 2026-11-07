@@ -57,6 +57,9 @@ public class RideRequestService {
         if (fromPlace.isEmpty() || toPlace.isEmpty()) {
             throw new AviroException("Please enter From and To locations");
         }
+        if ((fromPlace + toPlace).matches(".*[<>].*")) {
+            throw new AviroException("Use plain text: < and > are not allowed");
+        }
         if (squash(fromPlace).equals(squash(toPlace))) {
             throw new AviroException("Pickup and drop can't be the same place");
         }

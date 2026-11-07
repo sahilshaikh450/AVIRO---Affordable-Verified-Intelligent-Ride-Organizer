@@ -1,0 +1,28 @@
+# Test profile: in-memory H2 (MySQL mode); Redis and email are mocked in the tests
+spring:
+  datasource:
+    url: jdbc:h2:mem:aviro;MODE=MySQL;DATABASE_TO_LOWER=TRUE;CASE_INSENSITIVE_IDENTIFIERS=TRUE;DB_CLOSE_DELAY=-1;NON_KEYWORDS=YEAR,VALUE,MONTH,DAY
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+  data:
+    redis:
+      host: localhost
+      password: ""
+      ssl:
+        enabled: false
+  cache:
+    type: none
+
+aviro:
+  jwt:
+    secret: test-secret-test-secret-test-secret-test-secret-0123456789
+  admin-emails: ""
+  keep-alive:
+    interval-ms: 86400000

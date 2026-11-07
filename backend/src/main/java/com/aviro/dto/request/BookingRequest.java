@@ -10,6 +10,7 @@ public class BookingRequest {
         @NotNull private Long rideId;
         @NotNull @Min(1) @Max(4) private Integer seatsBooked = 1;
         @Size(max = 200)
+        @Pattern(regexp = "^[^<>]*$", message = "Use plain text: < and > are not allowed")
         private String pickupPoint;
         private Double pickupLat;
         private Double pickupLng;

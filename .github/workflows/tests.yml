@@ -1,0 +1,49 @@
+name: Tests
+
+# Runs the backend tests (unit + API tests on an in-memory database) and the frontend tests
+# on every pull request and on pushes to main. No MySQL, Redis or secrets are needed.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Unit and API tests
+        run: mvn -B test
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - name: Unit tests
+        run: npm test -- --watchAll=false
+        env:
+          CI: true
+      - name: Build
+        run: npm run build
+        env:
+          CI: true

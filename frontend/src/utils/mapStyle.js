@@ -30,8 +30,11 @@ export const routeLayer = (coords, { straight = false } = {}) => {
 // Bounds of whatever routeLayer returned
 export const layerBounds = (layer) => (layer.getBounds ? layer.getBounds() : L.featureGroup(layer.getLayers()).getBounds());
 
+// Leaflet labels and popups are HTML: anything typed by a user (names, places) must be escaped
+export const esc = (text) => String(text ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
 const label = (text) => (text
-  ? `<div style="position:absolute;left:50%;top:-30px;transform:translateX(-50%);background:#fff;color:#202124;font:600 11px/1 system-ui,sans-serif;padding:5px 8px;border-radius:8px;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.25)">${text.replace(/</g, '&lt;')}</div>`
+  ? `<div style="position:absolute;left:50%;top:-30px;transform:translateX(-50%);background:#fff;color:#202124;font:600 11px/1 system-ui,sans-serif;padding:5px 8px;border-radius:8px;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.25)">${esc(text)}</div>`
   : '');
 
 // Start of a trip: green dot with a white ring

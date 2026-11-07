@@ -5,7 +5,6 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
-import java.util.List;
 
 @Data
 public class ProfileUpdateRequest {
@@ -26,6 +25,5 @@ public class ProfileUpdateRequest {
     @Size(max = 10)
     private String yearOfStudy;
     private Boolean womenOnlyMode;
-    @Size(max = 5)
-    private List<String> emergencyContacts;
+    // Emergency contacts are not part of the profile: see POST /safety/emergency-contacts
 }
