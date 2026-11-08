@@ -50,179 +50,94 @@ public class EmailService {
     @Value("${aviro.mail.from-name:AVIRO}")
     private String mailFromName;
 
-    // ============================================================
-    // VERIFICATION OTP
-    // ============================================================
-    @Async("taskExecutor")
-    public void sendVerificationEmail(
-            String to,
-            String name,
-            String otp
-    ) {
+    // Link under every email's "Open AVIRO" button
+    @Value("${aviro.frontend-url:https://aviro-affordable-verified-intellige.vercel.app}")
+    private String frontendUrl;
 
-        String subject =
-                "🚀 Verify your AVIRO account";
+    // ============================================================
+    // ONE-TIME CODES
+    // ============================================================
 
-        String body = buildEmailHtml(
+    // Sign-up code, sent right away so registration can fail cleanly if email is down
+    public boolean sendVerificationEmailNow(String to, String name, String otp) {
+        return sendEmail(to, "Your AVIRO verification code: " + otp, codeEmail(
                 name,
-                "Welcome to AVIRO! 🎓",
-                "Your email verification OTP is:",
+                "Verify your email",
+                "enter this code in AVIRO to finish creating your account.",
                 otp,
-                "This OTP expires in 10 minutes. Don't share it with anyone."
-        );
-
-        sendEmail(to, subject, body);
+                "The code expires in 10 minutes. Never share it with anyone, not even AVIRO staff."));
     }
 
-    // ============================================================
-    // PASSWORD RESET OTP
-    // ============================================================
+    // College email code (sent from the profile page)
     @Async("taskExecutor")
-    public void sendPasswordResetEmail(
-            String to,
-            String name,
-            String otp
-    ) {
-
-        String subject =
-                "🔐 AVIRO Password Reset OTP";
-
-        String body = buildEmailHtml(
+    public void sendVerificationEmail(String to, String name, String otp) {
+        sendEmail(to, "Your AVIRO verification code: " + otp, codeEmail(
                 name,
-                "Password Reset Request",
-                "Your password reset OTP is:",
+                "Verify your college email",
+                "enter this code in AVIRO to confirm this email address.",
                 otp,
-                "If you didn't request this, ignore this email. OTP expires in 10 minutes."
-        );
-
-        sendEmail(to, subject, body);
+                "The code expires in 10 minutes. Never share it with anyone."));
     }
 
     // Sent right away (not in the background) so the app can tell the user if it failed
     public boolean sendPasswordResetEmailNow(String to, String name, String otp) {
-        return sendEmail(to, "🔐 Your AVIRO password reset code", buildEmailHtml(
+        return sendEmail(to, "Your AVIRO password reset code: " + otp, codeEmail(
                 name,
                 "Reset your password",
-                "Your password reset code is:",
+                "enter this code in AVIRO to choose a new password.",
                 otp,
-                "It expires in 10 minutes. If you didn't ask to reset your password, you can ignore this email."
-        ));
+                "It expires in 10 minutes. If you didn't ask to reset your password, you can ignore this email."));
     }
 
     // ============================================================
-    // BOOKING CONFIRMATION
+    // BOOKINGS
     // ============================================================
     @Async("taskExecutor")
-    public void sendBookingConfirmation(
-            String to,
-            String name,
-            String rideDetails
-    ) {
-
-        String subject =
-                "✅ Ride Booking Confirmed - AVIRO";
-
-        String body =
-                "<html><body style='font-family:sans-serif;"
-                        + "background:#0D0F14;color:#F0F2F8;padding:24px'>"
-
-                        + "<h2 style='color:#FF6B2B'>Hi "
-                        + name
-                        + "!</h2>"
-
-                        + "<p>Your ride has been "
-                        + "<strong style='color:#22C55E'>confirmed</strong>."
-                        + "</p>"
-
-                        + "<div style='background:#161A22;"
-                        + "border-radius:12px;padding:16px;margin:16px 0'>"
-                        + rideDetails
-                        + "</div>"
-
-                        + "<p style='color:#8B93A8'>"
-                        + "Have a safe ride! 🏍️"
-                        + "<br/>Team AVIRO"
-                        + "</p>"
-
-                        + "</body></html>";
-
-        sendEmail(to, subject, body);
+    public void sendBookingConfirmation(String to, String name, String rideDetails) {
+        String content = heading("Your seat is confirmed")
+                + para("Hi " + esc(firstName(name)) + ", the driver accepted your booking.")
+                + panel("<p style='margin:0;font-size:12px;color:" + MUTED + ";text-transform:uppercase;letter-spacing:1px'>Trip</p>"
+                        + "<p style='margin:6px 0 0;font-size:16px;font-weight:600;color:" + INK + "'>" + esc(rideDetails) + "</p>")
+                + para("Open the app to see pickup details, chat with your driver and track the trip live.")
+                + button(frontendUrl + "/bookings", "View booking", INK);
+        sendEmail(to, "Booking confirmed: " + rideDetails, layout("Your AVIRO seat is confirmed", content));
     }
 
-    // ============================================================
-    // RIDE REQUEST
-    // ============================================================
     @Async("taskExecutor")
-    public void sendRideRequestNotification(
-            String to,
-            String driverName,
-            String riderName
-    ) {
-
-        String subject =
-                "🙋 New Ride Request - AVIRO";
-
-        String body =
-                "<html><body style='font-family:sans-serif;padding:24px'>"
-
-                        + "<h2 style='color:#FF6B2B'>New Request!</h2>"
-
-                        + "<p>Hi "
-                        + driverName
-                        + ", <strong>"
-                        + riderName
-                        + "</strong> wants to join your ride.</p>"
-
-                        + "<p>Open the AVIRO app to accept or decline.</p>"
-
-                        + "<p style='color:#8B93A8'>"
-                        + "Team AVIRO 🚀"
-                        + "</p>"
-
-                        + "</body></html>";
-
-        sendEmail(to, subject, body);
+    public void sendRideRequestNotification(String to, String driverName, String riderName) {
+        String content = heading("New ride request")
+                + para("Hi " + esc(firstName(driverName)) + ", <strong style='color:" + INK + "'>" + esc(riderName)
+                        + "</strong> wants to join your ride.")
+                + para("Accept or decline it in the app. The rider is waiting for your answer.")
+                + button(frontendUrl + "/my-rides", "Review request", INK);
+        sendEmail(to, "New ride request from " + riderName, layout(riderName + " wants to join your ride", content));
     }
 
     // ============================================================
-    // SOS ALERT
+    // SAFETY
     // ============================================================
     // Names and messages come from users, so they are escaped before going into the HTML
     @Async("taskExecutor")
     public void sendSosAlert(String toEmail, String senderName, String message, String mapsLink, String tripLink) {
-        String subject = "🆘 SOS: " + senderName + " needs help";
-        String body = "<html><body style='font-family:sans-serif;background:#1a1a2e;color:white;padding:30px'>"
-                + "<div style='max-width:500px;margin:0 auto;background:#0f0f1a;border-radius:16px;padding:30px;border:2px solid #ef4444'>"
-                + "<h1 style='color:#ef4444;text-align:center'>🆘 SOS ALERT</h1>"
-                + "<p style='font-size:18px;color:#fbbf24;text-align:center'><strong>" + esc(senderName) + " needs help</strong></p>"
-                + "<div style='background:#1a1a2e;padding:20px;border-radius:12px;margin:20px 0;border:1px solid #ef4444'>"
-                + "<pre style='color:#f97316;font-size:15px;white-space:pre-wrap;font-family:sans-serif'>" + esc(message) + "</pre>"
-                + "</div>"
-                + button(mapsLink, "📍 Open their location", "#ef4444")
-                + button(tripLink, "🚗 Follow the trip live", "#FF6B2B")
-                + "<p style='color:#ef4444;font-size:20px;font-weight:bold;text-align:center'>Emergency: call 112</p>"
-                + "<hr style='border-color:#333;margin:20px 0'/>"
-                + "<p style='color:#666;font-size:12px;text-align:center'>You are getting this because "
-                + esc(senderName) + " saved you as an emergency contact on AVIRO.</p>"
-                + "</div></body></html>";
-        sendEmail(toEmail, subject, body);
+        String content = "<p style='margin:0 0 8px;font-size:12px;font-weight:700;letter-spacing:2px;color:" + DANGER + "'>SOS ALERT</p>"
+                + heading(esc(senderName) + " needs help")
+                + panel("<pre style='margin:0;font-size:14px;line-height:1.5;white-space:pre-wrap;font-family:inherit;color:" + INK + "'>"
+                        + esc(message) + "</pre>", DANGER)
+                + button(mapsLink, "Open their location", DANGER)
+                + button(tripLink, "Follow the trip live", INK)
+                + "<p style='margin:20px 0 0;text-align:center;font-size:18px;font-weight:700;color:" + DANGER + "'>Emergency? Call 112</p>"
+                + small("You are getting this because " + esc(senderName) + " saved you as an emergency contact on AVIRO.");
+        sendEmail(toEmail, "SOS: " + senderName + " needs help", layout(senderName + " pressed SOS on AVIRO", content));
     }
 
-    // ============================================================
-    // RIDE SHARE ALERT
-    // ============================================================
     @Async("taskExecutor")
     public void sendRideShareAlert(String toEmail, String senderName, String message, String link) {
-        String subject = "📍 " + senderName + " shared their AVIRO trip with you";
-        String body = "<html><body style='font-family:sans-serif;background:#0D0F14;color:#F0F2F8;padding:24px'>"
-                + "<div style='max-width:500px;margin:0 auto;background:#161A22;border-radius:16px;padding:28px;border:1px solid #2A2F3E'>"
-                + "<h1 style='color:#FF6B2B'>aviro</h1>"
-                + "<h2 style='color:#22c55e'>📍 Follow " + esc(senderName) + "'s trip</h2>"
-                + "<pre style='color:#F0F2F8;font-size:15px;white-space:pre-wrap;font-family:sans-serif'>" + esc(message) + "</pre>"
-                + button(link, "Open the live trip", "#FF6B2B")
-                + "<p style='color:#8B93A8;font-size:12px;text-align:center'>Sent via AVIRO, Pune's college ride sharing</p>"
-                + "</div></body></html>";
-        sendEmail(toEmail, subject, body);
+        String content = heading("Follow " + esc(senderName) + "'s trip")
+                + panel("<pre style='margin:0;font-size:14px;line-height:1.5;white-space:pre-wrap;font-family:inherit;color:" + INK + "'>"
+                        + esc(message) + "</pre>")
+                + button(link, "Open the live trip", INK)
+                + small("The link works without an account and stops working when the trip ends.");
+        sendEmail(toEmail, senderName + " shared their AVIRO trip with you", layout("Follow " + senderName + "'s trip live", content));
     }
 
     // ============================================================
@@ -230,14 +145,76 @@ public class EmailService {
     // ============================================================
     @Async("taskExecutor")
     public void sendAdminAlert(String subject, String alertBody) {
-        String body = "<html><body style='font-family:sans-serif;padding:24px'>"
-                + "<h2 style='color:#ef4444'>" + esc(subject) + "</h2>"
-                + "<div style='background:#f5f5f5;padding:20px;border-radius:8px;margin:16px 0'>"
-                + "<pre style='font-size:14px;white-space:pre-wrap'>" + esc(alertBody) + "</pre>"
-                + "</div>"
-                + "<p style='color:#666;font-size:12px'>AVIRO Admin Alert System</p>"
-                + "</body></html>";
-        sendEmail("sahilshaikh34088@gmail.com", subject, body);
+        String content = heading(esc(subject))
+                + panel("<pre style='margin:0;font-size:13px;line-height:1.5;white-space:pre-wrap;font-family:inherit;color:" + INK + "'>"
+                        + esc(alertBody) + "</pre>")
+                + button(frontendUrl + "/admin", "Open admin panel", INK);
+        sendEmail("sahilshaikh34088@gmail.com", subject, layout(subject, content));
+    }
+
+    // ============================================================
+    // LAYOUT: the app's black-and-white look, inline styles only (email clients drop <style>)
+    // ============================================================
+    private static final String INK = "#111111";
+    private static final String MUTED = "#6B6B6B";
+    private static final String LINE = "#E6E6E6";
+    private static final String SOFT = "#F5F5F5";
+    private static final String DANGER = "#D93025";
+    private static final String FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Roboto,Helvetica,Arial,sans-serif";
+
+    // preheader = the grey preview line most inboxes show after the subject
+    private String layout(String preheader, String content) {
+        int year = java.time.Year.now(java.time.ZoneId.of("Asia/Kolkata")).getValue();
+        return "<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'></head>"
+                + "<body style='margin:0;padding:0;background:" + SOFT + ";font-family:" + FONT + "'>"
+                + "<div style='display:none;max-height:0;overflow:hidden;opacity:0'>" + esc(preheader) + "</div>"
+                + "<table role='presentation' width='100%' cellpadding='0' cellspacing='0' style='background:" + SOFT + ";padding:32px 12px'><tr><td align='center'>"
+                + "<table role='presentation' width='100%' cellpadding='0' cellspacing='0' style='max-width:480px;background:#FFFFFF;border:1px solid " + LINE + ";border-radius:16px'>"
+                + "<tr><td style='padding:28px 28px 0'>"
+                + "<p style='margin:0;font-size:26px;font-weight:800;letter-spacing:-0.5px;color:" + INK + "'>aviro</p>"
+                + "<p style='margin:2px 0 0;font-size:10px;font-weight:600;letter-spacing:3px;color:" + MUTED + "'>PUNE &middot; RIDE &middot; SHARE</p>"
+                + "</td></tr>"
+                + "<tr><td style='padding:24px 28px 28px'>" + content + "</td></tr>"
+                + "<tr><td style='padding:16px 28px;border-top:1px solid " + LINE + "'>"
+                + "<p style='margin:0;font-size:11px;line-height:1.5;color:" + MUTED + ";text-align:center'>&copy; " + year
+                + " AVIRO &middot; Pune's college ride network<br>Verified students only &middot; <a href='" + esc(frontendUrl)
+                + "' style='color:" + MUTED + "'>Open AVIRO</a></p>"
+                + "</td></tr></table></td></tr></table></body></html>";
+    }
+
+    private String codeEmail(String name, String title, String intro, String otp, String footnote) {
+        String content = heading(title)
+                + para("Hi " + esc(firstName(name)) + ", " + esc(intro))
+                + "<div style='margin:20px 0;padding:20px;background:" + INK + ";border-radius:12px;text-align:center'>"
+                + "<span style='font-size:34px;font-weight:800;letter-spacing:10px;color:#FFFFFF;font-family:Menlo,Consolas,monospace'>"
+                + esc(otp) + "</span></div>"
+                + small(esc(footnote));
+        return layout(title + ": your code is " + otp, content);
+    }
+
+    private static String heading(String html) {
+        return "<h1 style='margin:0 0 12px;font-size:22px;line-height:1.3;font-weight:700;color:" + INK + "'>" + html + "</h1>";
+    }
+
+    private static String para(String html) {
+        return "<p style='margin:0 0 14px;font-size:15px;line-height:1.55;color:#333333'>" + html + "</p>";
+    }
+
+    private static String small(String html) {
+        return "<p style='margin:16px 0 0;font-size:12px;line-height:1.5;color:" + MUTED + "'>" + html + "</p>";
+    }
+
+    private static String panel(String html) {
+        return panel(html, LINE);
+    }
+
+    private static String panel(String html, String border) {
+        return "<div style='margin:16px 0;padding:16px;background:" + SOFT + ";border:1px solid " + border + ";border-radius:12px'>" + html + "</div>";
+    }
+
+    private static String firstName(String name) {
+        if (name == null || name.isBlank()) return "there";
+        return name.trim().split("\\s+")[0];
     }
 
     private static String esc(String text) {
@@ -247,8 +224,8 @@ public class EmailService {
     // A big tappable link; nothing when there is no link
     private static String button(String href, String label, String color) {
         if (href == null || href.isBlank()) return "";
-        return "<p style='text-align:center;margin:18px 0'><a href='" + esc(href) + "' style='display:inline-block;background:"
-                + color + ";color:#fff;text-decoration:none;font-weight:bold;padding:12px 22px;border-radius:12px'>"
+        return "<p style='text-align:center;margin:20px 0 4px'><a href='" + esc(href) + "' style='display:inline-block;background:"
+                + color + ";color:#FFFFFF;text-decoration:none;font-weight:600;font-size:15px;padding:13px 26px;border-radius:999px'>"
                 + esc(label) + "</a></p>";
     }
 
@@ -315,95 +292,5 @@ public class EmailService {
 
     private String fromAddress() {
         return StringUtils.hasText(mailFrom) ? mailFrom : mailUsername;
-    }
-
-    // ============================================================
-    // OTP HTML
-    // ============================================================
-    private String buildEmailHtml(
-            String name,
-            String heading,
-            String bodyText,
-            String otp,
-            String footer
-    ) {
-
-        return """
-            <html>
-            <body style='font-family:sans-serif;
-                         background:#0D0F14;
-                         color:#F0F2F8;
-                         padding:32px;
-                         margin:0'>
-
-            <div style='max-width:480px;
-                        margin:0 auto;
-                        background:#161A22;
-                        border-radius:20px;
-                        padding:32px;
-                        border:1px solid #2A2F3E'>
-
-              <h1 style='color:#FF6B2B;
-                         font-size:24px;
-                         margin:0 0 8px'>
-                AVIRO 🚀
-              </h1>
-
-              <p style='color:#8B93A8;
-                        margin:0 0 24px;
-                        font-size:13px'>
-                Affordable Verified Intelligent Ride Organizer
-              </p>
-
-              <h2 style='color:#F0F2F8;
-                         font-size:18px'>
-                Hi %s, %s
-              </h2>
-
-              <p style='color:#8B93A8'>
-                %s
-              </p>
-
-              <div style='background:#0D0F14;
-                          border-radius:12px;
-                          padding:20px;
-                          text-align:center;
-                          margin:24px 0;
-                          border:1px solid #2A2F3E'>
-
-                <span style='font-size:36px;
-                             font-weight:800;
-                             letter-spacing:8px;
-                             color:#FF6B2B'>
-                  %s
-                </span>
-
-              </div>
-
-              <p style='color:#8B93A8;
-                        font-size:12px'>
-                %s
-              </p>
-
-              <hr style='border-color:#2A2F3E;
-                         margin:24px 0'>
-
-              <p style='color:#8B93A8;
-                        font-size:11px;
-                        text-align:center'>
-                © 2025 AVIRO · Pune's College Ride Platform
-              </p>
-
-            </div>
-
-            </body>
-            </html>
-            """.formatted(
-                name,
-                heading,
-                bodyText,
-                otp,
-                footer
-        );
     }
 }

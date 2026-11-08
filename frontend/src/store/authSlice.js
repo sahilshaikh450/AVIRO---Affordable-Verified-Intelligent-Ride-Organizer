@@ -40,6 +40,16 @@ const saveAuthData = (data) => {
   localStorage.setItem('aviro_user', JSON.stringify(user));
 };
 
+// Sign-up and login answer without tokens until the emailed code is entered
+const PENDING_KEY = 'aviro_pending_email';
+const needsCode = (payload) => payload && !payload.accessToken;
+const rememberPending = (email) => {
+  try { email ? sessionStorage.setItem(PENDING_KEY, email) : sessionStorage.removeItem(PENDING_KEY); } catch { /* storage blocked */ }
+};
+const storedPending = () => {
+  try { return sessionStorage.getItem(PENDING_KEY); } catch { return null; }
+};
+
 // Turn an axios error into a message the user can act on
 export const getErrorMessage = (err, fallback) => {
   if (err.code === 'ECONNABORTED') {
@@ -102,7 +112,7 @@ export const verifyOtp = createAsyncThunk(
   async (data, { rejectWithValue }) => {
     try {
       const res = await api.post('/auth/verify-otp', data);
-      return res.data;
+      return res.data.data;
     } catch (err) {
       return rejectWithValue(
         getErrorMessage(err, 'OTP verification failed')
@@ -167,7 +177,7 @@ const authSlice = createSlice({
     user: savedUser,
     loading: false,
     error: null,
-    pendingEmail: null,
+    pendingEmail: storedPending(),
   },
 
   reducers: {
@@ -187,6 +197,7 @@ const authSlice = createSlice({
 
     setPendingEmail(state, action) {
       state.pendingEmail = action.payload;
+      rememberPending(action.payload);
     },
 
     clearError(state) {
@@ -203,6 +214,14 @@ const authSlice = createSlice({
       })
       .addCase(loginUser.fulfilled, (state, action) => {
         state.loading = false;
+
+        // Account not verified yet: a new code was emailed
+        if (needsCode(action.payload)) {
+          state.pendingEmail = action.payload?.user?.email || null;
+          rememberPending(state.pendingEmail);
+          toast('Verify your email first. We sent you a new code.', { icon: '✉️' });
+          return;
+        }
 
         try {
           saveAuthData(action.payload);
@@ -233,6 +252,14 @@ const authSlice = createSlice({
       .addCase(registerUser.fulfilled, (state, action) => {
         state.loading = false;
 
+        // Normal case: the account waits for the emailed code
+        if (needsCode(action.payload)) {
+          state.pendingEmail = action.payload?.user?.email || null;
+          rememberPending(state.pendingEmail);
+          toast.success('Account created. Check your email for the 6-digit code.');
+          return;
+        }
+
         try {
           saveAuthData(action.payload);
 
@@ -248,6 +275,32 @@ const authSlice = createSlice({
       .addCase(registerUser.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || 'Registration failed';
+        toast.error(state.error);
+      });
+
+    // EMAIL CODE (sign-up): signs the user in
+    builder
+      .addCase(verifyOtp.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(verifyOtp.fulfilled, (state, action) => {
+        state.loading = false;
+        try {
+          saveAuthData(action.payload);
+          state.token = action.payload.accessToken;
+          state.user = action.payload.user;
+          state.pendingEmail = null;
+          rememberPending(null);
+          toast.success('Email verified. Welcome to AVIRO!');
+        } catch (err) {
+          state.error = err.message;
+          toast.error('Verification response is missing sign-in data');
+        }
+      })
+      .addCase(verifyOtp.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || 'Verification failed';
         toast.error(state.error);
       });
 

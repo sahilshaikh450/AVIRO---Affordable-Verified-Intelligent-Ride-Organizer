@@ -14,7 +14,7 @@ public interface AuthService {
     // Keep this for enabling OTP again later
     ApiResponse<AuthResponse> verifyLoginOtp(AuthRequest.LoginVerifyOtp request);
 
-    ApiResponse<String> verifyOtp(AuthRequest.VerifyOtp request);
+    ApiResponse<AuthResponse> verifyOtp(AuthRequest.VerifyOtp request);
 
     ApiResponse<String> resendOtp(AuthRequest.ResendOtp request);
 
