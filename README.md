@@ -587,3 +587,7 @@ docker run -p 8080:10000 --env-file .env aviro-backend
 ⭐ Star this repo if you found it useful!
 
 </div>
+
+## 📄 License
+
+[MIT](LICENSE) © Sahil Shaikh
