@@ -33,8 +33,8 @@ export default function RegisterPage() {
       return;
     }
     const res = await dispatch(registerUser({ ...data, email: data.email.trim().toLowerCase() }));
-    // Registration OTP is currently bypassed: backend returns a JWT directly
-    if (!res.error) navigate('/welcome');
+    // The account waits for the 6-digit code emailed to them
+    if (!res.error) navigate(res.payload?.accessToken ? '/welcome' : '/verify-otp');
   };
 
   return (

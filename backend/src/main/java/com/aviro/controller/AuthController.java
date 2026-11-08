@@ -43,7 +43,7 @@ public class AuthController {
 
     // Registration email verification OTP
     @PostMapping("/verify-otp")
-    public ResponseEntity<ApiResponse<String>> verifyOtp(
+    public ResponseEntity<ApiResponse<AuthResponse>> verifyOtp(
             @Valid @RequestBody AuthRequest.VerifyOtp request) {
 
         return ResponseEntity.ok(authService.verifyOtp(request));

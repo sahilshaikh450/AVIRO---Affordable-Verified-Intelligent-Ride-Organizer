@@ -82,29 +82,42 @@ public class AuthServiceImpl implements AuthService {
                 .homeLat(request.getHomeLat())
                 .homeLng(request.getHomeLng())
 
-                // TEMPORARY: registration OTP bypass
-                .isVerified(true)
+                // Not usable until the emailed code is entered (verifyOtp)
+                .isVerified(false)
 
                 .aviroCredits(100)
                 .build();
 
-        // Auto college verify for a college email (.edu.in / .ac.in / .edu)
-        if (isCollegeEmail(email)) {
-            user.setIsCollegeVerified(true);
-        }
-
         userRepository.save(user);
+        sendSignupCode(user);
+        log.info("New user registered, waiting for email code: {}", email);
 
-        log.info(
-                "New user registered without OTP verification: {}",
-                email
-        );
-
-        // Directly return JWT
+        // No tokens yet: the app opens the code screen
         return ApiResponse.success(
-                "Registration successful!",
-                buildAuthResponse(user)
+                "We sent a 6-digit code to " + email + ". Enter it to finish signing up.",
+                pendingVerification(user)
         );
+    }
+
+    // Emails a fresh sign-up code; if the email can't be sent the whole request fails (and rolls back)
+    private void sendSignupCode(User user) {
+        String email = user.getEmail();
+        String otp = otpService.generateAndSaveOtp(VERIFY_OTP_PREFIX + email);
+        if (!emailService.sendVerificationEmailNow(email, user.getFullName(), otp)) {
+            otpService.discard(VERIFY_OTP_PREFIX + email);
+            throw new AviroException("We couldn't send the verification email right now. Please try again in a few minutes.");
+        }
+    }
+
+    // A reply with the user but no tokens: tells the app to ask for the emailed code
+    private AuthResponse pendingVerification(User user) {
+        return AuthResponse.builder()
+                .user(AuthResponse.UserResponse.builder()
+                        .email(user.getEmail())
+                        .fullName(user.getFullName())
+                        .isVerified(false)
+                        .build())
+                .build();
     }
 
     // =========================================================
@@ -133,13 +146,16 @@ public class AuthServiceImpl implements AuthService {
             );
         }
 
-        // TEMPORARY: OTP bypass
-        log.info(
-                "Login successful without OTP: {}",
-                email
-        );
+        // Signed up but never entered the code: send a new one instead of signing in
+        if (!Boolean.TRUE.equals(user.getIsVerified())) {
+            sendSignupCode(user);
+            return ApiResponse.success(
+                    "Please verify your email first. We sent a new 6-digit code to " + email + ".",
+                    pendingVerification(user)
+            );
+        }
 
-        // Directly generate access + refresh token
+        log.info("Login successful: {}", email);
         return ApiResponse.success(
                 "Login successful",
                 buildAuthResponse(user)
@@ -187,7 +203,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public ApiResponse<String> verifyOtp(
+    public ApiResponse<AuthResponse> verifyOtp(
             AuthRequest.VerifyOtp request) {
 
         String email = normalizeEmail(request.getEmail());
@@ -198,18 +214,24 @@ public class AuthServiceImpl implements AuthService {
         );
 
         if (!valid) {
-            throw new AviroException("Invalid or expired OTP");
+            throw new AviroException("Wrong or expired code. After 5 wrong tries, ask for a new code.");
         }
 
         User user = userRepository.findByEmailNormalized(email)
                 .orElseThrow(() -> new AviroException("User not found"));
 
         user.setIsVerified(true);
+        // The code proves they own this inbox, so a college email also verifies the college
+        if (isCollegeEmail(email)) {
+            user.setIsCollegeVerified(true);
+        }
         userRepository.save(user);
+        log.info("Email verified: {}", email);
 
+        // Signed in straight away
         return ApiResponse.success(
-                "Email verified successfully! Welcome to AVIRO!",
-                null
+                "Email verified. Welcome to AVIRO!",
+                buildAuthResponse(user)
         );
     }
 
@@ -222,44 +244,12 @@ public class AuthServiceImpl implements AuthService {
 
         String email = normalizeEmail(request.getEmail());
 
-        User user = userRepository.findByEmailNormalized(email)
-                .orElseThrow(() -> new AviroException("User not found"));
-
-        if (Boolean.TRUE.equals(user.getIsVerified())) {
-            return ApiResponse.success(
-                    "Email is already verified",
-                    null
-            );
+        User user = userRepository.findByEmailNormalized(email).orElse(null);
+        // Nothing to send for unknown or already verified accounts; same reply, so emails can't be probed
+        if (user != null && !Boolean.TRUE.equals(user.getIsVerified())) {
+            sendSignupCode(user);
         }
-
-        String otp = otpService.generateAndSaveOtp(
-                VERIFY_OTP_PREFIX + email
-        );
-
-        try {
-
-            emailService.sendVerificationEmail(
-                    email,
-                    user.getFullName(),
-                    otp
-            );
-
-        } catch (Exception e) {
-
-            log.warn(
-                    "Failed to send verification email: {}",
-                    e.getMessage()
-            );
-
-            throw new AviroException(
-                    "Failed to send OTP. Please try again."
-            );
-        }
-
-        return ApiResponse.success(
-                "OTP sent to " + email,
-                null
-        );
+        return ApiResponse.success("If this email is waiting for verification, a new code has been sent.", null);
     }
 
     // =========================================================
