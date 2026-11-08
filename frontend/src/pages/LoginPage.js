@@ -42,14 +42,19 @@ export default function LoginPage() {
 
     try {
 
-      await dispatch(
+      const result = await dispatch(
         loginUser({
           email,
           password
         })
       ).unwrap();
 
-      // Direct login successful
+      // Not verified yet: a new code was emailed, so open the code screen
+      if (!result?.accessToken) {
+        navigate('/verify-otp');
+        return;
+      }
+
       window.location.href = '/dashboard';
 
     } catch {

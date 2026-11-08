@@ -11,6 +11,7 @@ import com.aviro.security.JwtTokenProvider;
 import com.aviro.service.EmailService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
 import org.mockito.Answers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -54,6 +55,15 @@ public abstract class IntegrationTest {
     @MockBean(answer = Answers.RETURNS_DEEP_STUBS) protected StringRedisTemplate stringRedisTemplate;
     @MockBean(name = "redisTemplate", answer = Answers.RETURNS_DEEP_STUBS) protected RedisTemplate<String, Object> redisTemplate;
     @MockBean protected EmailService emailService;
+
+    // Emails "send" fine unless a test says otherwise
+    @BeforeEach
+    void emailWorks() {
+        org.mockito.Mockito.when(emailService.sendVerificationEmailNow(
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenReturn(true);
+        org.mockito.Mockito.when(emailService.sendPasswordResetEmailNow(
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenReturn(true);
+    }
 
     /** A verified student with a unique email. */
     protected User student(String name, Gender gender) {
