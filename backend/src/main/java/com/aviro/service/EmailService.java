@@ -46,7 +46,7 @@ public class EmailService {
     @Value("${aviro.mail.from:}")
     private String mailFrom;
 
-    @Value("${aviro.mail.admin-alerts:sahilshaikh34088@gmail.com}")
+    @Value("${aviro.mail.admin-alerts:aviro.pune.app@gmail.com}")
     private String adminAlertEmail;
 
     @Value("${aviro.mail.from-name:AVIRO}")

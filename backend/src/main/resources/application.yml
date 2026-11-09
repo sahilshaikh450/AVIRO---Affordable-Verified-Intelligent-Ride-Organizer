@@ -34,10 +34,10 @@ spring:
 
   data:
     redis:
-      host: ${REDIS_HOST}
+      host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
       username: ${REDIS_USERNAME:default}
-      password: ${REDIS_PASSWORD}
+      password: ${REDIS_PASSWORD:}
       ssl:
         enabled: true
       timeout: 2s
@@ -75,12 +75,12 @@ aviro:
     brevo-api-key: ${BREVO_API_KEY:}
     from: ${MAIL_FROM:}
     from-name: ${MAIL_FROM_NAME:AVIRO}
-    admin-alerts: ${AVIRO_ADMIN_ALERT_EMAIL:sahilshaikh34088@gmail.com}
+    admin-alerts: ${AVIRO_ADMIN_ALERT_EMAIL:aviro.pune.app@gmail.com}
 
   push:
     vapid-public-key: ${VAPID_PUBLIC_KEY:}
     vapid-private-key: ${VAPID_PRIVATE_KEY:}
-    subject: ${VAPID_SUBJECT:mailto:aviro.support@gmail.com}
+    subject: ${VAPID_SUBJECT:mailto:aviro.pune.app@gmail.com}
 
   jwt:
     secret: ${AVIRO_JWT_SECRET}

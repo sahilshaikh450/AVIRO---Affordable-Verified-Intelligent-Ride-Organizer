@@ -251,7 +251,7 @@ public class SafetyController {
         } else {
             message =
                     "No one could be alerted: you have no emergency contacts saved. Call 112 now if"
-                        + " you are in danger.";
+                            + " you are in danger.";
         }
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("contactsEmailed", emailed);
@@ -340,7 +340,7 @@ public class SafetyController {
             throw new AviroException(
                     "Trips older than "
                             + REPORT_WITHIN_DAYS
-                            + " days can't be reported here. Email aviro.support@gmail.com");
+                            + " days can't be reported here. Email aviro.pune.app@gmail.com");
         }
 
         String reason = body.get("reason") == null ? "" : body.get("reason").trim();
