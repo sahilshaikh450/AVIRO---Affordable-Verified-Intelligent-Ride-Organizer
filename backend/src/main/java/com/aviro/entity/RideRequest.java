@@ -1,17 +1,20 @@
 package com.aviro.entity;
 
 import com.aviro.enums.RideRequestStatus;
+
 import jakarta.persistence.*;
+
 import lombok.*;
 
 import java.time.LocalDateTime;
 
-// A rider asking to be told when someone offers a ride on this route around this time
 @Entity
-@Table(name = "ride_requests", indexes = {
-        @Index(name = "idx_ride_request_status_time", columnList = "status, desired_time"),
-        @Index(name = "idx_ride_request_rider", columnList = "rider_id")
-})
+@Table(
+        name = "ride_requests",
+        indexes = {
+            @Index(name = "idx_ride_request_status_time", columnList = "status, desired_time"),
+            @Index(name = "idx_ride_request_rider", columnList = "rider_id")
+        })
 @Getter
 @Setter
 @NoArgsConstructor
@@ -45,6 +48,5 @@ public class RideRequest extends BaseEntity {
     @Builder.Default
     private RideRequestStatus status = RideRequestStatus.ACTIVE;
 
-    // The ride that matched, so the rider can open it
     private Long matchedRideId;
 }

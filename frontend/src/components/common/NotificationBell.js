@@ -7,24 +7,33 @@ import { NOTIFICATION_EVENT, REALTIME_CONNECTED_EVENT } from './TripAlerts';
 import Icon, { stripEmoji } from './Icon';
 
 const ICONS = {
-  BOOKING_REQUEST:   '🔔',
-  BOOKING_ACCEPTED:  '✅',
-  BOOKING_REJECTED:  '❌',
+  BOOKING_REQUEST: '🔔',
+  BOOKING_ACCEPTED: '✅',
+  BOOKING_REJECTED: '❌',
   BOOKING_CANCELLED: '🚫',
-  TRIP_ON_THE_WAY:   '🚗',
-  TRIP_ARRIVED:      '📍',
-  TRIP_STARTED:      '🏁',
-  RIDE_COMPLETED:    '🎉',
-  PAYMENT_RECEIVED:  '💰',
-  CHAT_MESSAGE:      '💬',
-  SOS_ALERT:         '🆘',
-  VERIFICATION:      '🎓',
-  RIDE_MATCH:        '🎉',
+  TRIP_ON_THE_WAY: '🚗',
+  TRIP_ARRIVED: '📍',
+  TRIP_STARTED: '🏁',
+  RIDE_COMPLETED: '🎉',
+  PAYMENT_RECEIVED: '💰',
+  CHAT_MESSAGE: '💬',
+  SOS_ALERT: '🆘',
+  VERIFICATION: '🎓',
+  RIDE_MATCH: '🎉',
 };
 
-// Notifications whose referenceId is a booking: tapping opens that trip
-const TRIP_TYPES = ['BOOKING_REQUEST', 'BOOKING_ACCEPTED', 'BOOKING_REJECTED', 'BOOKING_CANCELLED',
-  'TRIP_ON_THE_WAY', 'TRIP_ARRIVED', 'TRIP_STARTED', 'RIDE_COMPLETED', 'PAYMENT_RECEIVED', 'SOS_ALERT'];
+const TRIP_TYPES = [
+  'BOOKING_REQUEST',
+  'BOOKING_ACCEPTED',
+  'BOOKING_REJECTED',
+  'BOOKING_CANCELLED',
+  'TRIP_ON_THE_WAY',
+  'TRIP_ARRIVED',
+  'TRIP_STARTED',
+  'RIDE_COMPLETED',
+  'PAYMENT_RECEIVED',
+  'SOS_ALERT',
+];
 
 const timeAgo = (value) => {
   const minutes = Math.round((Date.now() - new Date(value).getTime()) / 60000);
@@ -37,10 +46,9 @@ const timeAgo = (value) => {
 export default function NotificationBell() {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
-  const [unreadCount, setUnreadCount]     = useState(0);
-  const [isOpen, setIsOpen]               = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isOpen, setIsOpen] = useState(false);
 
-  // ── Fetch notifications ──
   useEffect(() => {
     fetchNotifications();
   }, []);
@@ -50,20 +58,20 @@ export default function NotificationBell() {
       const res = await api.get('/notifications/my');
       const data = res.data.data || [];
       setNotifications(data);
-      setUnreadCount(data.filter(n => !n.isRead).length);
+      setUnreadCount(data.filter((n) => !n.isRead).length);
     } catch (err) {
       console.warn('Notifications fetch failed:', err.message);
     }
   };
 
-  // ── Live notifications (one app-wide connection in TripAlerts) ──
   useEffect(() => {
     const onNotification = (e) => {
-      setNotifications(prev => [e.detail, ...prev]);
-      setUnreadCount(prev => prev + 1);
+      setNotifications((prev) => [e.detail, ...prev]);
+      setUnreadCount((prev) => prev + 1);
     };
-    // Phones drop the connection in the background; reload what was missed when it comes back
-    const onVisible = () => { if (document.visibilityState === 'visible') fetchNotifications(); };
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') fetchNotifications();
+    };
     window.addEventListener(NOTIFICATION_EVENT, onNotification);
     window.addEventListener(REALTIME_CONNECTED_EVENT, fetchNotifications);
     document.addEventListener('visibilitychange', onVisible);
@@ -74,9 +82,8 @@ export default function NotificationBell() {
     };
   }, []);
 
-  // ── Mark all as read ──
   const markAllRead = async () => {
-    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
     setUnreadCount(0);
     try {
       await api.patch('/notifications/mark-all-read');
@@ -85,17 +92,16 @@ export default function NotificationBell() {
     }
   };
 
-  // ── Delete: remove from the list at once, put it back if the server says no ──
   const deleteNotification = async (n, e) => {
     e?.stopPropagation();
     const before = notifications;
-    setNotifications(prev => prev.filter(x => x.id !== n.id));
-    if (!n.isRead) setUnreadCount(prev => Math.max(0, prev - 1));
+    setNotifications((prev) => prev.filter((x) => x.id !== n.id));
+    if (!n.isRead) setUnreadCount((prev) => Math.max(0, prev - 1));
     try {
       await api.delete(`/notifications/${n.id}`);
     } catch {
       setNotifications(before);
-      if (!n.isRead) setUnreadCount(prev => prev + 1);
+      if (!n.isRead) setUnreadCount((prev) => prev + 1);
       toast.error('Could not delete the notification');
     }
   };
@@ -112,23 +118,26 @@ export default function NotificationBell() {
     }
   };
 
-  // Tapping a notification opens the ride, chat or dashboard it is about
   const openNotification = (n) => {
     setIsOpen(false);
-    if (TRIP_TYPES.includes(n.type) && /^\d+$/.test(String(n.referenceId))) navigate(`/tracking/${n.referenceId}`);
+    if (TRIP_TYPES.includes(n.type) && /^\d+$/.test(String(n.referenceId)))
+      navigate(`/tracking/${n.referenceId}`);
     else if (n.type === 'CHAT_MESSAGE') navigate('/chat');
-    else if (n.type === 'VERIFICATION') navigate(['id', 'vehicle'].includes(n.referenceId) ? `/profile?tab=${n.referenceId}` : '/profile');
-    else if (n.type === 'RIDE_MATCH' && /^\d+$/.test(String(n.referenceId))) navigate(`/rides/${n.referenceId}`);
+    else if (n.type === 'VERIFICATION')
+      navigate(
+        ['id', 'vehicle'].includes(n.referenceId) ? `/profile?tab=${n.referenceId}` : '/profile'
+      );
+    else if (n.type === 'RIDE_MATCH' && /^\d+$/.test(String(n.referenceId)))
+      navigate(`/rides/${n.referenceId}`);
   };
 
   const toggle = () => {
-    setIsOpen(open => !open);
+    setIsOpen((open) => !open);
     if (!isOpen && unreadCount > 0) markAllRead();
   };
 
   return (
     <div className="relative">
-      {/* Bell Button */}
       <button
         onClick={toggle}
         aria-label="Notifications"
@@ -142,12 +151,13 @@ export default function NotificationBell() {
         )}
       </button>
 
-      {/* Panel: full width on phones, dropdown on larger screens */}
       {isOpen && (
-        <div className="fixed left-2 right-2 top-16 sm:absolute sm:left-auto sm:right-0 sm:top-12 sm:w-96
+        <div
+          className="fixed left-2 right-2 top-16 sm:absolute sm:left-auto sm:right-0 sm:top-12 sm:w-96
           bg-aviro-card border border-aviro-border rounded-2xl shadow-2xl z-50 overflow-hidden flex flex-col max-h-[75vh]"
-          role="dialog" aria-label="Notifications panel">
-          {/* Header */}
+          role="dialog"
+          aria-label="Notifications panel"
+        >
           <div className="flex items-center justify-between px-4 py-3 border-b border-aviro-border">
             <p className="font-bold text-sm">Notifications</p>
             <div className="flex items-center gap-3">
@@ -156,36 +166,58 @@ export default function NotificationBell() {
                   Clear all
                 </button>
               )}
-              <button onClick={() => setIsOpen(false)} aria-label="Close"
-                className="text-aviro-muted hover:text-aviro-fg text-lg w-8 h-8 flex items-center justify-center">
+              <button
+                onClick={() => setIsOpen(false)}
+                aria-label="Close"
+                className="text-aviro-muted hover:text-aviro-fg text-lg w-8 h-8 flex items-center justify-center"
+              >
                 <Icon e="✕" />
               </button>
             </div>
           </div>
 
-          {/* Notifications List */}
           <div className="overflow-y-auto overscroll-contain">
             {notifications.length === 0 ? (
               <div className="p-8 text-center">
-                <p className="text-3xl mb-2"><Icon e="🔔" /></p>
+                <p className="text-3xl mb-2">
+                  <Icon e="🔔" />
+                </p>
                 <p className="text-sm text-aviro-muted">You're all caught up</p>
               </div>
             ) : (
               notifications.slice(0, 30).map((n, i) => (
-                <div key={n.id || i} onClick={() => openNotification(n)} role="button" tabIndex={0}
-                  onKeyDown={e => { if (e.key === 'Enter') openNotification(n); }}
+                <div
+                  key={n.id || i}
+                  onClick={() => openNotification(n)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') openNotification(n);
+                  }}
                   className={`flex items-start gap-3 pl-4 pr-2 py-3 border-b border-aviro-border hover:bg-aviro-card2 transition-colors cursor-pointer
-                    ${!n.isRead ? 'bg-aviro-orange/5' : ''}`}>
-                  <span className="w-9 h-9 rounded-full bg-aviro-card2 flex items-center justify-center flex-shrink-0"><Icon e={ICONS[n.type] || '🔔'} size={17} /></span>
+                    ${!n.isRead ? 'bg-aviro-orange/5' : ''}`}
+                >
+                  <span className="w-9 h-9 rounded-full bg-aviro-card2 flex items-center justify-center flex-shrink-0">
+                    <Icon e={ICONS[n.type] || '🔔'} size={17} />
+                  </span>
                   <div className="flex-1 min-w-0">
-                    <p className={`text-sm font-semibold ${!n.isRead ? 'text-aviro-fg' : 'text-aviro-muted'}`}>
+                    <p
+                      className={`text-sm font-semibold ${!n.isRead ? 'text-aviro-fg' : 'text-aviro-muted'}`}
+                    >
                       {stripEmoji(n.title)}
                     </p>
-                    <p className="text-xs text-aviro-muted mt-0.5 line-clamp-2">{stripEmoji(n.message)}</p>
-                    {n.createdAt && <p className="text-[11px] text-aviro-muted mt-1">{timeAgo(n.createdAt)}</p>}
+                    <p className="text-xs text-aviro-muted mt-0.5 line-clamp-2">
+                      {stripEmoji(n.message)}
+                    </p>
+                    {n.createdAt && (
+                      <p className="text-[11px] text-aviro-muted mt-1">{timeAgo(n.createdAt)}</p>
+                    )}
                   </div>
-                  <button onClick={(e) => deleteNotification(n, e)} aria-label="Delete notification"
-                    className="text-aviro-muted hover:text-red-600 flex-shrink-0 w-9 h-9 rounded-lg hover:bg-red-500/10 flex items-center justify-center">
+                  <button
+                    onClick={(e) => deleteNotification(n, e)}
+                    aria-label="Delete notification"
+                    className="text-aviro-muted hover:text-red-600 flex-shrink-0 w-9 h-9 rounded-lg hover:bg-red-500/10 flex items-center justify-center"
+                  >
                     <Icon e="✕" />
                   </button>
                 </div>
@@ -195,9 +227,11 @@ export default function NotificationBell() {
         </div>
       )}
 
-      {/* Backdrop */}
       {isOpen && (
-        <div className="fixed inset-0 z-40 bg-black/40 sm:bg-transparent" onClick={() => setIsOpen(false)} />
+        <div
+          className="fixed inset-0 z-40 bg-black/40 sm:bg-transparent"
+          onClick={() => setIsOpen(false)}
+        />
       )}
     </div>
   );

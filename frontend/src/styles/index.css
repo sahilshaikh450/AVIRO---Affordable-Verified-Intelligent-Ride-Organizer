@@ -4,57 +4,84 @@
 @tailwind utilities;
 
 @layer base {
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #FFFFFF; color: #000000; font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
-  ::-webkit-scrollbar { width: 6px; }
-  ::-webkit-scrollbar-track { background: #FFFFFF; }
-  ::-webkit-scrollbar-thumb { background: #D4D4D4; border-radius: 3px; }
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  body {
+    background: #ffffff;
+    color: #000000;
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #ffffff;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #d4d4d4;
+    border-radius: 3px;
+  }
 }
 
 @layer components {
-  .btn-primary   { @apply bg-black text-white font-semibold rounded-full px-6 py-2.5 transition-all hover:bg-neutral-800 active:scale-[0.98]; }
-  .btn-secondary { @apply bg-aviro-card2 text-aviro-fg font-semibold rounded-full px-6 py-2.5 transition-all hover:bg-neutral-200; }
-  .card          { @apply bg-aviro-card border border-aviro-border rounded-2xl; }
-  .input-field   { @apply w-full bg-aviro-card2 border border-transparent rounded-xl px-4 py-3 text-sm text-aviro-fg placeholder-aviro-muted focus:outline-none focus:border-black focus:bg-white transition-colors; }
-  .section-tag   { @apply inline-block bg-aviro-orange/10 text-aviro-orange px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider; }
-  .gender-male   { @apply bg-aviro-card2 text-aviro-fg text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1; }
-  .gender-female { @apply bg-aviro-card2 text-aviro-fg text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1; }
-  .sidebar-link  { @apply flex items-center gap-3 px-4 py-3 rounded-xl text-aviro-muted hover:text-aviro-fg hover:bg-aviro-card2 transition-all font-medium text-sm; }
-  .sidebar-link.active { @apply bg-aviro-card2 text-aviro-fg font-semibold; }
+  .btn-primary {
+    @apply bg-black text-white font-semibold rounded-full px-6 py-2.5 transition-all hover:bg-neutral-800 active:scale-[0.98];
+  }
+  .btn-secondary {
+    @apply bg-aviro-card2 text-aviro-fg font-semibold rounded-full px-6 py-2.5 transition-all hover:bg-neutral-200;
+  }
+  .card {
+    @apply bg-aviro-card border border-aviro-border rounded-2xl;
+  }
+  .input-field {
+    @apply w-full bg-aviro-card2 border border-transparent rounded-xl px-4 py-3 text-sm text-aviro-fg placeholder-aviro-muted focus:outline-none focus:border-black focus:bg-white transition-colors;
+  }
+  .section-tag {
+    @apply inline-block bg-aviro-orange/10 text-aviro-orange px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider;
+  }
+  .gender-male {
+    @apply bg-aviro-card2 text-aviro-fg text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1;
+  }
+  .gender-female {
+    @apply bg-aviro-card2 text-aviro-fg text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1;
+  }
+  .sidebar-link {
+    @apply flex items-center gap-3 px-4 py-3 rounded-xl text-aviro-muted hover:text-aviro-fg hover:bg-aviro-card2 transition-all font-medium text-sm;
+  }
+  .sidebar-link.active {
+    @apply bg-aviro-card2 text-aviro-fg font-semibold;
+  }
 }
-/* ── ADD THIS TO YOUR index.css or tailwind.css ── */
 
-/* Safe area for iPhone notch/home bar */
 .safe-area-bottom {
   padding-bottom: env(safe-area-inset-bottom, 8px);
 }
 
-/* Touch-friendly tap targets */
 @media (max-width: 768px) {
-  /* Bigger touch targets */
-  button, a {
+  button,
+  a {
     min-height: 44px;
   }
 
-  /* Cards full width on mobile */
   .card {
     border-radius: 12px;
   }
 
-  /* Input fields bigger on mobile */
   .input-field {
-    font-size: 16px !important; /* Prevents iOS zoom on focus */
+    font-size: 16px !important;
     padding: 12px 16px;
   }
 
-  /* Modals full screen on mobile */
   .modal-mobile {
     position: fixed;
     inset: 0;
     border-radius: 0;
   }
 
-  /* Tables scroll horizontally */
   table {
     display: block;
     overflow-x: auto;
@@ -62,13 +89,11 @@
   }
 }
 
-/* Smooth scrolling */
 * {
   -webkit-tap-highlight-color: transparent;
   scroll-behavior: smooth;
 }
 
-/* Hide scrollbar but keep functionality */
 .overflow-y-auto::-webkit-scrollbar {
   width: 4px;
 }
@@ -76,11 +101,10 @@
   background: transparent;
 }
 .overflow-y-auto::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 2px;
 }
 
-/* Bottom nav active indicator */
 .mobile-nav-active {
   position: relative;
 }
@@ -96,12 +120,11 @@
   border-radius: 1px;
 }
 
-/* Prevent layout shift on mobile keyboard open */
 @supports (height: 100dvh) {
   .min-h-screen {
     min-height: 100dvh;
   }
 }
-/* Leaflet gives its panes and controls z-index up to 1000; keep all of that inside the map
-   so the map never draws over the bottom nav, sticky bars or popups */
-.leaflet-container { z-index: 0; }
+.leaflet-container {
+  z-index: 0;
+}

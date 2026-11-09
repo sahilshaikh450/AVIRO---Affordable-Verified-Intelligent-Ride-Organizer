@@ -7,16 +7,27 @@ import { registerUser } from '../store/authSlice';
 import { PUNE_COLLEGES } from '../utils/colleges';
 import Icon from '../components/common/Icon';
 
-// Same rules as the server, so mistakes show before submitting
-const NAME_RULE     = { value: /^[\p{L} .'-]+$/u, message: 'Use letters only' };
-const PHONE_RULE    = { value: /^(\+91)?[6-9]\d{9}$/, message: 'Enter a valid 10-digit mobile number' };
-const PASSWORD_RULE = { value: /^(?=.*[A-Za-z])(?=.*\d).{8,72}$/, message: 'At least 8 characters, with a letter and a number' };
+const NAME_RULE = { value: /^[\p{L} .'-]+$/u, message: 'Use letters only' };
+const PHONE_RULE = {
+  value: /^(\+91)?[6-9]\d{9}$/,
+  message: 'Enter a valid 10-digit mobile number',
+};
+const PASSWORD_RULE = {
+  value: /^(?=.*[A-Za-z])(?=.*\d).{8,72}$/,
+  message: 'At least 8 characters, with a letter and a number',
+};
 
 export default function RegisterPage() {
-  const { register, handleSubmit, watch, trigger, formState: { errors } } = useForm({ defaultValues: { role: 'RIDER', gender: 'MALE' } });
+  const {
+    register,
+    handleSubmit,
+    watch,
+    trigger,
+    formState: { errors },
+  } = useForm({ defaultValues: { role: 'RIDER', gender: 'MALE' } });
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { loading } = useSelector(s => s.auth);
+  const { loading } = useSelector((s) => s.auth);
   const [step, setStep] = useState(1);
   const role = watch('role');
 
@@ -27,13 +38,11 @@ export default function RegisterPage() {
   };
 
   const onSubmit = async (data) => {
-    // Enter key on steps 1-2 should move forward, not submit early
     if (step < 3) {
       goNext();
       return;
     }
     const res = await dispatch(registerUser({ ...data, email: data.email.trim().toLowerCase() }));
-    // The account waits for the 6-digit code emailed to them
     if (!res.error) navigate(res.payload?.accessToken ? '/welcome' : '/verify-otp');
   };
 
@@ -45,46 +54,70 @@ export default function RegisterPage() {
           <p className="text-aviro-muted text-sm mt-1">Pune's College Ride Platform</p>
         </div>
 
-        {/* Step indicator */}
         <div className="flex items-center gap-2 mb-6 px-2">
-          {[1,2,3].map(s => (
+          {[1, 2, 3].map((s) => (
             <React.Fragment key={s}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all
-                ${step >= s ? 'bg-aviro-orange text-white' : 'bg-aviro-card2 text-aviro-muted border border-aviro-border'}`}>
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all
+                ${step >= s ? 'bg-aviro-orange text-white' : 'bg-aviro-card2 text-aviro-muted border border-aviro-border'}`}
+              >
                 {step > s ? '✓' : s}
               </div>
-              {s < 3 && <div className={`flex-1 h-0.5 transition-all ${step > s ? 'bg-aviro-orange' : 'bg-aviro-border'}`} />}
+              {s < 3 && (
+                <div
+                  className={`flex-1 h-0.5 transition-all ${step > s ? 'bg-aviro-orange' : 'bg-aviro-border'}`}
+                />
+              )}
             </React.Fragment>
           ))}
         </div>
 
         <div className="card p-6 animate-fade-up">
           <form onSubmit={handleSubmit(onSubmit)}>
-
-            {/* STEP 1 - Role & Personal */}
             {step === 1 && (
               <div className="space-y-4">
                 <h3 className="font-bold text-lg">I am a...</h3>
                 <div className="grid grid-cols-2 gap-3">
-                  {['RIDER','DRIVER','BOTH'].map(r => (
-                    <label key={r} className={`relative flex flex-col items-center p-4 rounded-xl border-2 cursor-pointer transition-all
-                      ${role === r ? 'border-aviro-orange bg-aviro-orange/5' : 'border-aviro-border hover:border-aviro-border/80'}`}>
-                      <input {...register('role')} type="radio" value={r} className="absolute opacity-0" />
-                      <span className="text-2xl mb-1"><Icon e={r === 'RIDER' ? '🎒' : r === 'DRIVER' ? '🏍️' : '🤝'} /></span>
-                      <span className="text-sm font-semibold">{r === 'BOTH' ? 'Both' : r.charAt(0) + r.slice(1).toLowerCase()}</span>
+                  {['RIDER', 'DRIVER', 'BOTH'].map((r) => (
+                    <label
+                      key={r}
+                      className={`relative flex flex-col items-center p-4 rounded-xl border-2 cursor-pointer transition-all
+                      ${role === r ? 'border-aviro-orange bg-aviro-orange/5' : 'border-aviro-border hover:border-aviro-border/80'}`}
+                    >
+                      <input
+                        {...register('role')}
+                        type="radio"
+                        value={r}
+                        className="absolute opacity-0"
+                      />
+                      <span className="text-2xl mb-1">
+                        <Icon e={r === 'RIDER' ? '🎒' : r === 'DRIVER' ? '🏍️' : '🤝'} />
+                      </span>
+                      <span className="text-sm font-semibold">
+                        {r === 'BOTH' ? 'Both' : r.charAt(0) + r.slice(1).toLowerCase()}
+                      </span>
                       <span className="text-xs text-aviro-muted text-center mt-0.5">
-                        {r === 'RIDER' ? 'Find rides' : r === 'DRIVER' ? 'Offer rides' : 'Find & Offer'}
+                        {r === 'RIDER'
+                          ? 'Find rides'
+                          : r === 'DRIVER'
+                            ? 'Offer rides'
+                            : 'Find & Offer'}
                       </span>
                     </label>
                   ))}
                 </div>
 
                 <div>
-                  <label className="text-xs text-aviro-muted font-medium block mb-1.5">Gender</label>
+                  <label className="text-xs text-aviro-muted font-medium block mb-1.5">
+                    Gender
+                  </label>
                   <div className="grid grid-cols-3 gap-2">
-                    {['MALE','FEMALE','OTHER'].map(g => (
-                      <label key={g} className={`flex items-center justify-center gap-1.5 p-2.5 rounded-xl border-2 cursor-pointer text-sm font-medium transition-all
-                        ${watch('gender') === g ? 'border-aviro-orange bg-aviro-orange/5 text-aviro-orange' : 'border-aviro-border text-aviro-muted'}`}>
+                    {['MALE', 'FEMALE', 'OTHER'].map((g) => (
+                      <label
+                        key={g}
+                        className={`flex items-center justify-center gap-1.5 p-2.5 rounded-xl border-2 cursor-pointer text-sm font-medium transition-all
+                        ${watch('gender') === g ? 'border-aviro-orange bg-aviro-orange/5 text-aviro-orange' : 'border-aviro-border text-aviro-muted'}`}
+                      >
                         <input {...register('gender')} type="radio" value={g} className="hidden" />
                         {g.charAt(0) + g.slice(1).toLowerCase()}
                       </label>
@@ -92,83 +125,184 @@ export default function RegisterPage() {
                   </div>
                 </div>
 
-                <button type="button" onClick={goNext} className="btn-primary w-full">Next →</button>
+                <button type="button" onClick={goNext} className="btn-primary w-full">
+                  Next →
+                </button>
               </div>
             )}
 
-            {/* STEP 2 - Personal & College */}
             {step === 2 && (
               <div className="space-y-4">
                 <h3 className="font-bold text-lg">Your Details</h3>
                 <div>
-                  <label className="text-xs text-aviro-muted font-medium block mb-1.5">Full Name</label>
-                  <input {...register('fullName', { required: 'Name is required', minLength: { value: 2, message: 'Name is too short' }, maxLength: { value: 60, message: 'Name is too long' }, pattern: NAME_RULE })} placeholder="Rahul Patil" autoComplete="name" className="input-field" />
-                  {errors.fullName && <p className="text-red-600 text-xs mt-1">{errors.fullName.message}</p>}
+                  <label className="text-xs text-aviro-muted font-medium block mb-1.5">
+                    Full Name
+                  </label>
+                  <input
+                    {...register('fullName', {
+                      required: 'Name is required',
+                      minLength: { value: 2, message: 'Name is too short' },
+                      maxLength: { value: 60, message: 'Name is too long' },
+                      pattern: NAME_RULE,
+                    })}
+                    placeholder="Rahul Patil"
+                    autoComplete="name"
+                    className="input-field"
+                  />
+                  {errors.fullName && (
+                    <p className="text-red-600 text-xs mt-1">{errors.fullName.message}</p>
+                  )}
                 </div>
                 <div>
-                  <label className="text-xs text-aviro-muted font-medium block mb-1.5">College Email</label>
-                  <input {...register('email', { required: 'Email required', pattern: { value: /\S+@\S+\.\S+/, message: 'Invalid' } })} type="email" placeholder="rahul@college.edu.in" className="input-field" />
-                  {errors.email && <p className="text-red-600 text-xs mt-1">{errors.email.message}</p>}
+                  <label className="text-xs text-aviro-muted font-medium block mb-1.5">
+                    College Email
+                  </label>
+                  <input
+                    {...register('email', {
+                      required: 'Email required',
+                      pattern: { value: /\S+@\S+\.\S+/, message: 'Invalid' },
+                    })}
+                    type="email"
+                    placeholder="rahul@college.edu.in"
+                    className="input-field"
+                  />
+                  {errors.email && (
+                    <p className="text-red-600 text-xs mt-1">{errors.email.message}</p>
+                  )}
                 </div>
                 <div>
-                  <label className="text-xs text-aviro-muted font-medium block mb-1.5">College</label>
-                  {/* Type to search; a college that isn't listed can be typed in full */}
-                  <input {...register('collegeName', { required: 'College required', setValueAs: v => (v || '').trim(), minLength: { value: 3, message: 'Enter your college name' }, maxLength: { value: 150, message: 'College name is too long' } })}
-                    list="pune-colleges" placeholder="Start typing, e.g. MIT-WPU, PICT, COEP" autoComplete="off" className="input-field" />
+                  <label className="text-xs text-aviro-muted font-medium block mb-1.5">
+                    College
+                  </label>
+                  <input
+                    {...register('collegeName', {
+                      required: 'College required',
+                      setValueAs: (v) => (v || '').trim(),
+                      minLength: { value: 3, message: 'Enter your college name' },
+                      maxLength: { value: 150, message: 'College name is too long' },
+                    })}
+                    list="pune-colleges"
+                    placeholder="Start typing, e.g. MIT-WPU, PICT, COEP"
+                    autoComplete="off"
+                    className="input-field"
+                  />
                   <datalist id="pune-colleges">
-                    {PUNE_COLLEGES.map(c => <option key={c} value={c} />)}
+                    {PUNE_COLLEGES.map((c) => (
+                      <option key={c} value={c} />
+                    ))}
                   </datalist>
-                  {errors.collegeName && <p className="text-red-600 text-xs mt-1">{errors.collegeName.message}</p>}
+                  {errors.collegeName && (
+                    <p className="text-red-600 text-xs mt-1">{errors.collegeName.message}</p>
+                  )}
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs text-aviro-muted font-medium block mb-1.5">Department</label>
+                    <label className="text-xs text-aviro-muted font-medium block mb-1.5">
+                      Department
+                    </label>
                     <input {...register('department')} placeholder="CSE" className="input-field" />
                   </div>
                   <div>
-                    <label className="text-xs text-aviro-muted font-medium block mb-1.5">Year</label>
+                    <label className="text-xs text-aviro-muted font-medium block mb-1.5">
+                      Year
+                    </label>
                     <select {...register('yearOfStudy')} className="input-field">
                       <option value="">Select</option>
-                      {['1st Year','2nd Year','3rd Year','4th Year','PG'].map(y => <option key={y}>{y}</option>)}
+                      {['1st Year', '2nd Year', '3rd Year', '4th Year', 'PG'].map((y) => (
+                        <option key={y}>{y}</option>
+                      ))}
                     </select>
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button type="button" onClick={() => setStep(1)} className="btn-secondary flex-1">← Back</button>
-                  <button type="button" onClick={goNext} className="btn-primary flex-1">Next →</button>
+                  <button type="button" onClick={() => setStep(1)} className="btn-secondary flex-1">
+                    ← Back
+                  </button>
+                  <button type="button" onClick={goNext} className="btn-primary flex-1">
+                    Next →
+                  </button>
                 </div>
               </div>
             )}
 
-            {/* STEP 3 - Location & Password */}
             {step === 3 && (
               <div className="space-y-4">
-                <h3 className="font-bold text-lg">Almost Done! <Icon e="🎉" /></h3>
+                <h3 className="font-bold text-lg">
+                  Almost Done! <Icon e="🎉" />
+                </h3>
                 <div>
-                  <label className="text-xs text-aviro-muted font-medium block mb-1.5">Your Area / Locality</label>
-                  <input {...register('locality', { required: 'Locality required' })} placeholder="Shivajinagar, Kothrud..." className="input-field" />
-                  {errors.locality && <p className="text-red-600 text-xs mt-1">{errors.locality.message}</p>}
+                  <label className="text-xs text-aviro-muted font-medium block mb-1.5">
+                    Your Area / Locality
+                  </label>
+                  <input
+                    {...register('locality', { required: 'Locality required' })}
+                    placeholder="Shivajinagar, Kothrud..."
+                    className="input-field"
+                  />
+                  {errors.locality && (
+                    <p className="text-red-600 text-xs mt-1">{errors.locality.message}</p>
+                  )}
                 </div>
                 <div>
-                  <label className="text-xs text-aviro-muted font-medium block mb-1.5">Phone Number</label>
-                  <input {...register('phone', { setValueAs: v => (v || '').replace(/[\s-]/g, ''), validate: v => !v || PHONE_RULE.value.test(v) || PHONE_RULE.message })} type="tel" inputMode="numeric" placeholder="9876543210" autoComplete="tel" className="input-field" />
-                  {errors.phone && <p className="text-red-600 text-xs mt-1">{errors.phone.message}</p>}
+                  <label className="text-xs text-aviro-muted font-medium block mb-1.5">
+                    Phone Number
+                  </label>
+                  <input
+                    {...register('phone', {
+                      setValueAs: (v) => (v || '').replace(/[\s-]/g, ''),
+                      validate: (v) => !v || PHONE_RULE.value.test(v) || PHONE_RULE.message,
+                    })}
+                    type="tel"
+                    inputMode="numeric"
+                    placeholder="9876543210"
+                    autoComplete="tel"
+                    className="input-field"
+                  />
+                  {errors.phone && (
+                    <p className="text-red-600 text-xs mt-1">{errors.phone.message}</p>
+                  )}
                 </div>
                 <div>
-                  <label className="text-xs text-aviro-muted font-medium block mb-1.5">Password</label>
-                  <input {...register('password', { required: 'Password required', pattern: PASSWORD_RULE })} type="password" placeholder="••••••••" autoComplete="new-password" className="input-field" />
-                  {!errors.password && <p className="text-aviro-muted text-xs mt-1">At least 8 characters, with a letter and a number</p>}
-                  {errors.password && <p className="text-red-600 text-xs mt-1">{errors.password.message}</p>}
+                  <label className="text-xs text-aviro-muted font-medium block mb-1.5">
+                    Password
+                  </label>
+                  <input
+                    {...register('password', {
+                      required: 'Password required',
+                      pattern: PASSWORD_RULE,
+                    })}
+                    type="password"
+                    placeholder="••••••••"
+                    autoComplete="new-password"
+                    className="input-field"
+                  />
+                  {!errors.password && (
+                    <p className="text-aviro-muted text-xs mt-1">
+                      At least 8 characters, with a letter and a number
+                    </p>
+                  )}
+                  {errors.password && (
+                    <p className="text-red-600 text-xs mt-1">{errors.password.message}</p>
+                  )}
                 </div>
 
                 <div className="bg-aviro-orange/5 border border-aviro-orange/20 rounded-xl p-3 text-xs text-aviro-muted">
-                  <Icon e="🎓" /> Using your college email (.edu.in, .ac.in or .edu) verifies your college automatically. You can also verify it later from your profile.
+                  <Icon e="🎓" /> Using your college email (.edu.in, .ac.in or .edu) verifies your
+                  college automatically. You can also verify it later from your profile.
                 </div>
 
                 <div className="flex gap-2">
-                  <button type="button" onClick={() => setStep(2)} className="btn-secondary flex-1">← Back</button>
-                  <button type="submit" disabled={loading} className="btn-primary flex-1 flex items-center justify-center gap-2">
-                    {loading && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                  <button type="button" onClick={() => setStep(2)} className="btn-secondary flex-1">
+                    ← Back
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="btn-primary flex-1 flex items-center justify-center gap-2"
+                  >
+                    {loading && (
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    )}
                     {loading ? 'Creating...' : 'Create Account 🚀'}
                   </button>
                 </div>
@@ -179,13 +313,21 @@ export default function RegisterPage() {
 
         <p className="text-center text-aviro-muted text-xs mt-4">
           By creating an account, you agree to our{' '}
-          <Link to="/terms" className="text-aviro-orange hover:underline">Terms of Service</Link> and{' '}
-          <Link to="/privacy" className="text-aviro-orange hover:underline">Privacy Policy</Link>.
+          <Link to="/terms" className="text-aviro-orange hover:underline">
+            Terms of Service
+          </Link>{' '}
+          and{' '}
+          <Link to="/privacy" className="text-aviro-orange hover:underline">
+            Privacy Policy
+          </Link>
+          .
         </p>
 
         <p className="text-center text-aviro-muted text-sm mt-4">
           Already have an account?{' '}
-          <Link to="/login" className="text-aviro-orange font-semibold hover:underline">Sign In</Link>
+          <Link to="/login" className="text-aviro-orange font-semibold hover:underline">
+            Sign In
+          </Link>
         </p>
       </div>
     </div>

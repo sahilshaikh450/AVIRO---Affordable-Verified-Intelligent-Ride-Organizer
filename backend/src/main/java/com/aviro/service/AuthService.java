@@ -8,10 +8,8 @@ public interface AuthService {
 
     ApiResponse<AuthResponse> register(AuthRequest.Register request);
 
-    // Temporary: verify password and directly return JWT
     ApiResponse<AuthResponse> login(AuthRequest.Login request);
 
-    // Keep this for enabling OTP again later
     ApiResponse<AuthResponse> verifyLoginOtp(AuthRequest.LoginVerifyOtp request);
 
     ApiResponse<AuthResponse> verifyOtp(AuthRequest.VerifyOtp request);
@@ -26,14 +24,9 @@ public interface AuthService {
 
     ApiResponse<String> logout(String accessToken, String refreshToken);
 
-    // College email verification (.edu.in, .ac.in or .edu domains)
     ApiResponse<String> sendCollegeEmailOtp(
-            String userEmail,
-            AuthRequest.SendCollegeEmailOtp request
-    );
+            String userEmail, AuthRequest.SendCollegeEmailOtp request);
 
     ApiResponse<String> verifyCollegeEmailOtp(
-            String userEmail,
-            AuthRequest.VerifyCollegeEmailOtp request
-    );
+            String userEmail, AuthRequest.VerifyCollegeEmailOtp request);
 }

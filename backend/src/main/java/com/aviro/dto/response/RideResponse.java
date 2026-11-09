@@ -3,6 +3,7 @@ package com.aviro.dto.response;
 import com.aviro.enums.Gender;
 import com.aviro.enums.RideStatus;
 import com.aviro.enums.VehicleType;
+
 import lombok.Builder;
 import lombok.Data;
 
@@ -31,8 +32,6 @@ public class RideResponse {
     private String notes;
     private LocalDateTime createdAt;
 
-    // RideResponse.java mein DriverInfo class update karo — ye fields add karo:
-
     @Data
     @Builder
     public static class DriverInfo {
@@ -43,14 +42,14 @@ public class RideResponse {
         private Double rating;
         private Integer totalRides;
         private String collegeName;
-        private String department;      // ✅ Branch
-        private String yearOfStudy;     // ✅ Year
-        private String phone;           // ✅ Mobile (shown after confirm only)
+        private String department;
+        private String yearOfStudy;
+        private String phone;
         private String profilePicUrl;
         private Boolean isCollegeVerified;
         private String vehicleType;
         private String vehicleModel;
         private String vehicleColor;
-        private String vehicleRegistrationNumber; // ✅ Vehicle number
+        private String vehicleRegistrationNumber;
     }
 }

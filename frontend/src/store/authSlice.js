@@ -1,12 +1,7 @@
-
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../services/api';
 import { disablePush } from '../services/push';
 import toast from 'react-hot-toast';
-
-// =========================================================
-// STORAGE HELPERS
-// =========================================================
 
 const getStoredUser = () => {
   try {
@@ -40,17 +35,21 @@ const saveAuthData = (data) => {
   localStorage.setItem('aviro_user', JSON.stringify(user));
 };
 
-// Sign-up and login answer without tokens until the emailed code is entered
 const PENDING_KEY = 'aviro_pending_email';
 const needsCode = (payload) => payload && !payload.accessToken;
 const rememberPending = (email) => {
-  try { email ? sessionStorage.setItem(PENDING_KEY, email) : sessionStorage.removeItem(PENDING_KEY); } catch { /* storage blocked */ }
+  try {
+    email ? sessionStorage.setItem(PENDING_KEY, email) : sessionStorage.removeItem(PENDING_KEY);
+  } catch {}
 };
 const storedPending = () => {
-  try { return sessionStorage.getItem(PENDING_KEY); } catch { return null; }
+  try {
+    return sessionStorage.getItem(PENDING_KEY);
+  } catch {
+    return null;
+  }
 };
 
-// Turn an axios error into a message the user can act on
 export const getErrorMessage = (err, fallback) => {
   if (err.code === 'ECONNABORTED') {
     return 'Server is waking up. Please wait a few seconds and try again.';
@@ -59,7 +58,6 @@ export const getErrorMessage = (err, fallback) => {
     return 'Cannot reach the server. Check your internet and try again.';
   }
   const { message, data } = err.response.data || {};
-  // Validation errors come back as { field: message }
   if (data && typeof data === 'object' && !Array.isArray(data)) {
     const firstFieldError = Object.values(data)[0];
     if (typeof firstFieldError === 'string') return firstFieldError;
@@ -67,104 +65,53 @@ export const getErrorMessage = (err, fallback) => {
   return message || fallback;
 };
 
-// =========================================================
-// LOGIN
-// =========================================================
-
-export const loginUser = createAsyncThunk(
-  'auth/login',
-  async (data, { rejectWithValue }) => {
-    try {
-      const res = await api.post('/auth/login', data);
-      return res.data.data;
-    } catch (err) {
-      return rejectWithValue(
-        getErrorMessage(err, 'Login failed')
-      );
-    }
+export const loginUser = createAsyncThunk('auth/login', async (data, { rejectWithValue }) => {
+  try {
+    const res = await api.post('/auth/login', data);
+    return res.data.data;
+  } catch (err) {
+    return rejectWithValue(getErrorMessage(err, 'Login failed'));
   }
-);
+});
 
-// =========================================================
-// REGISTER
-// =========================================================
-
-export const registerUser = createAsyncThunk(
-  'auth/register',
-  async (data, { rejectWithValue }) => {
-    try {
-      const res = await api.post('/auth/register', data);
-      return res.data.data;
-    } catch (err) {
-      return rejectWithValue(
-        getErrorMessage(err, 'Registration failed')
-      );
-    }
+export const registerUser = createAsyncThunk('auth/register', async (data, { rejectWithValue }) => {
+  try {
+    const res = await api.post('/auth/register', data);
+    return res.data.data;
+  } catch (err) {
+    return rejectWithValue(getErrorMessage(err, 'Registration failed'));
   }
-);
+});
 
-// =========================================================
-// REGISTRATION OTP
-// =========================================================
-
-export const verifyOtp = createAsyncThunk(
-  'auth/verifyOtp',
-  async (data, { rejectWithValue }) => {
-    try {
-      const res = await api.post('/auth/verify-otp', data);
-      return res.data.data;
-    } catch (err) {
-      return rejectWithValue(
-        getErrorMessage(err, 'OTP verification failed')
-      );
-    }
+export const verifyOtp = createAsyncThunk('auth/verifyOtp', async (data, { rejectWithValue }) => {
+  try {
+    const res = await api.post('/auth/verify-otp', data);
+    return res.data.data;
+  } catch (err) {
+    return rejectWithValue(getErrorMessage(err, 'OTP verification failed'));
   }
-);
+});
 
-// =========================================================
-// PROFILE
-// =========================================================
-
-export const fetchProfile = createAsyncThunk(
-  'auth/profile',
-  async (_, { rejectWithValue }) => {
-    try {
-      const res = await api.get('/users/profile');
-      return res.data.data;
-    } catch (err) {
-      return rejectWithValue(
-        getErrorMessage(err, 'Failed to fetch profile')
-      );
-    }
+export const fetchProfile = createAsyncThunk('auth/profile', async (_, { rejectWithValue }) => {
+  try {
+    const res = await api.get('/users/profile');
+    return res.data.data;
+  } catch (err) {
+    return rejectWithValue(getErrorMessage(err, 'Failed to fetch profile'));
   }
-);
+});
 
-// =========================================================
-// LOGOUT — revoke tokens on the server, then clear locally
-// =========================================================
+export const logoutUser = createAsyncThunk('auth/logoutUser', async (_, { dispatch }) => {
+  const token = localStorage.getItem('aviro_token');
+  const refreshToken = localStorage.getItem('aviro_refresh');
+  dispatch(authSlice.actions.logout());
 
-export const logoutUser = createAsyncThunk(
-  'auth/logoutUser',
-  async (_, { dispatch }) => {
-    const token = localStorage.getItem('aviro_token');
-    const refreshToken = localStorage.getItem('aviro_refresh');
-    // Log out on screen at once, so nothing (like the push prompt) runs as this user meanwhile
-    dispatch(authSlice.actions.logout());
-
-    const auth = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
-    // Stop phone notifications for this account on this device
-    await disablePush(auth);
-    try {
-      await api.post('/auth/logout', { refreshToken }, auth);
-    } catch {
-      // Already logged out locally even if the server call fails
-    }
-  }
-);
-
-// =========================================================
-// INITIAL STATE
-// =========================================================
+  const auth = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+  await disablePush(auth);
+  try {
+    await api.post('/auth/logout', { refreshToken }, auth);
+  } catch {}
+});
 
 const savedToken = localStorage.getItem('aviro_token');
 const savedUser = getStoredUser();
@@ -206,7 +153,6 @@ const authSlice = createSlice({
   },
 
   extraReducers: (builder) => {
-    // LOGIN
     builder
       .addCase(loginUser.pending, (state) => {
         state.loading = true;
@@ -215,7 +161,6 @@ const authSlice = createSlice({
       .addCase(loginUser.fulfilled, (state, action) => {
         state.loading = false;
 
-        // Account not verified yet: a new code was emailed
         if (needsCode(action.payload)) {
           state.pendingEmail = action.payload?.user?.email || null;
           rememberPending(state.pendingEmail);
@@ -229,9 +174,7 @@ const authSlice = createSlice({
           state.token = action.payload.accessToken;
           state.user = action.payload.user;
 
-          toast.success(
-            `Welcome back, ${action.payload.user.fullName || 'User'}! 🚀`
-          );
+          toast.success(`Welcome back, ${action.payload.user.fullName || 'User'}! 🚀`);
         } catch (err) {
           state.error = err.message;
           toast.error('Login response is missing authentication data');
@@ -243,7 +186,6 @@ const authSlice = createSlice({
         toast.error(state.error);
       });
 
-    // REGISTER
     builder
       .addCase(registerUser.pending, (state) => {
         state.loading = true;
@@ -252,7 +194,6 @@ const authSlice = createSlice({
       .addCase(registerUser.fulfilled, (state, action) => {
         state.loading = false;
 
-        // Normal case: the account waits for the emailed code
         if (needsCode(action.payload)) {
           state.pendingEmail = action.payload?.user?.email || null;
           rememberPending(state.pendingEmail);
@@ -278,7 +219,6 @@ const authSlice = createSlice({
         toast.error(state.error);
       });
 
-    // EMAIL CODE (sign-up): signs the user in
     builder
       .addCase(verifyOtp.pending, (state) => {
         state.loading = true;
@@ -304,13 +244,9 @@ const authSlice = createSlice({
         toast.error(state.error);
       });
 
-    // PROFILE
     builder.addCase(fetchProfile.fulfilled, (state, action) => {
       state.user = action.payload;
-      localStorage.setItem(
-        'aviro_user',
-        JSON.stringify(action.payload)
-      );
+      localStorage.setItem('aviro_user', JSON.stringify(action.payload));
     });
 
     builder.addCase(fetchProfile.rejected, (state, action) => {
@@ -319,10 +255,6 @@ const authSlice = createSlice({
   },
 });
 
-export const {
-  logout,
-  setPendingEmail,
-  clearError,
-} = authSlice.actions;
+export const { logout, setPendingEmail, clearError } = authSlice.actions;
 
 export default authSlice.reducer;

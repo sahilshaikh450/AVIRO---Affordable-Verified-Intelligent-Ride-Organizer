@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import Icon from '../components/common/Icon';
 
-// Onboarding shown once after signup (route: /welcome)
 export const onboardingKey = (userId) => `aviro_onboarded_${userId}`;
 
 const STEPS = [
@@ -35,7 +34,7 @@ const STEPS = [
 
 export default function IntroPage() {
   const navigate = useNavigate();
-  const { user } = useSelector(s => s.auth);
+  const { user } = useSelector((s) => s.auth);
   const [step, setStep] = useState(0);
   const current = STEPS[step];
   const isLast = step === STEPS.length - 1;
@@ -43,9 +42,7 @@ export default function IntroPage() {
   const finish = (to = '/dashboard') => {
     try {
       if (user?.id) localStorage.setItem(onboardingKey(user.id), '1');
-    } catch {
-      // Storage blocked: onboarding may show again, which is fine
-    }
+    } catch {}
     navigate(to, { replace: true });
   };
 
@@ -62,7 +59,9 @@ export default function IntroPage() {
         </div>
 
         <div className="card p-6 text-center space-y-4">
-          <div className="text-5xl"><Icon e={current.icon} /></div>
+          <div className="text-5xl">
+            <Icon e={current.icon} />
+          </div>
           <h1 className="font-display font-bold text-2xl text-aviro-fg">{current.title}</h1>
           <p className="text-aviro-muted text-sm leading-relaxed">{current.text}</p>
           <button
@@ -73,7 +72,10 @@ export default function IntroPage() {
           </button>
         </div>
 
-        <div className="flex justify-center gap-2 my-6" aria-label={`Step ${step + 1} of ${STEPS.length}`}>
+        <div
+          className="flex justify-center gap-2 my-6"
+          aria-label={`Step ${step + 1} of ${STEPS.length}`}
+        >
           {STEPS.map((_, i) => (
             <span
               key={i}

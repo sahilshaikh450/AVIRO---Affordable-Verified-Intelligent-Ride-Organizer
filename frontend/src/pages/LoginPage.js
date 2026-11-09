@@ -8,7 +8,6 @@ import { BrandLockup } from '../components/common/Logo';
 import Icon from '../components/common/Icon';
 
 export default function LoginPage() {
-
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -16,7 +15,6 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  // Forgot password OTP still uses these
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -25,12 +23,7 @@ export default function LoginPage() {
   const [showPass, setShowPass] = useState(false);
   const [showNewPass, setShowNewPass] = useState(false);
 
-  // =========================================================
-  // LOGIN - TEMPORARY OTP BYPASS
-  // =========================================================
-
   const handleLogin = async (e) => {
-
     e.preventDefault();
 
     if (!email || !password) {
@@ -41,38 +34,26 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-
       const result = await dispatch(
         loginUser({
           email,
-          password
+          password,
         })
       ).unwrap();
 
-      // Not verified yet: a new code was emailed, so open the code screen
       if (!result?.accessToken) {
         navigate('/verify-otp');
         return;
       }
 
       window.location.href = '/dashboard';
-
     } catch {
-
-      // Error toast is shown by the loginUser rejected reducer
-
     } finally {
-
       setLoading(false);
     }
   };
 
-  // =========================================================
-  // FORGOT PASSWORD - SEND OTP
-  // =========================================================
-
   const handleForgotSendOtp = async (e) => {
-
     e.preventDefault();
 
     if (!email) {
@@ -83,47 +64,24 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-
       const cleanEmail = email.trim().toLowerCase();
       setEmail(cleanEmail);
-      const res = await api.post(
-        '/auth/forgot-password',
-        { email: cleanEmail }
-      );
+      const res = await api.post('/auth/forgot-password', { email: cleanEmail });
 
-      toast.success(
-        res.data?.message || 'Code sent! Check your email 📧',
-        { duration: 6000 }
-      );
+      toast.success(res.data?.message || 'Code sent! Check your email 📧', { duration: 6000 });
 
       setStep(4);
-
     } catch (err) {
-
-      toast.error(
-        err.response?.data?.message ||
-        'Could not send the code. Please try again.'
-      );
-
+      toast.error(err.response?.data?.message || 'Could not send the code. Please try again.');
     } finally {
-
       setLoading(false);
     }
   };
 
-  // =========================================================
-  // RESET PASSWORD
-  // =========================================================
-
   const handleResetPassword = async (e) => {
-
     e.preventDefault();
 
-    if (
-      !otp ||
-      !newPassword ||
-      !confirmPassword
-    ) {
+    if (!otp || !newPassword || !confirmPassword) {
       toast.error('Fill all fields');
       return;
     }
@@ -134,97 +92,54 @@ export default function LoginPage() {
     }
 
     if (!/^(?=.*[A-Za-z])(?=.*\d).{8,72}$/.test(newPassword)) {
-      toast.error(
-        'Password needs at least 8 characters, with a letter and a number'
-      );
+      toast.error('Password needs at least 8 characters, with a letter and a number');
       return;
     }
 
     setLoading(true);
 
     try {
+      const res = await api.post('/auth/reset-password', {
+        email,
+        otp,
+        newPassword,
+      });
 
-      const res = await api.post(
-        '/auth/reset-password',
-        {
-          email,
-          otp,
-          newPassword
-        }
-      );
-
-      toast.success(
-        res.data?.message || 'Password changed. Please sign in. 🎉'
-      );
+      toast.success(res.data?.message || 'Password changed. Please sign in. 🎉');
 
       setStep(1);
       setOtp('');
       setNewPassword('');
       setConfirmPassword('');
-
     } catch (err) {
-
-      toast.error(
-        err.response?.data?.message ||
-        'Reset failed. Check OTP'
-      );
-
+      toast.error(err.response?.data?.message || 'Reset failed. Check OTP');
     } finally {
-
       setLoading(false);
     }
   };
 
   return (
-
     <div className="min-h-screen bg-aviro-dark flex items-center justify-center p-4">
-
       <div className="w-full max-w-md animate-fade-up">
-
-        {/* LOGO */}
-
         <div className="text-center mb-8">
-
           <BrandLockup height={56} className="mb-4" />
 
           <h1 className="sr-only">AVIRO</h1>
 
-          <p className="text-aviro-muted text-sm mt-2">
-            Pune's College Ride Network
-          </p>
-
+          <p className="text-aviro-muted text-sm mt-2">Pune's College Ride Network</p>
         </div>
 
         <div className="card p-6">
-
-          {/* =================================================
-              STEP 1 - LOGIN
-          ================================================= */}
-
           {step === 1 && (
-
             <>
-
               <div className="mb-6">
+                <h2 className="font-bold text-xl text-aviro-fg">Welcome back</h2>
 
-                <h2 className="font-bold text-xl text-aviro-fg">
-                  Welcome back</h2>
-
-                <p className="text-aviro-muted text-sm mt-1">
-                  Sign in to your AVIRO account
-                </p>
-
+                <p className="text-aviro-muted text-sm mt-1">Sign in to your AVIRO account</p>
               </div>
 
-              <form
-                onSubmit={handleLogin}
-                className="space-y-4"
-              >
-
-                {/* EMAIL */}
-
+              <form onSubmit={handleLogin} className="space-y-4">
                 <div>
-
                   <label className="text-xs text-aviro-muted font-medium block mb-1.5">
                     Email Address
                   </label>
@@ -232,25 +147,16 @@ export default function LoginPage() {
                   <input
                     type="email"
                     value={email}
-                    onChange={e =>
-                      setEmail(e.target.value)
-                    }
+                    onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@college.edu.in"
                     className="input-field"
                     autoFocus
                   />
-
                 </div>
 
-                {/* PASSWORD */}
-
                 <div>
-
                   <div className="flex items-center justify-between mb-1.5">
-
-                    <label className="text-xs text-aviro-muted font-medium">
-                      Password
-                    </label>
+                    <label className="text-xs text-aviro-muted font-medium">Password</label>
 
                     <button
                       type="button"
@@ -262,91 +168,55 @@ export default function LoginPage() {
                     >
                       Forgot password?
                     </button>
-
                   </div>
 
                   <div className="relative">
-
                     <input
-                      type={
-                        showPass
-                          ? 'text'
-                          : 'password'
-                      }
+                      type={showPass ? 'text' : 'password'}
                       value={password}
-                      onChange={e =>
-                        setPassword(e.target.value)
-                      }
+                      onChange={(e) => setPassword(e.target.value)}
                       placeholder="Your password"
                       className="input-field pr-10"
                     />
 
                     <button
                       type="button"
-                      onClick={() =>
-                        setShowPass(!showPass)
-                      }
+                      onClick={() => setShowPass(!showPass)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-aviro-muted hover:text-aviro-fg text-sm"
                     >
                       {showPass ? '🙈' : '👁️'}
                     </button>
-
                   </div>
-
                 </div>
-
-                {/* LOGIN BUTTON */}
 
                 <button
                   type="submit"
                   disabled={loading}
                   className="btn-primary w-full py-3 text-base disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-
                   {loading ? (
-
                     <>
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                       Signing in...
                     </>
-
                   ) : (
-
                     'Sign In →'
-
                   )}
-
                 </button>
-
               </form>
 
               <p className="text-center text-aviro-muted text-sm mt-6">
-
                 New to AVIRO?{' '}
-
-                <Link
-                  to="/register"
-                  className="text-aviro-orange font-semibold hover:underline"
-                >
+                <Link to="/register" className="text-aviro-orange font-semibold hover:underline">
                   Create account
                 </Link>
-
               </p>
-
             </>
-
           )}
 
-          {/* =================================================
-              STEP 3 - FORGOT PASSWORD EMAIL
-          ================================================= */}
-
           {step === 3 && (
-
             <>
-
               <div className="mb-6">
-
                 <button
                   onClick={() => setStep(1)}
                   className="text-aviro-muted text-sm hover:text-aviro-fg flex items-center gap-1 mb-4"
@@ -355,30 +225,20 @@ export default function LoginPage() {
                 </button>
 
                 <div className="text-center">
-
                   <div className="text-4xl mb-3">
                     <Icon e="🔐" />
                   </div>
 
-                  <h2 className="font-bold text-xl text-aviro-fg">
-                    Forgot Password?
-                  </h2>
+                  <h2 className="font-bold text-xl text-aviro-fg">Forgot Password?</h2>
 
                   <p className="text-aviro-muted text-sm mt-2">
                     Enter your email and we'll send you a reset OTP
                   </p>
-
                 </div>
-
               </div>
 
-              <form
-                onSubmit={handleForgotSendOtp}
-                className="space-y-4"
-              >
-
+              <form onSubmit={handleForgotSendOtp} className="space-y-4">
                 <div>
-
                   <label className="text-xs text-aviro-muted font-medium block mb-1.5">
                     Email Address
                   </label>
@@ -386,14 +246,11 @@ export default function LoginPage() {
                   <input
                     type="email"
                     value={email}
-                    onChange={e =>
-                      setEmail(e.target.value)
-                    }
+                    onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@college.edu.in"
                     className="input-field"
                     autoFocus
                   />
-
                 </div>
 
                 <button
@@ -401,38 +258,22 @@ export default function LoginPage() {
                   disabled={loading}
                   className="btn-primary w-full py-3 text-base disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-
                   {loading ? (
-
                     <>
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                       Sending OTP...
                     </>
-
                   ) : (
-
                     '📧 Send Reset OTP'
-
                   )}
-
                 </button>
-
               </form>
-
             </>
-
           )}
 
-          {/* =================================================
-              STEP 4 - RESET PASSWORD
-          ================================================= */}
-
           {step === 4 && (
-
             <>
-
               <div className="mb-6">
-
                 <button
                   onClick={() => setStep(3)}
                   className="text-aviro-muted text-sm hover:text-aviro-fg flex items-center gap-1 mb-4"
@@ -441,38 +282,24 @@ export default function LoginPage() {
                 </button>
 
                 <div className="text-center">
-
                   <div className="text-4xl mb-3">
                     <Icon e="🔑" />
                   </div>
 
-                  <h2 className="font-bold text-xl text-aviro-fg">
-                    Reset Password
-                  </h2>
+                  <h2 className="font-bold text-xl text-aviro-fg">Reset Password</h2>
 
                   <p className="text-aviro-muted text-sm mt-2">
                     Enter the 6-digit code sent to{' '}
-                    <span className="text-aviro-orange font-semibold">
-                      {email}
-                    </span>
+                    <span className="text-aviro-orange font-semibold">{email}</span>
                   </p>
                   <p className="text-aviro-muted text-xs mt-1">
                     Not in your inbox? Check the Spam folder.
                   </p>
-
                 </div>
-
               </div>
 
-              <form
-                onSubmit={handleResetPassword}
-                className="space-y-4"
-              >
-
-                {/* OTP */}
-
+              <form onSubmit={handleResetPassword} className="space-y-4">
                 <div>
-
                   <label className="text-xs text-aviro-muted font-medium block mb-1.5">
                     Enter OTP
                   </label>
@@ -480,63 +307,39 @@ export default function LoginPage() {
                   <input
                     type="text"
                     value={otp}
-                    onChange={e =>
-                      setOtp(
-                        e.target.value
-                          .replace(/\D/g, '')
-                          .slice(0, 6)
-                      )
-                    }
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
                     placeholder="6-digit OTP"
                     className="input-field text-center text-xl tracking-[0.4em] font-bold"
                     maxLength={6}
                     autoFocus
                   />
-
                 </div>
 
-                {/* NEW PASSWORD */}
-
                 <div>
-
                   <label className="text-xs text-aviro-muted font-medium block mb-1.5">
                     New Password
                   </label>
 
                   <div className="relative">
-
                     <input
-                      type={
-                        showNewPass
-                          ? 'text'
-                          : 'password'
-                      }
+                      type={showNewPass ? 'text' : 'password'}
                       value={newPassword}
-                      onChange={e =>
-                        setNewPassword(e.target.value)
-                      }
+                      onChange={(e) => setNewPassword(e.target.value)}
                       placeholder="8+ characters, a letter and a number"
                       className="input-field pr-10"
                     />
 
                     <button
                       type="button"
-                      onClick={() =>
-                        setShowNewPass(!showNewPass)
-                      }
+                      onClick={() => setShowNewPass(!showNewPass)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-aviro-muted hover:text-aviro-fg text-sm"
                     >
                       {showNewPass ? '🙈' : '👁️'}
                     </button>
-
                   </div>
-
                 </div>
 
-                {/* CONFIRM PASSWORD */}
-
                 <div>
-
                   <label className="text-xs text-aviro-muted font-medium block mb-1.5">
                     Confirm New Password
                   </label>
@@ -544,77 +347,57 @@ export default function LoginPage() {
                   <input
                     type="password"
                     value={confirmPassword}
-                    onChange={e =>
-                      setConfirmPassword(e.target.value)
-                    }
+                    onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Re-enter new password"
                     className="input-field"
                   />
 
-                  {confirmPassword &&
-                    newPassword !== confirmPassword && (
-
-                      <p className="text-red-600 text-xs mt-1">
-                        Passwords do not match
-                      </p>
-
-                    )}
-
+                  {confirmPassword && newPassword !== confirmPassword && (
+                    <p className="text-red-600 text-xs mt-1">Passwords do not match</p>
+                  )}
                 </div>
 
                 <button
                   type="submit"
                   disabled={
-                    loading ||
-                    otp.length < 6 ||
-                    !newPassword ||
-                    newPassword !== confirmPassword
+                    loading || otp.length < 6 || !newPassword || newPassword !== confirmPassword
                   }
                   className="btn-primary w-full py-3 text-base disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-
                   {loading ? (
-
                     <>
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                       Resetting...
                     </>
-
                   ) : (
-
                     '🔐 Reset Password'
-
                   )}
-
                 </button>
-
               </form>
 
               <div className="text-center mt-4">
-
                 <button
                   onClick={handleForgotSendOtp}
                   className="text-aviro-orange text-sm font-semibold hover:underline mt-1"
                 >
                   Resend OTP
                 </button>
-
               </div>
-
             </>
-
           )}
-
         </div>
 
         <p className="text-center text-aviro-muted text-xs mt-6">
           By signing in, you agree to AVIRO's{' '}
-          <Link to="/terms" className="text-aviro-orange hover:underline">Terms of Service</Link> and{' '}
-          <Link to="/privacy" className="text-aviro-orange hover:underline">Privacy Policy</Link>
+          <Link to="/terms" className="text-aviro-orange hover:underline">
+            Terms of Service
+          </Link>{' '}
+          and{' '}
+          <Link to="/privacy" className="text-aviro-orange hover:underline">
+            Privacy Policy
+          </Link>
         </p>
-
       </div>
-
     </div>
   );
 }

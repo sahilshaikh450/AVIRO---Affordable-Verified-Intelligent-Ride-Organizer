@@ -3,14 +3,18 @@ package com.aviro.entity;
 import com.aviro.enums.BookingStatus;
 import com.aviro.enums.PaymentStatus;
 import com.aviro.enums.TripStage;
+
 import jakarta.persistence.*;
+
 import lombok.*;
 
 @Entity
-@Table(name = "bookings", indexes = {
-        @Index(name = "idx_booking_rider_created", columnList = "rider_id, created_at"),
-        @Index(name = "idx_booking_ride_status", columnList = "ride_id, status")
-})
+@Table(
+        name = "bookings",
+        indexes = {
+            @Index(name = "idx_booking_rider_created", columnList = "rider_id, created_at"),
+            @Index(name = "idx_booking_ride_status", columnList = "ride_id, status")
+        })
 @Getter
 @Setter
 @NoArgsConstructor
@@ -48,9 +52,10 @@ public class Booking extends BaseEntity {
     private PaymentStatus paymentStatus = PaymentStatus.PENDING;
 
     private String paymentReference;
-@Column(name = "ride_otp")
-private String rideOtp;
-    // ✅ NEW: UPI / CASH
+
+    @Column(name = "ride_otp")
+    private String rideOtp;
+
     private String paymentMethod;
 
     private Double riderRating;
@@ -61,7 +66,6 @@ private String rideOtp;
     private Double pickupLat;
     private Double pickupLng;
 
-    // Set only while the booking is CONFIRMED; null = driver not on the way yet
     @Enumerated(EnumType.STRING)
     private TripStage tripStage;
 }

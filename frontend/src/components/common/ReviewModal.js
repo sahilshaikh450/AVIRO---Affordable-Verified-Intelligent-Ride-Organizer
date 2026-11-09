@@ -4,7 +4,14 @@ import api from '../../services/api';
 import toast from 'react-hot-toast';
 import { initial } from './Icon';
 
-function ReviewModalContent({ booking, revieweeId, revieweeName, revieweeGender, onClose, onSubmitted }) {
+function ReviewModalContent({
+  booking,
+  revieweeId,
+  revieweeName,
+  revieweeGender,
+  onClose,
+  onSubmitted,
+}) {
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState('');
@@ -26,7 +33,7 @@ function ReviewModalContent({ booking, revieweeId, revieweeName, revieweeGender,
       const payload = {
         bookingId: Number(booking.id),
         revieweeId: Number(revieweeId),
-        rating: Number(rating), // ensure it's a proper number, not string
+        rating: Number(rating),
         comment: comment.trim() || null,
       };
       console.log('Submitting review payload:', payload);
@@ -48,7 +55,6 @@ function ReviewModalContent({ booking, revieweeId, revieweeName, revieweeGender,
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-up">
       <div className="bg-aviro-card border border-aviro-border rounded-2xl p-6 max-w-sm w-full">
-
         <div className="text-center mb-5">
           <div className="w-16 h-16 rounded-full bg-aviro-card2 border-2 border-aviro-border flex items-center justify-center text-3xl mx-auto mb-3">
             {initial(revieweeName)}
@@ -59,9 +65,8 @@ function ReviewModalContent({ booking, revieweeId, revieweeName, revieweeGender,
           </p>
         </div>
 
-        {/* Star rating */}
         <div className="flex justify-center gap-2 mb-2">
-          {[1, 2, 3, 4, 5].map(star => (
+          {[1, 2, 3, 4, 5].map((star) => (
             <button
               key={star}
               type="button"
@@ -78,10 +83,9 @@ function ReviewModalContent({ booking, revieweeId, revieweeName, revieweeGender,
           {labels[hoverRating || rating]}
         </p>
 
-        {/* Comment */}
         <textarea
           value={comment}
-          onChange={e => setComment(e.target.value)}
+          onChange={(e) => setComment(e.target.value)}
           placeholder="Share your experience (optional)..."
           rows={3}
           className="input-field resize-none mb-5"
@@ -106,7 +110,6 @@ function ReviewModalContent({ booking, revieweeId, revieweeName, revieweeGender,
     </div>
   );
 }
-// Rendered on <body>, so a transformed page can't trap the fixed overlay
 export default function ReviewModal(props) {
   return createPortal(<ReviewModalContent {...props} />, document.body);
 }
