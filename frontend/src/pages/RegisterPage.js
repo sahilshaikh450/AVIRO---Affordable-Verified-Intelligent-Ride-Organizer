@@ -6,6 +6,9 @@ import { registerUser } from '../store/authSlice';
 
 import { PUNE_COLLEGES } from '../utils/colleges';
 import Icon from '../components/common/Icon';
+import { GUIDELINES, GUIDELINES_VERSION, RISK_AGREEMENT } from '../content/guidelines';
+
+const AGREEMENTS = [...GUIDELINES, RISK_AGREEMENT];
 
 const NAME_RULE = { value: /^[\p{L} .'-]+$/u, message: 'Use letters only' };
 const PHONE_RULE = {
@@ -29,20 +32,34 @@ export default function RegisterPage() {
   const navigate = useNavigate();
   const { loading } = useSelector((s) => s.auth);
   const [step, setStep] = useState(1);
+  const [agreed, setAgreed] = useState({});
+  const allAgreed = AGREEMENTS.every((g) => agreed[g.id]);
   const role = watch('role');
 
-  const STEP_FIELDS = { 1: ['role', 'gender'], 2: ['fullName', 'email', 'collegeName'] };
+  const STEP_FIELDS = {
+    1: ['role', 'gender'],
+    2: ['fullName', 'email', 'collegeName'],
+    3: ['locality', 'phone', 'password'],
+  };
 
   const goNext = async () => {
     if (await trigger(STEP_FIELDS[step])) setStep(step + 1);
   };
 
   const onSubmit = async (data) => {
-    if (step < 3) {
+    if (step < 4) {
       goNext();
       return;
     }
-    const res = await dispatch(registerUser({ ...data, email: data.email.trim().toLowerCase() }));
+    if (!allAgreed) return;
+    const res = await dispatch(
+      registerUser({
+        ...data,
+        email: data.email.trim().toLowerCase(),
+        acceptedGuidelines: true,
+        guidelinesVersion: GUIDELINES_VERSION,
+      })
+    );
     if (!res.error) navigate(res.payload?.accessToken ? '/welcome' : '/verify-otp');
   };
 
@@ -55,7 +72,7 @@ export default function RegisterPage() {
         </div>
 
         <div className="flex items-center gap-2 mb-6 px-2">
-          {[1, 2, 3].map((s) => (
+          {[1, 2, 3, 4].map((s) => (
             <React.Fragment key={s}>
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all
@@ -63,7 +80,7 @@ export default function RegisterPage() {
               >
                 {step > s ? '✓' : s}
               </div>
-              {s < 3 && (
+              {s < 4 && (
                 <div
                   className={`flex-1 h-0.5 transition-all ${step > s ? 'bg-aviro-orange' : 'bg-aviro-border'}`}
                 />
@@ -295,33 +312,84 @@ export default function RegisterPage() {
                   <button type="button" onClick={() => setStep(2)} className="btn-secondary flex-1">
                     ← Back
                   </button>
+                  <button type="button" onClick={goNext} className="btn-primary flex-1">
+                    Next →
+                  </button>
+                </div>
+              </div>
+            )}
+            {step === 4 && (
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-bold text-lg">Community guidelines</h3>
+                  <p className="text-aviro-muted text-sm mt-1">
+                    AVIRO works because everyone keeps these promises. Tick each one to continue.
+                  </p>
+                </div>
+
+                <ul className="space-y-2">
+                  {AGREEMENTS.map((g) => (
+                    <li key={g.id}>
+                      <label
+                        htmlFor={`agree-${g.id}`}
+                        className={`flex gap-3 items-start p-3 rounded-xl border cursor-pointer transition-colors ${
+                          agreed[g.id]
+                            ? 'border-aviro-orange bg-aviro-orange/5'
+                            : 'border-aviro-border bg-aviro-card2'
+                        }`}
+                      >
+                        <input
+                          id={`agree-${g.id}`}
+                          type="checkbox"
+                          checked={!!agreed[g.id]}
+                          onChange={(e) => setAgreed({ ...agreed, [g.id]: e.target.checked })}
+                          className="mt-0.5 w-5 h-5 flex-shrink-0 accent-black"
+                        />
+                        <span className="min-w-0">
+                          <span className="block text-sm font-semibold">{g.title}</span>
+                          <span className="block text-xs text-aviro-muted mt-0.5">{g.detail}</span>
+                          {g.id === RISK_AGREEMENT.id && (
+                            <span className="block text-xs text-aviro-muted mt-1">
+                              I also agree to the{' '}
+                              <Link to="/terms" target="_blank" className="underline font-medium">
+                                Terms of Service
+                              </Link>{' '}
+                              and{' '}
+                              <Link to="/privacy" target="_blank" className="underline font-medium">
+                                Privacy Policy
+                              </Link>
+                              .
+                            </span>
+                          )}
+                        </span>
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+
+                <p className="text-xs text-aviro-muted text-center" aria-live="polite">
+                  {AGREEMENTS.filter((g) => agreed[g.id]).length} of {AGREEMENTS.length} accepted
+                </p>
+
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => setStep(3)} className="btn-secondary flex-1">
+                    ← Back
+                  </button>
                   <button
                     type="submit"
-                    disabled={loading}
-                    className="btn-primary flex-1 flex items-center justify-center gap-2"
+                    disabled={loading || !allAgreed}
+                    className="btn-primary flex-1 flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     {loading && (
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     )}
-                    {loading ? 'Creating...' : 'Create Account 🚀'}
+                    {loading ? 'Creating...' : 'Agree & sign up'}
                   </button>
                 </div>
               </div>
             )}
           </form>
         </div>
-
-        <p className="text-center text-aviro-muted text-xs mt-4">
-          By creating an account, you agree to our{' '}
-          <Link to="/terms" className="text-aviro-orange hover:underline">
-            Terms of Service
-          </Link>{' '}
-          and{' '}
-          <Link to="/privacy" className="text-aviro-orange hover:underline">
-            Privacy Policy
-          </Link>
-          .
-        </p>
 
         <p className="text-center text-aviro-muted text-sm mt-4">
           Already have an account?{' '}
