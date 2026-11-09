@@ -83,6 +83,8 @@ public abstract class IntegrationTest {
                         .collegeName("MIT World Peace University")
                         .isVerified(true)
                         .isCollegeVerified(true)
+                        .guidelinesAcceptedAt(LocalDateTime.now())
+                        .guidelinesVersion(GUIDELINES_VERSION)
                         .build());
     }
 

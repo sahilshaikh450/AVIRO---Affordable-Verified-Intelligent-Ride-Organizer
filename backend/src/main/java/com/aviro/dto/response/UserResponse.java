@@ -26,6 +26,8 @@ public class UserResponse {
     private String collegeIdPicUrl;
     private Boolean isVerified;
     private Boolean isCollegeVerified;
+    private String guidelinesVersion;
+    private LocalDateTime guidelinesAcceptedAt;
     private Double rating;
     private Integer totalRides;
     private Integer aviroCredits;

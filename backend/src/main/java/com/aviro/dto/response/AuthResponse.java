@@ -25,6 +25,7 @@ public class AuthResponse {
         private String collegeName;
         private Boolean isVerified;
         private Boolean isCollegeVerified;
+        private String guidelinesVersion;
         private Double rating;
         private Integer aviroCredits;
     }

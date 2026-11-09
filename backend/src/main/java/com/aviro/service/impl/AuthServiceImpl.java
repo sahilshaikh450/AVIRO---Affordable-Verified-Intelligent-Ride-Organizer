@@ -423,6 +423,7 @@ public class AuthServiceImpl implements AuthService {
                                 .collegeName(user.getCollegeName())
                                 .isVerified(user.getIsVerified())
                                 .isCollegeVerified(user.getIsCollegeVerified())
+                                .guidelinesVersion(user.getGuidelinesVersion())
                                 .rating(user.getRating())
                                 .aviroCredits(user.getAviroCredits())
                                 .build())

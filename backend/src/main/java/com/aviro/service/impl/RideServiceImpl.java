@@ -78,23 +78,29 @@ public class RideServiceImpl implements RideService {
     public ApiResponse<RideResponse> createRide(String email, RideRequest.Create request) {
         User driver = getUser(email);
 
+        if (driver.getGuidelinesAcceptedAt() == null) {
+            throw new AviroException(
+                    "Please accept the community guidelines first. Open the app and tick them to"
+                        + " continue.");
+        }
+
         if (!Boolean.TRUE.equals(driver.getIsCollegeVerified())) {
             throw new AviroException(
                     "⚠️ College ID not verified! Please upload your college ID in Profile before"
-                        + " posting a ride.");
+                            + " posting a ride.");
         }
 
         Vehicle vehicle = vehicleRepository.findByUserId(driver.getId()).orElse(null);
         if (vehicle == null) {
             throw new AviroException(
                     "🚗 No vehicle registered! Please add your vehicle in Profile before posting a"
-                        + " ride.");
+                            + " ride.");
         }
 
         if (requireVehicleVerification && !vehicle.hasBothPhotos()) {
             throw new AviroException(
                     "🚗 Upload your number plate and driving licence photos in Profile to start"
-                        + " offering rides.");
+                            + " offering rides.");
         }
         if (requireVehicleVerification && !Boolean.TRUE.equals(vehicle.getIsVerified())) {
             throw new AviroException(

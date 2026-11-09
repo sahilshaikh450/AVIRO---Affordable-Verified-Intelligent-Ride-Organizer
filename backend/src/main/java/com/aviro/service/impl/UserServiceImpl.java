@@ -44,6 +44,17 @@ public class UserServiceImpl implements UserService {
             Pattern.compile("^[a-z0-9._-]{2,64}@[a-z][a-z0-9]{1,30}$");
 
     @Override
+    @Transactional
+    public ApiResponse<UserResponse> acceptGuidelines(String email, String version) {
+        User user = getUser(email);
+        user.setGuidelinesAcceptedAt(java.time.LocalDateTime.now());
+        user.setGuidelinesVersion(version);
+        userRepository.save(user);
+        return ApiResponse.success(
+                "Thanks for accepting the community guidelines.", toResponse(user));
+    }
+
+    @Override
     public ApiResponse<UserResponse> getProfile(String email) {
         User user = getUser(email);
         return ApiResponse.success(toResponse(user));
@@ -108,7 +119,7 @@ public class UserServiceImpl implements UserService {
         return ApiResponse.success(
                 needsReview
                         ? "Vehicle saved. Upload the number plate and driving licence photos for"
-                              + " verification."
+                                + " verification."
                         : "Vehicle updated!",
                 toVehicleResponse(vehicle));
     }
@@ -219,6 +230,8 @@ public class UserServiceImpl implements UserService {
                 .collegeIdPicUrl(user.getCollegeIdPicUrl())
                 .isVerified(user.getIsVerified())
                 .isCollegeVerified(user.getIsCollegeVerified())
+                .guidelinesVersion(user.getGuidelinesVersion())
+                .guidelinesAcceptedAt(user.getGuidelinesAcceptedAt())
                 .rating(user.getRating())
                 .totalRides(user.getTotalRides())
                 .aviroCredits(user.getAviroCredits())
