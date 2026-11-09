@@ -90,10 +90,9 @@ sequenceDiagram
     R->>API: POST /rides/search
     API-->>R: matching rides (women-only and gender rules applied)
     R->>API: POST /bookings (seats, pickup point)
-    API->>DB: booking REQUESTED
+    API->>DB: reserveSeats() (atomic) + booking REQUESTED
     API-->>D: popup + push "new request"
-    D->>API: PATCH /bookings/{id}/status CONFIRMED
-    API->>DB: reserveSeats() (atomic)
+    D->>API: PATCH /bookings/{id}/status CONFIRMED (REJECTED gives the seats back)
     API-->>R: push "booking confirmed"
     D->>API: PATCH /bookings/{id}/trip ON_THE_WAY, then ARRIVED
     loop during the trip
@@ -168,7 +167,7 @@ The backend follows the usual Spring layers: controller → service (interface +
 
 - `VehicleType.supported()` allows only BIKE, SCOOTY and CAR for new rides; `maxRiders()` gives 1 for two wheelers and 4 for a car.
 - `RideServiceImpl.ALLOWED_MOVES` holds the ride status changes a driver may make (section 8).
-- `RideRepository.reserveSeats()` is one atomic SQL update (`availableSeats - n WHERE availableSeats >= n`), so two riders can never take the last seat; `releaseSeats()` gives seats back on cancel or reject.
+- `RideRepository.reserveSeats()` is one atomic SQL update (`availableSeats - n WHERE availableSeats >= n`), so two riders can never take the last seat. Seats are held as soon as the rider books (REQUESTED), not when the driver accepts; `releaseSeats()` gives them back on reject or cancel.
 - `NotificationService.send()` saves the row, sends it on `/user/queue/notifications`, then sends a Web Push.
 - Config switches: `aviro.vehicle.require-verification`, `aviro.frontend-url`, `aviro.ride.*` limits, JWT expiry times.
 

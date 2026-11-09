@@ -46,6 +46,9 @@ public class EmailService {
     @Value("${aviro.mail.from:}")
     private String mailFrom;
 
+    @Value("${aviro.mail.admin-alerts:sahilshaikh34088@gmail.com}")
+    private String adminAlertEmail;
+
     @Value("${aviro.mail.from-name:AVIRO}")
     private String mailFromName;
 
@@ -62,7 +65,7 @@ public class EmailService {
                         "enter this code in AVIRO to finish creating your account.",
                         otp,
                         "The code expires in 10 minutes. Never share it with anyone, not even AVIRO"
-                            + " staff."));
+                                + " staff."));
     }
 
     @Async("taskExecutor")
@@ -88,7 +91,7 @@ public class EmailService {
                         "enter this code in AVIRO to choose a new password.",
                         otp,
                         "It expires in 10 minutes. If you didn't ask to reset your password, you"
-                            + " can ignore this email."));
+                                + " can ignore this email."));
     }
 
     @Async("taskExecutor")
@@ -108,7 +111,7 @@ public class EmailService {
                                         + "</p>")
                         + para(
                                 "Open the app to see pickup details, chat with your driver and"
-                                    + " track the trip live.")
+                                        + " track the trip live.")
                         + button(frontendUrl + "/bookings", "View booking", INK);
         sendEmail(
                 to,
@@ -130,7 +133,7 @@ public class EmailService {
                                         + "</strong> wants to join your ride.")
                         + para(
                                 "Accept or decline it in the app. The rider is waiting for your"
-                                    + " answer.")
+                                        + " answer.")
                         + button(frontendUrl + "/my-rides", "Review request", INK);
         sendEmail(
                 to,
@@ -182,7 +185,7 @@ public class EmailService {
                         + button(link, "Open the live trip", INK)
                         + small(
                                 "The link works without an account and stops working when the trip"
-                                    + " ends.");
+                                        + " ends.");
         sendEmail(
                 toEmail,
                 senderName + " shared their AVIRO trip with you",
@@ -200,7 +203,7 @@ public class EmailService {
                                         + esc(alertBody)
                                         + "</pre>")
                         + button(frontendUrl + "/admin", "Open admin panel", INK);
-        sendEmail("sahilshaikh34088@gmail.com", subject, layout(subject, content));
+        sendEmail(adminAlertEmail, subject, layout(subject, content));
     }
 
     private static final String INK = "#111111";
@@ -214,8 +217,8 @@ public class EmailService {
     private String layout(String preheader, String content) {
         int year = java.time.Year.now(java.time.ZoneId.of("Asia/Kolkata")).getValue();
         return "<!doctype html><html><head><meta charset='utf-8'><meta name='viewport'"
-                   + " content='width=device-width,initial-scale=1'></head><body"
-                   + " style='margin:0;padding:0;background:"
+                + " content='width=device-width,initial-scale=1'></head><body"
+                + " style='margin:0;padding:0;background:"
                 + SOFT
                 + ";font-family:"
                 + FONT
