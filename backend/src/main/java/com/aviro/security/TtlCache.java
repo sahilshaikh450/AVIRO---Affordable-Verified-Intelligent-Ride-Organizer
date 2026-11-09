@@ -4,11 +4,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
-/**
- * Small in-memory cache whose entries expire after a fixed time.
- * For per-request lookups that may be a few seconds stale (the user behind a token,
- * "this token is not revoked"); callers invalidate entries when the data changes.
- */
 public class TtlCache<K, V> {
 
     private record Entry<V>(V value, long expiresAt) {}
@@ -22,7 +17,6 @@ public class TtlCache<K, V> {
         this.maxEntries = maxEntries;
     }
 
-    // Cached value, or loads and caches it; a null from the loader is not cached
     public V get(K key, Function<K, V> loader) {
         V cached = getIfPresent(key);
         if (cached != null) return cached;
@@ -37,7 +31,7 @@ public class TtlCache<K, V> {
     }
 
     public void put(K key, V value) {
-        if (entries.size() >= maxEntries) entries.clear(); // rare; simpler than tracking least-recent use
+        if (entries.size() >= maxEntries) entries.clear();
         entries.put(key, new Entry<>(value, System.currentTimeMillis() + ttlMs));
     }
 

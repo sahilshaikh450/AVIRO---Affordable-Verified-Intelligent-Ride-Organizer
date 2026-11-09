@@ -12,10 +12,12 @@ import com.aviro.repository.NotificationRepository;
 import com.aviro.repository.PushSubscriptionRepository;
 import com.aviro.repository.RideRepository;
 import com.aviro.repository.UserRepository;
-import com.aviro.security.AuthUserCache;
 import com.aviro.repository.VehicleRepository;
+import com.aviro.security.AuthUserCache;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,18 +31,13 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * Deletes a user's account.
- *
- * The users row is kept (anonymized and deactivated) so other people's bookings,
- * reviews and chats stay consistent; all personal data is removed.
- */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class AccountDeletionService {
 
-    private static final String UPLOAD_DIR = System.getProperty("user.dir") + "/uploads/college-ids/";
+    private static final String UPLOAD_DIR =
+            System.getProperty("user.dir") + "/uploads/college-ids/";
     private static final Set<BookingStatus> OPEN_BOOKINGS =
             EnumSet.of(BookingStatus.REQUESTED, BookingStatus.CONFIRMED);
     private static final Set<RideStatus> OPEN_RIDES =
@@ -58,8 +55,10 @@ public class AccountDeletionService {
 
     @Transactional
     public ApiResponse<String> deleteAccount(String email, String password) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new AviroException("User not found"));
+        User user =
+                userRepository
+                        .findByEmail(email)
+                        .orElseThrow(() -> new AviroException("User not found"));
 
         if (password == null || !passwordEncoder.matches(password, user.getPassword())) {
             throw new AviroException("Incorrect password");
@@ -68,21 +67,25 @@ public class AccountDeletionService {
         List<Ride> myRides = rideRepository.findByDriverId(user.getId());
         List<Booking> myBookings = bookingRepository.findByRiderId(user.getId());
 
-        boolean rideInProgress = myRides.stream().anyMatch(r -> r.getStatus() == RideStatus.IN_PROGRESS)
-                || myBookings.stream().anyMatch(b -> OPEN_BOOKINGS.contains(b.getStatus())
-                        && b.getRide().getStatus() == RideStatus.IN_PROGRESS);
+        boolean rideInProgress =
+                myRides.stream().anyMatch(r -> r.getStatus() == RideStatus.IN_PROGRESS)
+                        || myBookings.stream()
+                                .anyMatch(
+                                        b ->
+                                                OPEN_BOOKINGS.contains(b.getStatus())
+                                                        && b.getRide().getStatus()
+                                                                == RideStatus.IN_PROGRESS);
         if (rideInProgress) {
-            throw new AviroException("You have a ride in progress. Please finish it before deleting your account.");
+            throw new AviroException(
+                    "You have a ride in progress. Please finish it before deleting your account.");
         }
 
-        // Cancel open bookings as rider (restores seats and notifies the driver)
         for (Booking booking : myBookings) {
             if (OPEN_BOOKINGS.contains(booking.getStatus())) {
                 bookingService.cancelBooking(email, booking.getId());
             }
         }
 
-        // Cancel open rides as driver (cancels their bookings and notifies riders)
         for (Ride ride : myRides) {
             if (!OPEN_RIDES.contains(ride.getStatus())) continue;
             for (Booking booking : bookingRepository.findByRideId(ride.getId())) {
@@ -99,9 +102,8 @@ public class AccountDeletionService {
         vehicleRepository.findByUserId(user.getId()).ifPresent(vehicleRepository::delete);
         deleteCollegeIdImage(user.getCollegeIdPicUrl());
 
-        // Remove personal data; the freed email can be used to register again
         user.setFullName("Deleted User");
-        authUserCache.evict(user.getEmail()); // signed-out at once, not after the cache expires
+        authUserCache.evict(user.getEmail());
         user.setEmail("deleted-" + user.getId() + "-" + UUID.randomUUID() + "@deleted.aviro");
         user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
         user.setPhone(null);

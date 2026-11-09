@@ -4,8 +4,11 @@ import com.aviro.dto.request.RideRequest;
 import com.aviro.dto.response.ApiResponse;
 import com.aviro.dto.response.RideResponse;
 import com.aviro.service.RideService;
+
 import jakarta.validation.Valid;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -57,13 +60,14 @@ public class RideController {
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable Long rideId,
             @RequestBody RideRequest.UpdateStatus request) {
-        return ResponseEntity.ok(rideService.updateRideStatus(userDetails.getUsername(), rideId, request.getStatus()));
+        return ResponseEntity.ok(
+                rideService.updateRideStatus(
+                        userDetails.getUsername(), rideId, request.getStatus()));
     }
 
     @DeleteMapping("/{rideId}")
     public ResponseEntity<ApiResponse<String>> cancelRide(
-            @AuthenticationPrincipal UserDetails userDetails,
-            @PathVariable Long rideId) {
+            @AuthenticationPrincipal UserDetails userDetails, @PathVariable Long rideId) {
         return ResponseEntity.ok(rideService.cancelRide(userDetails.getUsername(), rideId));
     }
 

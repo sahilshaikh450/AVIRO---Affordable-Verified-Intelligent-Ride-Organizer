@@ -22,8 +22,10 @@ import com.aviro.repository.VehicleRepository;
 import com.aviro.service.BookingService;
 import com.aviro.service.EmailService;
 import com.aviro.service.NotificationService;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,10 +50,10 @@ public class BookingServiceImpl implements BookingService {
     private final EmailService emailService;
     private final NotificationService notificationService;
 
-    // Unpredictable ride OTPs (java.util.Random can be guessed from earlier values)
     private static final SecureRandom OTP_RANDOM = new SecureRandom();
 
-    private static final Set<BookingStatus> ACTIVE_STATUSES = EnumSet.of(BookingStatus.REQUESTED, BookingStatus.CONFIRMED);
+    private static final Set<BookingStatus> ACTIVE_STATUSES =
+            EnumSet.of(BookingStatus.REQUESTED, BookingStatus.CONFIRMED);
 
     private static BookingStatus parseStatus(String status) {
         try {
@@ -67,11 +69,15 @@ public class BookingServiceImpl implements BookingService {
         User rider = getUser(email);
 
         if (!Boolean.TRUE.equals(rider.getIsCollegeVerified())) {
-            throw new AviroException("Please verify your college ID before booking rides. Go to Profile → College ID Verification.");
+            throw new AviroException(
+                    "Please verify your college ID before booking rides. Go to Profile → College ID"
+                        + " Verification.");
         }
 
-        Ride ride = rideRepository.findById(request.getRideId())
-                .orElseThrow(() -> new AviroException("Ride not found"));
+        Ride ride =
+                rideRepository
+                        .findById(request.getRideId())
+                        .orElseThrow(() -> new AviroException("Ride not found"));
 
         if (ride.getDriver().getId().equals(rider.getId())) {
             throw new AviroException("You cannot book your own ride");
@@ -81,7 +87,8 @@ public class BookingServiceImpl implements BookingService {
             throw new AviroException("This ride is no longer taking bookings");
         }
 
-        if (ride.getDepartureTime() != null && ride.getDepartureTime().isBefore(LocalDateTime.now())) {
+        if (ride.getDepartureTime() != null
+                && ride.getDepartureTime().isBefore(LocalDateTime.now())) {
             throw new AviroException("This ride has already left");
         }
 
@@ -89,8 +96,8 @@ public class BookingServiceImpl implements BookingService {
             throw new AviroException("Not enough seats available");
         }
 
-        // A cancelled or declined request doesn't stop the rider from asking again
-        if (bookingRepository.existsByRideIdAndRiderIdAndStatusIn(ride.getId(), rider.getId(), ACTIVE_STATUSES)) {
+        if (bookingRepository.existsByRideIdAndRiderIdAndStatusIn(
+                ride.getId(), rider.getId(), ACTIVE_STATUSES)) {
             throw new AviroException("You have already booked this ride");
         }
 
@@ -99,7 +106,10 @@ public class BookingServiceImpl implements BookingService {
         }
 
         if (ride.getAllowedGender() != null && rider.getGender() != ride.getAllowedGender()) {
-            throw new AviroException("This ride is only for " + ride.getAllowedGender().name().toLowerCase() + " riders");
+            throw new AviroException(
+                    "This ride is only for "
+                            + ride.getAllowedGender().name().toLowerCase()
+                            + " riders");
         }
 
         if (rideRepository.reserveSeats(ride.getId(), request.getSeatsBooked()) == 0) {
@@ -108,16 +118,17 @@ public class BookingServiceImpl implements BookingService {
 
         double total = ride.getPricePerSeat() * request.getSeatsBooked();
 
-        Booking booking = Booking.builder()
-                .ride(ride)
-                .rider(rider)
-                .seatsBooked(request.getSeatsBooked())
-                .totalAmount(total)
-                .pickupPoint(request.getPickupPoint())
-                .pickupLat(request.getPickupLat())
-                .pickupLng(request.getPickupLng())
-                .status(BookingStatus.REQUESTED)
-                .build();
+        Booking booking =
+                Booking.builder()
+                        .ride(ride)
+                        .rider(rider)
+                        .seatsBooked(request.getSeatsBooked())
+                        .totalAmount(total)
+                        .pickupPoint(request.getPickupPoint())
+                        .pickupLat(request.getPickupLat())
+                        .pickupLng(request.getPickupLng())
+                        .status(BookingStatus.REQUESTED)
+                        .build();
 
         bookingRepository.save(booking);
 
@@ -125,8 +136,7 @@ public class BookingServiceImpl implements BookingService {
             emailService.sendRideRequestNotification(
                     ride.getDriver().getEmail(),
                     ride.getDriver().getFullName(),
-                    rider.getFullName()
-            );
+                    rider.getFullName());
         } catch (Exception e) {
             log.warn("Email notification failed: {}", e.getMessage());
         }
@@ -135,11 +145,13 @@ public class BookingServiceImpl implements BookingService {
             notificationService.send(
                     ride.getDriver().getId(),
                     "New Ride Request! 🔔",
-                    rider.getFullName() + " wants to book " + request.getSeatsBooked() +
-                            " seat(s) on your ride to " + ride.getToLocation(),
+                    rider.getFullName()
+                            + " wants to book "
+                            + request.getSeatsBooked()
+                            + " seat(s) on your ride to "
+                            + ride.getToLocation(),
                     "BOOKING_REQUEST",
-                    String.valueOf(booking.getId())
-            );
+                    String.valueOf(booking.getId()));
         } catch (Exception e) {
             log.warn("In-app notification failed: {}", e.getMessage());
         }
@@ -151,15 +163,18 @@ public class BookingServiceImpl implements BookingService {
     @Override
     public ApiResponse<List<BookingResponse>> getMyBookings(String email) {
         User rider = getUser(email);
-        List<Booking> bookings = bookingRepository.findTop100ByRiderIdOrderByCreatedAtDesc(rider.getId());
+        List<Booking> bookings =
+                bookingRepository.findTop100ByRiderIdOrderByCreatedAtDesc(rider.getId());
         return ApiResponse.success(toResponses(bookings));
     }
 
     @Override
     public ApiResponse<BookingResponse> getBookingById(String email, Long bookingId) {
         User user = getUser(email);
-        Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new AviroException("Booking not found"));
+        Booking booking =
+                bookingRepository
+                        .findById(bookingId)
+                        .orElseThrow(() -> new AviroException("Booking not found"));
 
         boolean isRider = booking.getRider().getId().equals(user.getId());
         boolean isDriver = booking.getRide().getDriver().getId().equals(user.getId());
@@ -172,10 +187,13 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional
-    public ApiResponse<BookingResponse> updateBookingStatus(String email, Long bookingId, String status) {
+    public ApiResponse<BookingResponse> updateBookingStatus(
+            String email, Long bookingId, String status) {
         User actingUser = getUser(email);
-        Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new AviroException("Booking not found"));
+        Booking booking =
+                bookingRepository
+                        .findById(bookingId)
+                        .orElseThrow(() -> new AviroException("Booking not found"));
 
         BookingStatus newStatus = parseStatus(status);
 
@@ -214,11 +232,14 @@ public class BookingServiceImpl implements BookingService {
                 notificationService.send(
                         notifyUserId,
                         "Ride Completed! 🏁",
-                        completedBy + " marked the ride from " + booking.getRide().getFromLocation() +
-                                " to " + booking.getRide().getToLocation() + " as completed. Rate your experience!",
+                        completedBy
+                                + " marked the ride from "
+                                + booking.getRide().getFromLocation()
+                                + " to "
+                                + booking.getRide().getToLocation()
+                                + " as completed. Rate your experience!",
                         "RIDE_COMPLETED",
-                        String.valueOf(booking.getId())
-                );
+                        String.valueOf(booking.getId()));
             } catch (Exception e) {
                 log.warn("In-app notification failed: {}", e.getMessage());
             }
@@ -230,7 +251,6 @@ public class BookingServiceImpl implements BookingService {
             throw new AviroException("Only the driver can update booking status");
         }
 
-        // The driver only answers new requests here; cancelling has its own endpoint
         if (newStatus != BookingStatus.CONFIRMED && newStatus != BookingStatus.REJECTED) {
             throw new AviroException("A booking can only be accepted or declined");
         }
@@ -251,8 +271,9 @@ public class BookingServiceImpl implements BookingService {
                 emailService.sendBookingConfirmation(
                         booking.getRider().getEmail(),
                         booking.getRider().getFullName(),
-                        booking.getRide().getFromLocation() + " → " + booking.getRide().getToLocation()
-                );
+                        booking.getRide().getFromLocation()
+                                + " → "
+                                + booking.getRide().getToLocation());
             } catch (Exception e) {
                 log.warn("Email confirmation failed: {}", e.getMessage());
             }
@@ -261,11 +282,13 @@ public class BookingServiceImpl implements BookingService {
                 notificationService.send(
                         booking.getRider().getId(),
                         "Booking Confirmed! ✅",
-                        actingUser.getFullName() + " accepted your ride request from " +
-                                booking.getRide().getFromLocation() + " to " + booking.getRide().getToLocation(),
+                        actingUser.getFullName()
+                                + " accepted your ride request from "
+                                + booking.getRide().getFromLocation()
+                                + " to "
+                                + booking.getRide().getToLocation(),
                         "BOOKING_ACCEPTED",
-                        String.valueOf(booking.getId())
-                );
+                        String.valueOf(booking.getId()));
             } catch (Exception e) {
                 log.warn("In-app notification failed: {}", e.getMessage());
             }
@@ -275,10 +298,10 @@ public class BookingServiceImpl implements BookingService {
                 notificationService.send(
                         booking.getRider().getId(),
                         "Booking Declined",
-                        actingUser.getFullName() + " declined your ride request. Try finding another ride!",
+                        actingUser.getFullName()
+                                + " declined your ride request. Try finding another ride!",
                         "BOOKING_REJECTED",
-                        String.valueOf(booking.getId())
-                );
+                        String.valueOf(booking.getId()));
             } catch (Exception e) {
                 log.warn("In-app notification failed: {}", e.getMessage());
             }
@@ -287,13 +310,14 @@ public class BookingServiceImpl implements BookingService {
         return ApiResponse.success("Booking status updated", toResponse(booking));
     }
 
-    // ── PAYMENT: UPI ya Cash dono handle karta hai ──────────────────
     @Override
     @Transactional
     public ApiResponse<String> markAsPaid(String email, Long bookingId, String paymentReference) {
         User user = getUser(email);
-        Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new AviroException("Booking not found"));
+        Booking booking =
+                bookingRepository
+                        .findById(bookingId)
+                        .orElseThrow(() -> new AviroException("Booking not found"));
 
         boolean isRider = booking.getRider().getId().equals(user.getId());
         boolean isDriver = booking.getRide().getDriver().getId().equals(user.getId());
@@ -309,7 +333,6 @@ public class BookingServiceImpl implements BookingService {
             throw new AviroException("This ride is already paid");
         }
 
-        // ── CASH: Driver confirms cash received ──
         if (isDriver) {
             if (!"CASH".equalsIgnoreCase(booking.getPaymentMethod())) {
                 throw new AviroException("Only cash payment can be confirmed by driver");
@@ -322,11 +345,12 @@ public class BookingServiceImpl implements BookingService {
                 notificationService.send(
                         rider.getId(),
                         "Cash Payment Confirmed! ✅",
-                        driver.getFullName() + " confirmed that cash payment of ₹" +
-                                booking.getTotalAmount() + " has been received. Transaction complete!",
+                        driver.getFullName()
+                                + " confirmed that cash payment of ₹"
+                                + booking.getTotalAmount()
+                                + " has been received. Transaction complete!",
                         "PAYMENT_RECEIVED",
-                        String.valueOf(booking.getId())
-                );
+                        String.valueOf(booking.getId()));
             } catch (Exception e) {
                 log.warn("Notification failed: {}", e.getMessage());
             }
@@ -335,11 +359,13 @@ public class BookingServiceImpl implements BookingService {
                 notificationService.send(
                         driver.getId(),
                         "Payment Recorded 💰",
-                        "You confirmed cash payment of ₹" + booking.getTotalAmount() +
-                                " from " + rider.getFullName() + ". Transaction complete!",
+                        "You confirmed cash payment of ₹"
+                                + booking.getTotalAmount()
+                                + " from "
+                                + rider.getFullName()
+                                + ". Transaction complete!",
                         "PAYMENT_RECEIVED",
-                        String.valueOf(booking.getId())
-                );
+                        String.valueOf(booking.getId()));
             } catch (Exception e) {
                 log.warn("Notification failed: {}", e.getMessage());
             }
@@ -348,12 +374,12 @@ public class BookingServiceImpl implements BookingService {
             return ApiResponse.success("Cash payment confirmed! Transaction complete.", null);
         }
 
-        // ── UPI / CASH (rider side): rider marks as paid ──
         if (!isRider) {
             throw new AviroException("Only the rider or driver can update payment");
         }
 
-        String method = paymentReference != null && paymentReference.startsWith("CASH") ? "CASH" : "UPI";
+        String method =
+                paymentReference != null && paymentReference.startsWith("CASH") ? "CASH" : "UPI";
         booking.setPaymentMethod(method);
         booking.setPaymentReference(paymentReference);
 
@@ -365,17 +391,19 @@ public class BookingServiceImpl implements BookingService {
                 notificationService.send(
                         driver.getId(),
                         "Cash Payment Claim 💵",
-                        rider.getFullName() + " says they paid ₹" + booking.getTotalAmount() +
-                                " in cash. Please confirm if you received the cash!",
+                        rider.getFullName()
+                                + " says they paid ₹"
+                                + booking.getTotalAmount()
+                                + " in cash. Please confirm if you received the cash!",
                         "PAYMENT_RECEIVED",
-                        String.valueOf(booking.getId())
-                );
+                        String.valueOf(booking.getId()));
             } catch (Exception e) {
                 log.warn("Notification failed: {}", e.getMessage());
             }
 
             log.info("Cash payment claimed by rider: booking={}", bookingId);
-            return ApiResponse.success("Cash payment submitted! Waiting for driver confirmation.", null);
+            return ApiResponse.success(
+                    "Cash payment submitted! Waiting for driver confirmation.", null);
 
         } else {
             booking.setPaymentStatus(PaymentStatus.COMPLETED);
@@ -385,12 +413,15 @@ public class BookingServiceImpl implements BookingService {
                 notificationService.send(
                         driver.getId(),
                         "UPI Payment Received! 💰",
-                        rider.getFullName() + " paid ₹" + booking.getTotalAmount() +
-                                " via UPI for the ride to " + booking.getRide().getToLocation() +
-                                ". Transaction ID: " + (paymentReference != null ? paymentReference : "N/A"),
+                        rider.getFullName()
+                                + " paid ₹"
+                                + booking.getTotalAmount()
+                                + " via UPI for the ride to "
+                                + booking.getRide().getToLocation()
+                                + ". Transaction ID: "
+                                + (paymentReference != null ? paymentReference : "N/A"),
                         "PAYMENT_RECEIVED",
-                        String.valueOf(booking.getId())
-                );
+                        String.valueOf(booking.getId()));
             } catch (Exception e) {
                 log.warn("Notification failed: {}", e.getMessage());
             }
@@ -399,11 +430,13 @@ public class BookingServiceImpl implements BookingService {
                 notificationService.send(
                         rider.getId(),
                         "UPI Payment Confirmed! ✅",
-                        "Your UPI payment of ₹" + booking.getTotalAmount() +
-                                " to " + driver.getFullName() + " is complete. Enjoy your ride! 🏍️",
+                        "Your UPI payment of ₹"
+                                + booking.getTotalAmount()
+                                + " to "
+                                + driver.getFullName()
+                                + " is complete. Enjoy your ride! 🏍️",
                         "PAYMENT_RECEIVED",
-                        String.valueOf(booking.getId())
-                );
+                        String.valueOf(booking.getId()));
             } catch (Exception e) {
                 log.warn("Notification failed: {}", e.getMessage());
             }
@@ -413,7 +446,6 @@ public class BookingServiceImpl implements BookingService {
         }
     }
 
-    // ── DRIVER CONFIRM CASH (separate endpoint) ──────────────────────
     @Transactional
     public ApiResponse<String> confirmCashPayment(String email, Long bookingId) {
         return markAsPaid(email, bookingId, "CASH-DRIVER-CONFIRMED");
@@ -423,8 +455,10 @@ public class BookingServiceImpl implements BookingService {
     @Transactional
     public ApiResponse<String> cancelBooking(String email, Long bookingId) {
         User user = getUser(email);
-        Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new AviroException("Booking not found"));
+        Booking booking =
+                bookingRepository
+                        .findById(bookingId)
+                        .orElseThrow(() -> new AviroException("Booking not found"));
 
         boolean isRider = booking.getRider().getId().equals(user.getId());
         boolean isDriver = booking.getRide().getDriver().getId().equals(user.getId());
@@ -434,7 +468,8 @@ public class BookingServiceImpl implements BookingService {
         }
 
         if (!ACTIVE_STATUSES.contains(booking.getStatus())) {
-            throw new AviroException("This booking is already " + booking.getStatus().name().toLowerCase());
+            throw new AviroException(
+                    "This booking is already " + booking.getStatus().name().toLowerCase());
         }
 
         if (booking.getTripStage() == TripStage.STARTED) {
@@ -450,16 +485,19 @@ public class BookingServiceImpl implements BookingService {
 
         try {
             Long notifyUserId = isRider ? ride.getDriver().getId() : booking.getRider().getId();
-            String cancelledBy = isRider ? user.getFullName() + " (rider)" : user.getFullName() + " (driver)";
+            String cancelledBy =
+                    isRider ? user.getFullName() + " (rider)" : user.getFullName() + " (driver)";
 
             notificationService.send(
                     notifyUserId,
                     "Booking Cancelled",
-                    cancelledBy + " cancelled the ride from " + ride.getFromLocation() +
-                            " to " + ride.getToLocation(),
+                    cancelledBy
+                            + " cancelled the ride from "
+                            + ride.getFromLocation()
+                            + " to "
+                            + ride.getToLocation(),
                     "BOOKING_CANCELLED",
-                    String.valueOf(booking.getId())
-            );
+                    String.valueOf(booking.getId()));
         } catch (Exception e) {
             log.warn("In-app notification failed: {}", e.getMessage());
         }
@@ -470,8 +508,10 @@ public class BookingServiceImpl implements BookingService {
     @Override
     public ApiResponse<List<BookingResponse>> getRideBookings(String email, Long rideId) {
         User driver = getUser(email);
-        Ride ride = rideRepository.findById(rideId)
-                .orElseThrow(() -> new AviroException("Ride not found"));
+        Ride ride =
+                rideRepository
+                        .findById(rideId)
+                        .orElseThrow(() -> new AviroException("Ride not found"));
 
         if (!ride.getDriver().getId().equals(driver.getId())) {
             throw new AviroException("Only the driver can view ride bookings");
@@ -481,19 +521,15 @@ public class BookingServiceImpl implements BookingService {
         return ApiResponse.success(toResponses(bookings));
     }
 
-    // ══════════════════════════════════════════════════════════
-    // RIDE OTP — Rider fetch kare, Driver verify kare
-    // ══════════════════════════════════════════════════════════
-
     @Override
     @Transactional
     public ApiResponse<Map<String, String>> getRideOtp(String email, Long bookingId) {
         User user = getUser(email);
-        Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new AviroException("Booking not found"));
+        Booking booking =
+                bookingRepository
+                        .findById(bookingId)
+                        .orElseThrow(() -> new AviroException("Booking not found"));
 
-        // Only the rider sees the start OTP: the driver must hear it from the rider at the pickup,
-        // or the trip could be "started" without them meeting
         if (!booking.getRider().getId().equals(user.getId())) {
             throw new AviroException("Only the rider can see the start OTP");
         }
@@ -502,7 +538,6 @@ public class BookingServiceImpl implements BookingService {
             throw new AviroException("OTP only available for confirmed bookings");
         }
 
-        // Agar OTP pehle generate hua hai toh wohi return karo
         String otp = booking.getRideOtp();
         if (otp == null || otp.isBlank()) {
             otp = String.format("%04d", OTP_RANDOM.nextInt(10000));
@@ -518,8 +553,10 @@ public class BookingServiceImpl implements BookingService {
     @Transactional
     public ApiResponse<String> verifyRideOtp(String driverEmail, Long bookingId, String otp) {
         User driver = getUser(driverEmail);
-        Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new AviroException("Booking not found"));
+        Booking booking =
+                bookingRepository
+                        .findById(bookingId)
+                        .orElseThrow(() -> new AviroException("Booking not found"));
 
         if (!booking.getRide().getDriver().getId().equals(driver.getId())) {
             throw new AviroException("Only the driver can verify OTP");
@@ -536,7 +573,13 @@ public class BookingServiceImpl implements BookingService {
 
         booking.setTripStage(TripStage.STARTED);
         bookingRepository.save(booking);
-        notifyRider(booking, "Trip Started 🏁", "Your ride to " + booking.getRide().getToLocation() + " has started. Have a safe trip!", "TRIP_STARTED");
+        notifyRider(
+                booking,
+                "Trip Started 🏁",
+                "Your ride to "
+                        + booking.getRide().getToLocation()
+                        + " has started. Have a safe trip!",
+                "TRIP_STARTED");
 
         log.info("Ride OTP verified: booking={} driver={}", bookingId, driverEmail);
         return ApiResponse.success("OTP verified! Ride has started. 🚗", null);
@@ -544,10 +587,13 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional
-    public ApiResponse<BookingResponse> updateTripStage(String driverEmail, Long bookingId, String stage) {
+    public ApiResponse<BookingResponse> updateTripStage(
+            String driverEmail, Long bookingId, String stage) {
         User driver = getUser(driverEmail);
-        Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new AviroException("Booking not found"));
+        Booking booking =
+                bookingRepository
+                        .findById(bookingId)
+                        .orElseThrow(() -> new AviroException("Booking not found"));
 
         if (!booking.getRide().getDriver().getId().equals(driver.getId())) {
             throw new AviroException("Only the driver can update the trip");
@@ -573,11 +619,18 @@ public class BookingServiceImpl implements BookingService {
         bookingRepository.save(booking);
 
         if (next == TripStage.ON_THE_WAY) {
-            notifyRider(booking, "Driver on the way 🚗",
-                    driver.getFullName() + " is coming to pick you up. Track them live.", "TRIP_ON_THE_WAY");
+            notifyRider(
+                    booking,
+                    "Driver on the way 🚗",
+                    driver.getFullName() + " is coming to pick you up. Track them live.",
+                    "TRIP_ON_THE_WAY");
         } else {
-            notifyRider(booking, "Driver has arrived 📍",
-                    driver.getFullName() + " is at your pickup point. Share your ride OTP to start.", "TRIP_ARRIVED");
+            notifyRider(
+                    booking,
+                    "Driver has arrived 📍",
+                    driver.getFullName()
+                            + " is at your pickup point. Share your ride OTP to start.",
+                    "TRIP_ARRIVED");
         }
 
         log.info("Trip stage {} for booking {}", next, bookingId);
@@ -586,45 +639,54 @@ public class BookingServiceImpl implements BookingService {
 
     private void notifyRider(Booking booking, String title, String message, String type) {
         try {
-            notificationService.send(booking.getRider().getId(), title, message, type, String.valueOf(booking.getId()));
+            notificationService.send(
+                    booking.getRider().getId(),
+                    title,
+                    message,
+                    type,
+                    String.valueOf(booking.getId()));
         } catch (Exception e) {
             log.warn("In-app notification failed: {}", e.getMessage());
         }
     }
 
-    // ══════════════════════════════════════════════════════════
-    // HELPERS
-    // ══════════════════════════════════════════════════════════
-
-    // Lists: one query for all drivers' vehicles instead of one per booking
     private List<BookingResponse> toResponses(List<Booking> bookings) {
-        Set<Long> driverIds = bookings.stream()
-                .map(b -> b.getRide().getDriver().getId())
-                .collect(Collectors.toSet());
-        Map<Long, Vehicle> vehicles = driverIds.isEmpty() ? Map.of()
-                : vehicleRepository.findByUserIdIn(driverIds).stream()
-                        .collect(Collectors.toMap(v -> v.getUser().getId(), v -> v, (a, b) -> a));
+        Set<Long> driverIds =
+                bookings.stream()
+                        .map(b -> b.getRide().getDriver().getId())
+                        .collect(Collectors.toSet());
+        Map<Long, Vehicle> vehicles =
+                driverIds.isEmpty()
+                        ? Map.of()
+                        : vehicleRepository.findByUserIdIn(driverIds).stream()
+                                .collect(
+                                        Collectors.toMap(
+                                                v -> v.getUser().getId(), v -> v, (a, b) -> a));
         return bookings.stream()
                 .map(b -> toResponse(b, vehicles.get(b.getRide().getDriver().getId())))
                 .collect(Collectors.toList());
     }
 
     private BookingResponse toResponse(Booking booking) {
-        return toResponse(booking, vehicleRepository.findByUserId(booking.getRide().getDriver().getId()).orElse(null));
+        return toResponse(
+                booking,
+                vehicleRepository.findByUserId(booking.getRide().getDriver().getId()).orElse(null));
     }
 
     private BookingResponse toResponse(Booking booking, Vehicle vehicle) {
         User driver = booking.getRide().getDriver();
         User rider = booking.getRider();
 
-        String genderLabel = switch (driver.getGender()) {
-            case MALE -> "Male driver";
-            case FEMALE -> "Female driver";
-            default -> "Driver";
-        };
+        String genderLabel =
+                switch (driver.getGender()) {
+                    case MALE -> "Male driver";
+                    case FEMALE -> "Female driver";
+                    default -> "Driver";
+                };
 
-        boolean showPhone = booking.getStatus() == BookingStatus.CONFIRMED
-                || booking.getStatus() == BookingStatus.COMPLETED;
+        boolean showPhone =
+                booking.getStatus() == BookingStatus.CONFIRMED
+                        || booking.getStatus() == BookingStatus.COMPLETED;
 
         return BookingResponse.builder()
                 .id(booking.getId())
@@ -647,44 +709,49 @@ public class BookingServiceImpl implements BookingService {
                 .pickupLat(booking.getPickupLat())
                 .pickupLng(booking.getPickupLng())
                 .tripStage(booking.getTripStage())
-                .driver(RideResponse.DriverInfo.builder()
-                        .id(driver.getId())
-                        .fullName(driver.getFullName())
-                        .gender(driver.getGender())
-                        .genderLabel(genderLabel)
-                        .rating(driver.getRating())
-                        .totalRides(driver.getTotalRides())
-                        .collegeName(driver.getCollegeName())
-                        .department(driver.getDepartment())
-                        .yearOfStudy(driver.getYearOfStudy())
-                        .phone(showPhone ? driver.getPhone() : null)
-                        .profilePicUrl(driver.getProfilePicUrl())
-                        .isCollegeVerified(driver.getIsCollegeVerified())
-                        .vehicleType(vehicle != null && vehicle.getVehicleType() != null
-                                ? vehicle.getVehicleType().name()
-                                : null)
-                        .vehicleModel(vehicle != null ? vehicle.getModel() : null)
-                        .vehicleColor(vehicle != null ? vehicle.getColor() : null)
-                        .vehicleRegistrationNumber(vehicle != null ? vehicle.getRegistrationNumber() : null)
-                        .build())
-                .rider(BookingResponse.RiderInfo.builder()
-                        .id(rider.getId())
-                        .fullName(rider.getFullName())
-                        .gender(rider.getGender())
-                        .collegeName(rider.getCollegeName())
-                        .department(rider.getDepartment())
-                        .yearOfStudy(rider.getYearOfStudy())
-                        .phone(showPhone ? rider.getPhone() : null)
-                        .profilePicUrl(rider.getProfilePicUrl())
-                        .rating(rider.getRating())
-                        .totalRides(rider.getTotalRides())
-                        .build())
+                .driver(
+                        RideResponse.DriverInfo.builder()
+                                .id(driver.getId())
+                                .fullName(driver.getFullName())
+                                .gender(driver.getGender())
+                                .genderLabel(genderLabel)
+                                .rating(driver.getRating())
+                                .totalRides(driver.getTotalRides())
+                                .collegeName(driver.getCollegeName())
+                                .department(driver.getDepartment())
+                                .yearOfStudy(driver.getYearOfStudy())
+                                .phone(showPhone ? driver.getPhone() : null)
+                                .profilePicUrl(driver.getProfilePicUrl())
+                                .isCollegeVerified(driver.getIsCollegeVerified())
+                                .vehicleType(
+                                        vehicle != null && vehicle.getVehicleType() != null
+                                                ? vehicle.getVehicleType().name()
+                                                : null)
+                                .vehicleModel(vehicle != null ? vehicle.getModel() : null)
+                                .vehicleColor(vehicle != null ? vehicle.getColor() : null)
+                                .vehicleRegistrationNumber(
+                                        vehicle != null ? vehicle.getRegistrationNumber() : null)
+                                .build())
+                .rider(
+                        BookingResponse.RiderInfo.builder()
+                                .id(rider.getId())
+                                .fullName(rider.getFullName())
+                                .gender(rider.getGender())
+                                .collegeName(rider.getCollegeName())
+                                .department(rider.getDepartment())
+                                .yearOfStudy(rider.getYearOfStudy())
+                                .phone(showPhone ? rider.getPhone() : null)
+                                .profilePicUrl(rider.getProfilePicUrl())
+                                .rating(rider.getRating())
+                                .totalRides(rider.getTotalRides())
+                                .build())
                 .createdAt(booking.getCreatedAt())
                 .build();
     }
 
     private User getUser(String email) {
-        return userRepository.findByEmail(email)
+        return userRepository
+                .findByEmail(email)
                 .orElseThrow(() -> new AviroException("User not found"));
     }
 }

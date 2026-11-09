@@ -12,8 +12,8 @@ import Icon from '../components/common/Icon';
 export default function SearchRidePage() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { list, loading } = useSelector(s => s.rides);
-  const { user } = useSelector(s => s.auth);
+  const { list, loading } = useSelector((s) => s.rides);
+  const { user } = useSelector((s) => s.auth);
 
   const [form, setForm] = useState({
     fromLocation: '',
@@ -24,7 +24,6 @@ export default function SearchRidePage() {
   });
   const [searched, setSearched] = useState(false);
   const [alertsVersion, setAlertsVersion] = useState(0);
-  // The route of the last search, so the alert matches what was searched (not what's being typed now)
   const [lastSearch, setLastSearch] = useState(null);
 
   const handleSearch = async (e) => {
@@ -34,14 +33,20 @@ export default function SearchRidePage() {
       return;
     }
     setSearched(true);
-    setLastSearch({ fromLocation: form.fromLocation, toLocation: form.toLocation, seatsNeeded: form.seatsNeeded });
-    dispatch(searchRides({
+    setLastSearch({
       fromLocation: form.fromLocation,
-      toLocation:   form.toLocation,
-      seatsNeeded:  form.seatsNeeded,
-      womenOnly:    form.womenOnly,
-      driverGender: form.driverGender || null,
-    }));
+      toLocation: form.toLocation,
+      seatsNeeded: form.seatsNeeded,
+    });
+    dispatch(
+      searchRides({
+        fromLocation: form.fromLocation,
+        toLocation: form.toLocation,
+        seatsNeeded: form.seatsNeeded,
+        womenOnly: form.womenOnly,
+        driverGender: form.driverGender || null,
+      })
+    );
   };
 
   const { bookRide: handleBook, bookingRideId } = useBookRide();
@@ -55,17 +60,14 @@ export default function SearchRidePage() {
 
       <MyRideAlerts refreshKey={alertsVersion} />
 
-      {/* Search Form */}
       <form onSubmit={handleSearch} className="card p-5 space-y-4">
-
-        {/* From - To */}
         <div className="grid md:grid-cols-2 gap-4">
           <LocationInput
             label="From"
             icon="🟠"
             placeholder="Kothrud, Shivajinagar..."
             value={form.fromLocation}
-            onChange={val => setForm({ ...form, fromLocation: val })}
+            onChange={(val) => setForm({ ...form, fromLocation: val })}
             allowCurrentLocation
             required
           />
@@ -74,62 +76,80 @@ export default function SearchRidePage() {
             icon="🟢"
             placeholder="COEP, MIT Pune, FC Road..."
             value={form.toLocation}
-            onChange={val => setForm({ ...form, toLocation: val })}
+            onChange={(val) => setForm({ ...form, toLocation: val })}
             required
           />
         </div>
 
-        {/* Swap button */}
         <div className="flex justify-center">
           <button
             type="button"
-            onClick={() => setForm({ ...form, fromLocation: form.toLocation, toLocation: form.fromLocation })}
+            onClick={() =>
+              setForm({ ...form, fromLocation: form.toLocation, toLocation: form.fromLocation })
+            }
             className="flex items-center gap-2 text-xs text-aviro-muted hover:text-aviro-orange transition-colors bg-aviro-card2 border border-aviro-border px-3 py-1.5 rounded-full"
           >
             ⇅ Swap Locations
           </button>
         </div>
 
-        {/* Filters */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div>
-            <label className="text-xs text-aviro-muted font-medium block mb-1.5 uppercase tracking-wider"><Icon e="💺" /> Seats</label>
+            <label className="text-xs text-aviro-muted font-medium block mb-1.5 uppercase tracking-wider">
+              <Icon e="💺" /> Seats
+            </label>
             <select
               value={form.seatsNeeded}
-              onChange={e => setForm({ ...form, seatsNeeded: +e.target.value })}
+              onChange={(e) => setForm({ ...form, seatsNeeded: +e.target.value })}
               className="input-field"
             >
-              {[1,2,3,4].map(n => <option key={n} value={n}>{n} seat{n > 1 ? 's' : ''}</option>)}
+              {[1, 2, 3, 4].map((n) => (
+                <option key={n} value={n}>
+                  {n} seat{n > 1 ? 's' : ''}
+                </option>
+              ))}
             </select>
           </div>
 
           <div>
-            <label className="text-xs text-aviro-muted font-medium block mb-1.5 uppercase tracking-wider"><Icon e="👤" /> Driver Gender</label>
+            <label className="text-xs text-aviro-muted font-medium block mb-1.5 uppercase tracking-wider">
+              <Icon e="👤" /> Driver Gender
+            </label>
             <select
               value={form.driverGender}
-              onChange={e => setForm({ ...form, driverGender: e.target.value })}
+              onChange={(e) => setForm({ ...form, driverGender: e.target.value })}
               className="input-field"
             >
               <option value="">Any</option>
-              <option value="MALE"><Icon e="👨" /> Male</option>
-              <option value="FEMALE"><Icon e="👩" /> Female</option>
+              <option value="MALE">
+                <Icon e="👨" /> Male
+              </option>
+              <option value="FEMALE">
+                <Icon e="👩" /> Female
+              </option>
             </select>
           </div>
 
           <div className="flex items-end">
-            <label className={`flex items-center gap-2 p-3 rounded-xl border-2 cursor-pointer w-full transition-all
-              ${form.womenOnly ? 'border-pink-500/50 bg-pink-500/5' : 'border-aviro-border'}`}>
+            <label
+              className={`flex items-center gap-2 p-3 rounded-xl border-2 cursor-pointer w-full transition-all
+              ${form.womenOnly ? 'border-pink-500/50 bg-pink-500/5' : 'border-aviro-border'}`}
+            >
               <input
                 type="checkbox"
                 checked={form.womenOnly}
-                onChange={e => setForm({ ...form, womenOnly: e.target.checked })}
+                onChange={(e) => setForm({ ...form, womenOnly: e.target.checked })}
                 className="hidden"
               />
-              <div className={`w-4 h-4 rounded border-2 flex items-center justify-center text-xs transition-all
-                ${form.womenOnly ? 'bg-pink-500 border-pink-500 text-white' : 'border-aviro-border'}`}>
+              <div
+                className={`w-4 h-4 rounded border-2 flex items-center justify-center text-xs transition-all
+                ${form.womenOnly ? 'bg-pink-500 border-pink-500 text-white' : 'border-aviro-border'}`}
+              >
                 {form.womenOnly && '✓'}
               </div>
-              <span className="text-xs font-medium text-pink-600"><Icon e="🚺" /> Women-only</span>
+              <span className="text-xs font-medium text-pink-600">
+                <Icon e="🚺" /> Women-only
+              </span>
             </label>
           </div>
 
@@ -139,32 +159,35 @@ export default function SearchRidePage() {
               disabled={loading}
               className="btn-primary w-full flex items-center justify-center gap-2 py-3"
             >
-              {loading
-                ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                : '🔍'}
+              {loading ? (
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                '🔍'
+              )}
               {loading ? 'Searching...' : 'Search'}
             </button>
           </div>
         </div>
       </form>
 
-      {/* Results */}
       {searched && (
         <div>
           <p className="text-aviro-muted text-sm mb-3">
             {loading ? 'Searching...' : `${list.length} ride${list.length !== 1 ? 's' : ''} found`}
-            {form.fromLocation && form.toLocation && !loading &&
+            {form.fromLocation && form.toLocation && !loading && (
               <span className="ml-2 text-aviro-fg font-medium">
                 {form.fromLocation} → {form.toLocation}
               </span>
-            }
+            )}
           </p>
 
           {loading ? (
-            <div className="flex justify-center py-12"><Spinner /></div>
+            <div className="flex justify-center py-12">
+              <Spinner />
+            </div>
           ) : list.length > 0 ? (
             <div className="grid gap-3 md:grid-cols-2">
-              {list.map(ride => (
+              {list.map((ride) => (
                 <RideCard
                   key={ride.id}
                   ride={ride}
@@ -175,7 +198,7 @@ export default function SearchRidePage() {
               ))}
             </div>
           ) : lastSearch ? (
-            <RideAlertOffer {...lastSearch} onCreated={() => setAlertsVersion(v => v + 1)} />
+            <RideAlertOffer {...lastSearch} onCreated={() => setAlertsVersion((v) => v + 1)} />
           ) : (
             <EmptyState icon="🔍" title="No rides found" subtitle="Try different locations." />
           )}

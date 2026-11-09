@@ -1,9 +1,12 @@
 package com.aviro.service;
 
 import com.aviro.security.TtlCache;
+
 import jakarta.annotation.PostConstruct;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -11,10 +14,6 @@ import org.springframework.stereotype.Service;
 import java.security.SecureRandom;
 import java.util.concurrent.TimeUnit;
 
-/**
- * One-time codes, kept in Redis. If Redis can't be reached, codes are kept in this
- * server's memory instead, so sign-up and password reset keep working during an outage.
- */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -33,7 +32,6 @@ public class OtpService {
     private static final int MAX_WRONG_TRIES = 5;
     private static final SecureRandom random = new SecureRandom();
 
-    // Fallback while Redis is down
     private TtlCache<String, String> memoryCodes;
     private TtlCache<String, Integer> memoryTries;
 
@@ -49,7 +47,9 @@ public class OtpService {
         memoryCodes.invalidate(email);
         memoryTries.invalidate(email);
         try {
-            redisTemplate.opsForValue().set(OTP_PREFIX + email, otp, otpExpiryMinutes, TimeUnit.MINUTES);
+            redisTemplate
+                    .opsForValue()
+                    .set(OTP_PREFIX + email, otp, otpExpiryMinutes, TimeUnit.MINUTES);
             redisTemplate.delete(TRIES_PREFIX + email);
         } catch (Exception e) {
             log.warn("Redis unavailable, keeping OTP in memory: {}", e.getMessage());
@@ -60,7 +60,6 @@ public class OtpService {
     }
 
     public boolean verifyOtp(String email, String otp) {
-        // A code saved in memory during an outage is checked there, even if Redis is back
         if (memoryCodes.getIfPresent(email) != null) return verifyInMemory(email, otp);
         try {
             return verifyInRedis(email, otp);
@@ -89,7 +88,6 @@ public class OtpService {
             redisTemplate.delete(TRIES_PREFIX + email);
             return true;
         }
-        // Too many wrong guesses: the code stops working and a new one must be requested
         Long tries = redisTemplate.opsForValue().increment(TRIES_PREFIX + email);
         redisTemplate.expire(TRIES_PREFIX + email, otpExpiryMinutes, TimeUnit.MINUTES);
         if (tries != null && tries >= MAX_WRONG_TRIES) {

@@ -2,6 +2,7 @@ package com.aviro.dto.response;
 
 import com.aviro.enums.Gender;
 import com.aviro.enums.Role;
+
 import lombok.Builder;
 import lombok.Data;
 
@@ -22,7 +23,6 @@ public class UserResponse {
     private String yearOfStudy;
     private String locality;
     private String profilePicUrl;
-    // Own profile only: link to the uploaded college ID photo (served to its owner and admins)
     private String collegeIdPicUrl;
     private Boolean isVerified;
     private Boolean isCollegeVerified;
@@ -33,6 +33,5 @@ public class UserResponse {
     private Boolean womenOnlyMode;
     private LocalDateTime createdAt;
     private VehicleResponse vehicle;
-    // False while testing: rides can be posted with an unverified vehicle
     private Boolean vehicleVerificationRequired;
 }

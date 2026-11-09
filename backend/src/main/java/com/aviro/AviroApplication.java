@@ -14,8 +14,8 @@ import java.util.TimeZone;
 @EnableScheduling
 public class AviroApplication {
     public static void main(String[] args) {
-        // Ride times are LocalDateTime in India time; Render servers run in UTC
-        TimeZone.setDefault(TimeZone.getTimeZone(System.getenv().getOrDefault("APP_TIMEZONE", "Asia/Kolkata")));
+        TimeZone.setDefault(
+                TimeZone.getTimeZone(System.getenv().getOrDefault("APP_TIMEZONE", "Asia/Kolkata")));
         SpringApplication.run(AviroApplication.class, args);
     }
 }

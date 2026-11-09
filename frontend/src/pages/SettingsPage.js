@@ -8,21 +8,30 @@ import toast from 'react-hot-toast';
 import { BrandLockup } from '../components/common/Logo';
 import Icon, { initial } from '../components/common/Icon';
 
-// ── Help Chatbot ──
 const HELP_RESPONSES = {
-  'login':        'Having trouble logging in? Make sure you enter the correct email and OTP. OTP expires in 10 minutes. Try clicking "Resend OTP" if not received. Check your spam folder too!',
-  'otp':          'OTP not received? Check your spam/junk folder. Make sure your email is correct. OTP is valid for 10 minutes only. Click "Resend OTP" on the login page.',
-  'booking':      'To book a ride: Go to "Find a Ride" → Search your route → Click on a ride → Click "Book". Your college ID must be verified to book rides.',
-  'payment':      'AVIRO supports UPI (GPay, PhonePe, Paytm) and Cash payments. After ride completion, select your payment method. For cash, driver will confirm receipt.',
-  'verification': 'College ID not verified? Go to Profile → Upload your college ID card photo. Our AI verifies it instantly. Make sure the ID is clearly visible.',
-  'ride':         'To offer a ride: Go to "Offer Ride" → Fill in your route, time, seats and price → Post it. Your college ID and vehicle must be verified first.',
-  'cancel':       'To cancel a booking: Go to "My Bookings" → Find your booking → Click "Cancel Booking". Note: Frequent cancellations may affect your rating.',
-  'vehicle':      'To add a vehicle: Go to Profile → Scroll to "My Vehicle" → Click "Add Vehicle" → Fill in details. Vehicle is auto-verified on AVIRO.',
-  'sos':          'SOS feature: During a ride, go to Live Tracking page → Press the red "SOS Emergency Alert" button. It will notify your emergency contacts with your live location.',
-  'refund':       'For refund issues, please contact us at aviro.support@gmail.com with your Booking ID. We process refunds within 3-5 business days.',
-  'rating':       'Your rating is calculated based on reviews from riders and drivers. Complete more rides and provide good service to improve your rating.',
-  'track':        'Live tracking works when driver clicks "Share Location" on the tracking page. You will see their location on the map in real-time, Zomato-style!',
-  'default':      'I am not sure about that. Please contact our support team at aviro.support@gmail.com or try asking about: login, otp, booking, payment, verification, ride, cancel, vehicle, sos, refund, rating.',
+  login:
+    'Having trouble logging in? Make sure you enter the correct email and OTP. OTP expires in 10 minutes. Try clicking "Resend OTP" if not received. Check your spam folder too!',
+  otp: 'OTP not received? Check your spam/junk folder. Make sure your email is correct. OTP is valid for 10 minutes only. Click "Resend OTP" on the login page.',
+  booking:
+    'To book a ride: Go to "Find a Ride" → Search your route → Click on a ride → Click "Book". Your college ID must be verified to book rides.',
+  payment:
+    'AVIRO supports UPI (GPay, PhonePe, Paytm) and Cash payments. After ride completion, select your payment method. For cash, driver will confirm receipt.',
+  verification:
+    'College ID not verified? Go to Profile → Upload your college ID card photo. Our AI verifies it instantly. Make sure the ID is clearly visible.',
+  ride: 'To offer a ride: Go to "Offer Ride" → Fill in your route, time, seats and price → Post it. Your college ID and vehicle must be verified first.',
+  cancel:
+    'To cancel a booking: Go to "My Bookings" → Find your booking → Click "Cancel Booking". Note: Frequent cancellations may affect your rating.',
+  vehicle:
+    'To add a vehicle: Go to Profile → Scroll to "My Vehicle" → Click "Add Vehicle" → Fill in details. Vehicle is auto-verified on AVIRO.',
+  sos: 'SOS feature: During a ride, go to Live Tracking page → Press the red "SOS Emergency Alert" button. It will notify your emergency contacts with your live location.',
+  refund:
+    'For refund issues, please contact us at aviro.support@gmail.com with your Booking ID. We process refunds within 3-5 business days.',
+  rating:
+    'Your rating is calculated based on reviews from riders and drivers. Complete more rides and provide good service to improve your rating.',
+  track:
+    'Live tracking works when driver clicks "Share Location" on the tracking page. You will see their location on the map in real-time, Zomato-style!',
+  default:
+    'I am not sure about that. Please contact our support team at aviro.support@gmail.com or try asking about: login, otp, booking, payment, verification, ride, cancel, vehicle, sos, refund, rating.',
 };
 
 function getHelpResponse(msg) {
@@ -35,9 +44,12 @@ function getHelpResponse(msg) {
 
 function HelpChatbot({ onClose }) {
   const [messages, setMessages] = useState([
-    { from: 'bot', text: 'Hi! 👋 I am AVIRO Support Bot.\n\nHow can I help you today?\n\nYou can ask about: Login, OTP, Booking, Payment, Verification, Tracking, SOS, Vehicle, etc.' }
+    {
+      from: 'bot',
+      text: 'Hi! 👋 I am AVIRO Support Bot.\n\nHow can I help you today?\n\nYou can ask about: Login, OTP, Booking, Payment, Verification, Tracking, SOS, Vehicle, etc.',
+    },
   ]);
-  const [input, setInput]   = useState('');
+  const [input, setInput] = useState('');
   const [typing, setTyping] = useState(false);
   const bottomRef = React.useRef(null);
 
@@ -49,54 +61,89 @@ function HelpChatbot({ onClose }) {
     if (!input.trim()) return;
     const userMsg = input.trim();
     setInput('');
-    setMessages(prev => [...prev, { from: 'user', text: userMsg }]);
+    setMessages((prev) => [...prev, { from: 'user', text: userMsg }]);
     setTyping(true);
     setTimeout(() => {
-      setMessages(prev => [...prev, { from: 'bot', text: getHelpResponse(userMsg) }]);
+      setMessages((prev) => [...prev, { from: 'bot', text: getHelpResponse(userMsg) }]);
       setTyping(false);
     }, 800);
   };
 
-  const quickQuestions = ['Login issue', 'OTP not received', 'Payment help', 'Verification', 'Cancel booking', 'SOS help', 'Track ride'];
+  const quickQuestions = [
+    'Login issue',
+    'OTP not received',
+    'Payment help',
+    'Verification',
+    'Cancel booking',
+    'SOS help',
+    'Track ride',
+  ];
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
-      <div className="bg-aviro-card border border-aviro-border rounded-2xl w-full max-w-md shadow-2xl flex flex-col" style={{ height: '540px' }}>
+      <div
+        className="bg-aviro-card border border-aviro-border rounded-2xl w-full max-w-md shadow-2xl flex flex-col"
+        style={{ height: '540px' }}
+      >
         <div className="flex items-center justify-between p-4 border-b border-aviro-border">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-aviro-orange/20 flex items-center justify-center text-xl"><Icon e="🤖" /></div>
+            <div className="w-10 h-10 rounded-full bg-aviro-orange/20 flex items-center justify-center text-xl">
+              <Icon e="🤖" />
+            </div>
             <div>
               <p className="font-bold text-sm">AVIRO Support Bot</p>
               <div className="flex items-center gap-1">
-                <div className="w-2 h-2 bg-aviro-green rounded-full animate-pulse"/>
+                <div className="w-2 h-2 bg-aviro-green rounded-full animate-pulse" />
                 <p className="text-xs text-aviro-green">Online</p>
               </div>
             </div>
           </div>
-          <button onClick={onClose} className="text-aviro-muted hover:text-aviro-fg text-xl w-8 h-8 flex items-center justify-center"><Icon e="✕" /></button>
+          <button
+            onClick={onClose}
+            className="text-aviro-muted hover:text-aviro-fg text-xl w-8 h-8 flex items-center justify-center"
+          >
+            <Icon e="✕" />
+          </button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {messages.map((m, i) => (
             <div key={i} className={`flex ${m.from === 'user' ? 'justify-end' : 'justify-start'}`}>
               {m.from === 'bot' && (
-                <div className="w-7 h-7 rounded-full bg-aviro-orange/20 flex items-center justify-center text-sm mr-2 flex-shrink-0 mt-1"><Icon e="🤖" /></div>
+                <div className="w-7 h-7 rounded-full bg-aviro-orange/20 flex items-center justify-center text-sm mr-2 flex-shrink-0 mt-1">
+                  <Icon e="🤖" />
+                </div>
               )}
-              <div className={`max-w-xs rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap
-                ${m.from === 'user'
-                  ? 'bg-aviro-orange text-white rounded-br-sm'
-                  : 'bg-aviro-card2 text-aviro-fg rounded-bl-sm border border-aviro-border'}`}>
+              <div
+                className={`max-w-xs rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap
+                ${
+                  m.from === 'user'
+                    ? 'bg-aviro-orange text-white rounded-br-sm'
+                    : 'bg-aviro-card2 text-aviro-fg rounded-bl-sm border border-aviro-border'
+                }`}
+              >
                 {m.text}
               </div>
             </div>
           ))}
           {typing && (
             <div className="flex justify-start">
-              <div className="w-7 h-7 rounded-full bg-aviro-orange/20 flex items-center justify-center text-sm mr-2"><Icon e="🤖" /></div>
+              <div className="w-7 h-7 rounded-full bg-aviro-orange/20 flex items-center justify-center text-sm mr-2">
+                <Icon e="🤖" />
+              </div>
               <div className="bg-aviro-card2 border border-aviro-border rounded-2xl rounded-bl-sm px-4 py-3 flex gap-1 items-center">
-                <div className="w-2 h-2 bg-aviro-muted rounded-full animate-bounce" style={{ animationDelay: '0ms' }}/>
-                <div className="w-2 h-2 bg-aviro-muted rounded-full animate-bounce" style={{ animationDelay: '150ms' }}/>
-                <div className="w-2 h-2 bg-aviro-muted rounded-full animate-bounce" style={{ animationDelay: '300ms' }}/>
+                <div
+                  className="w-2 h-2 bg-aviro-muted rounded-full animate-bounce"
+                  style={{ animationDelay: '0ms' }}
+                />
+                <div
+                  className="w-2 h-2 bg-aviro-muted rounded-full animate-bounce"
+                  style={{ animationDelay: '150ms' }}
+                />
+                <div
+                  className="w-2 h-2 bg-aviro-muted rounded-full animate-bounce"
+                  style={{ animationDelay: '300ms' }}
+                />
               </div>
             </div>
           )}
@@ -105,20 +152,29 @@ function HelpChatbot({ onClose }) {
 
         <div className="px-4 pb-2 flex gap-2 overflow-x-auto">
           {quickQuestions.map((q, i) => (
-            <button key={i} onClick={() => setInput(q)}
-              className="text-xs text-aviro-orange border border-aviro-orange/30 px-3 py-1.5 rounded-full whitespace-nowrap hover:bg-aviro-orange/10 flex-shrink-0 transition-colors">
+            <button
+              key={i}
+              onClick={() => setInput(q)}
+              className="text-xs text-aviro-orange border border-aviro-orange/30 px-3 py-1.5 rounded-full whitespace-nowrap hover:bg-aviro-orange/10 flex-shrink-0 transition-colors"
+            >
               {q}
             </button>
           ))}
         </div>
 
         <div className="p-4 border-t border-aviro-border flex gap-2">
-          <input value={input} onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && sendMessage()}
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
             placeholder="Type your question..."
-            className="input-field flex-1 text-sm"/>
-          <button onClick={sendMessage} disabled={!input.trim()}
-            className="bg-aviro-orange text-white px-4 py-2.5 rounded-xl font-bold text-sm disabled:opacity-40 hover:opacity-90">
+            className="input-field flex-1 text-sm"
+          />
+          <button
+            onClick={sendMessage}
+            disabled={!input.trim()}
+            className="bg-aviro-orange text-white px-4 py-2.5 rounded-xl font-bold text-sm disabled:opacity-40 hover:opacity-90"
+          >
             →
           </button>
         </div>
@@ -127,15 +183,14 @@ function HelpChatbot({ onClose }) {
   );
 }
 
-// ── Reset Password Modal ──
 function ResetPasswordModal({ onClose }) {
-  const { user }  = useSelector(s => s.auth);
-  const [step, setStep]           = useState(1);
-  const [otp, setOtp]             = useState('');
-  const [newPass, setNewPass]     = useState('');
+  const { user } = useSelector((s) => s.auth);
+  const [step, setStep] = useState(1);
+  const [otp, setOtp] = useState('');
+  const [newPass, setNewPass] = useState('');
   const [confirmPass, setConfirmPass] = useState('');
-  const [loading, setLoading]     = useState(false);
-  const [showPass, setShowPass]   = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [showPass, setShowPass] = useState(false);
 
   const sendOtp = async () => {
     setLoading(true);
@@ -143,19 +198,29 @@ function ResetPasswordModal({ onClose }) {
       await api.post('/auth/forgot-password', { email: user?.email });
       toast.success('OTP sent to your email! 📧');
       setStep(2);
-    } catch { toast.error('Failed to send OTP'); }
+    } catch {
+      toast.error('Failed to send OTP');
+    }
     setLoading(false);
   };
 
   const resetPassword = async () => {
-    if (newPass !== confirmPass) { toast.error('Passwords do not match'); return; }
-    if (newPass.length < 6) { toast.error('Min 6 characters required'); return; }
+    if (newPass !== confirmPass) {
+      toast.error('Passwords do not match');
+      return;
+    }
+    if (newPass.length < 6) {
+      toast.error('Min 6 characters required');
+      return;
+    }
     setLoading(true);
     try {
       await api.post('/auth/reset-password', { email: user?.email, otp, newPassword: newPass });
       toast.success('Password reset successfully! ✅');
       onClose();
-    } catch (err) { toast.error(err.response?.data?.message || 'Reset failed'); }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Reset failed');
+    }
     setLoading(false);
   };
 
@@ -163,8 +228,15 @@ function ResetPasswordModal({ onClose }) {
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-aviro-card border border-aviro-border rounded-2xl w-full max-w-sm p-6 space-y-5">
         <div className="flex items-center justify-between">
-          <h3 className="font-bold text-lg"><Icon e="🔐" /> Reset Password</h3>
-          <button onClick={onClose} className="text-aviro-muted hover:text-aviro-fg w-8 h-8 flex items-center justify-center"><Icon e="✕" /></button>
+          <h3 className="font-bold text-lg">
+            <Icon e="🔐" /> Reset Password
+          </h3>
+          <button
+            onClick={onClose}
+            className="text-aviro-muted hover:text-aviro-fg w-8 h-8 flex items-center justify-center"
+          >
+            <Icon e="✕" />
+          </button>
         </div>
         {step === 1 && (
           <>
@@ -172,9 +244,16 @@ function ResetPasswordModal({ onClose }) {
               <p className="text-sm text-aviro-muted">OTP will be sent to:</p>
               <p className="font-semibold text-aviro-fg mt-1">{user?.email}</p>
             </div>
-            <button onClick={sendOtp} disabled={loading}
-              className="w-full bg-aviro-orange text-white font-bold py-3 rounded-xl disabled:opacity-50 flex items-center justify-center gap-2">
-              {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/> : '📧 Send Reset OTP'}
+            <button
+              onClick={sendOtp}
+              disabled={loading}
+              className="w-full bg-aviro-orange text-white font-bold py-3 rounded-xl disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                '📧 Send Reset OTP'
+              )}
             </button>
           </>
         )}
@@ -182,33 +261,56 @@ function ResetPasswordModal({ onClose }) {
           <div className="space-y-3">
             <div>
               <label className="text-xs text-aviro-muted block mb-1.5">Enter OTP</label>
-              <input value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g,'').slice(0,6))}
-                placeholder="6-digit OTP" maxLength={6}
-                className="input-field text-center text-2xl tracking-[0.4em] font-bold"/>
+              <input
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                placeholder="6-digit OTP"
+                maxLength={6}
+                className="input-field text-center text-2xl tracking-[0.4em] font-bold"
+              />
             </div>
             <div>
               <label className="text-xs text-aviro-muted block mb-1.5">New Password</label>
               <div className="relative">
-                <input type={showPass ? 'text' : 'password'} value={newPass}
-                  onChange={e => setNewPass(e.target.value)} placeholder="Min 6 characters" className="input-field pr-10"/>
-                <button type="button" onClick={() => setShowPass(!showPass)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-aviro-muted">
+                <input
+                  type={showPass ? 'text' : 'password'}
+                  value={newPass}
+                  onChange={(e) => setNewPass(e.target.value)}
+                  placeholder="Min 6 characters"
+                  className="input-field pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPass(!showPass)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-aviro-muted"
+                >
                   {showPass ? '🙈' : '👁️'}
                 </button>
               </div>
             </div>
             <div>
               <label className="text-xs text-aviro-muted block mb-1.5">Confirm Password</label>
-              <input type="password" value={confirmPass} onChange={e => setConfirmPass(e.target.value)}
-                placeholder="Re-enter password" className="input-field"/>
+              <input
+                type="password"
+                value={confirmPass}
+                onChange={(e) => setConfirmPass(e.target.value)}
+                placeholder="Re-enter password"
+                className="input-field"
+              />
               {confirmPass && newPass !== confirmPass && (
                 <p className="text-red-600 text-xs mt-1">Passwords do not match</p>
               )}
             </div>
-            <button onClick={resetPassword}
+            <button
+              onClick={resetPassword}
               disabled={loading || otp.length < 6 || !newPass || newPass !== confirmPass}
-              className="w-full bg-aviro-green text-white font-bold py-3 rounded-xl disabled:opacity-50 flex items-center justify-center gap-2">
-              {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/> : '✅ Reset Password'}
+              className="w-full bg-aviro-green text-white font-bold py-3 rounded-xl disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                '✅ Reset Password'
+              )}
             </button>
           </div>
         )}
@@ -217,7 +319,6 @@ function ResetPasswordModal({ onClose }) {
   );
 }
 
-// ── About / Policy Modal ──
 function InfoModal({ type, onClose }) {
   const content = {
     about: {
@@ -226,25 +327,44 @@ function InfoModal({ type, onClose }) {
         <div className="space-y-4 text-sm text-aviro-muted">
           <div className="text-center py-4">
             <BrandLockup height={40} className="mb-3" />
-            <p className="text-aviro-orange text-xs mt-1">Affordable · Verified · Intelligent · Ride Organizer</p>
+            <p className="text-aviro-orange text-xs mt-1">
+              Affordable · Verified · Intelligent · Ride Organizer
+            </p>
             <p className="text-xs mt-2">Version 1.0.0</p>
           </div>
           <div className="bg-aviro-card2 rounded-xl p-4 space-y-2">
             <p className="font-semibold text-aviro-fg">What is AVIRO?</p>
-            <p>AVIRO is a college ride-sharing platform built exclusively for Pune college students. Students with empty seats can offer rides, and other verified students can book those seats and split the travel cost.</p>
+            <p>
+              AVIRO is a college ride-sharing platform built exclusively for Pune college students.
+              Students with empty seats can offer rides, and other verified students can book those
+              seats and split the travel cost.
+            </p>
           </div>
           <div className="bg-aviro-card2 rounded-xl p-4 space-y-2">
             <p className="font-semibold text-aviro-fg">Our Mission</p>
-            <p>To make daily college commuting affordable, safe, and transparent for every Pune college student — eliminating meter disputes, surge pricing, and unsafe travel.</p>
+            <p>
+              To make daily college commuting affordable, safe, and transparent for every Pune
+              college student — eliminating meter disputes, surge pricing, and unsafe travel.
+            </p>
           </div>
           <div className="bg-aviro-card2 rounded-xl p-4 space-y-2">
             <p className="font-semibold text-aviro-fg">Key Features</p>
-            <p><Icon e="✅" /> AI-powered College ID Verification</p>
-            <p><Icon e="🗺️" /> Live GPS Tracking (Zomato-style)</p>
+            <p>
+              <Icon e="✅" /> AI-powered College ID Verification
+            </p>
+            <p>
+              <Icon e="🗺️" /> Live GPS Tracking (Zomato-style)
+            </p>
             <p>🆘 SOS Emergency Alerts</p>
-            <p><Icon e="🚺" /> Women-Only Ride Mode</p>
-            <p><Icon e="💰" /> Fixed Upfront Pricing</p>
-            <p><Icon e="💬" /> Real-time WebSocket Chat</p>
+            <p>
+              <Icon e="🚺" /> Women-Only Ride Mode
+            </p>
+            <p>
+              <Icon e="💰" /> Fixed Upfront Pricing
+            </p>
+            <p>
+              <Icon e="💬" /> Real-time WebSocket Chat
+            </p>
           </div>
           <div className="bg-aviro-card2 rounded-xl p-4 space-y-2">
             <p className="font-semibold text-aviro-fg">Tech Stack</p>
@@ -258,14 +378,17 @@ function InfoModal({ type, onClose }) {
             <p className="font-semibold text-aviro-fg">Developed by</p>
             <p>Sahil Shaikh</p>
             <p>MCA Student, MIT World Peace University, Pune</p>
-          
           </div>
           <div className="text-center text-xs">
-            <p><Icon e="📧" /> aviro.support@gmail.com</p>
-            <p className="mt-1">Made with <Icon e="❤️" /> for Pune College Students</p>
+            <p>
+              <Icon e="📧" /> aviro.support@gmail.com
+            </p>
+            <p className="mt-1">
+              Made with <Icon e="❤️" /> for Pune College Students
+            </p>
           </div>
         </div>
-      )
+      ),
     },
   };
 
@@ -273,31 +396,36 @@ function InfoModal({ type, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
-      <div className="bg-aviro-card border border-aviro-border rounded-2xl w-full max-w-md shadow-2xl flex flex-col" style={{ maxHeight: '85vh' }}>
+      <div
+        className="bg-aviro-card border border-aviro-border rounded-2xl w-full max-w-md shadow-2xl flex flex-col"
+        style={{ maxHeight: '85vh' }}
+      >
         <div className="flex items-center justify-between p-4 border-b border-aviro-border flex-shrink-0">
           <h3 className="font-bold text-base">{c.title}</h3>
-          <button onClick={onClose} className="text-aviro-muted hover:text-aviro-fg w-8 h-8 flex items-center justify-center text-xl"><Icon e="✕" /></button>
+          <button
+            onClick={onClose}
+            className="text-aviro-muted hover:text-aviro-fg w-8 h-8 flex items-center justify-center text-xl"
+          >
+            <Icon e="✕" />
+          </button>
         </div>
-        <div className="flex-1 overflow-y-auto p-4">
-          {c.body}
-        </div>
+        <div className="flex-1 overflow-y-auto p-4">{c.body}</div>
       </div>
     </div>
   );
 }
 
-// ── Main Settings Page ──
 export default function SettingsPage() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { user } = useSelector(s => s.auth);
+  const { user } = useSelector((s) => s.auth);
 
-  const [showChatbot, setShowChatbot]       = useState(false);
-  const [showResetPass, setShowResetPass]   = useState(false);
-  const [showInfo, setShowInfo]             = useState(null); // 'about'
+  const [showChatbot, setShowChatbot] = useState(false);
+  const [showResetPass, setShowResetPass] = useState(false);
+  const [showInfo, setShowInfo] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [deletePassword, setDeletePassword]       = useState('');
-  const [deleting, setDeleting]                   = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleting, setDeleting] = useState(false);
 
   const closeDeleteConfirm = () => {
     setShowDeleteConfirm(false);
@@ -314,7 +442,6 @@ export default function SettingsPage() {
     try {
       await api.delete('/users/me', { data: { password: deletePassword } });
       toast.success('Your account has been deleted');
-      // Tokens no longer work after deletion, so just clear the local session
       dispatch(logout());
       navigate('/login', { replace: true });
     } catch (err) {
@@ -334,45 +461,111 @@ export default function SettingsPage() {
     {
       title: '👤 Account',
       items: [
-        { icon: '✏️', label: 'Edit Profile',            sub: 'Update your personal information',   action: () => navigate('/profile') },
-        { icon: '🔐', label: 'Reset Password',           sub: 'Change your account password',       action: () => setShowResetPass(true) },
-        { icon: '🛡️', label: 'Safety Center',            sub: 'Emergency contacts & SOS settings',  action: () => navigate('/safety') },
-        { icon: '🎓', label: 'College ID Verification',  sub: 'Upload or update your college ID',   action: () => navigate('/profile?tab=id') },
-      ]
+        {
+          icon: '✏️',
+          label: 'Edit Profile',
+          sub: 'Update your personal information',
+          action: () => navigate('/profile'),
+        },
+        {
+          icon: '🔐',
+          label: 'Reset Password',
+          sub: 'Change your account password',
+          action: () => setShowResetPass(true),
+        },
+        {
+          icon: '🛡️',
+          label: 'Safety Center',
+          sub: 'Emergency contacts & SOS settings',
+          action: () => navigate('/safety'),
+        },
+        {
+          icon: '🎓',
+          label: 'College ID Verification',
+          sub: 'Upload or update your college ID',
+          action: () => navigate('/profile?tab=id'),
+        },
+      ],
     },
     {
       title: '🏍️ Rides',
       items: [
-        { icon: '📋', label: 'My Bookings',   sub: 'View all your ride bookings',      action: () => navigate('/bookings') },
-        { icon: '🗺️', label: 'My Rides',      sub: 'Rides you have offered',           action: () => navigate('/my-rides') },
-        { icon: '🚗', label: 'My Vehicle',    sub: 'Manage your registered vehicle',   action: () => navigate('/profile?tab=vehicle') },
-      ]
+        {
+          icon: '📋',
+          label: 'My Bookings',
+          sub: 'View all your ride bookings',
+          action: () => navigate('/bookings'),
+        },
+        {
+          icon: '🗺️',
+          label: 'My Rides',
+          sub: 'Rides you have offered',
+          action: () => navigate('/my-rides'),
+        },
+        {
+          icon: '🚗',
+          label: 'My Vehicle',
+          sub: 'Manage your registered vehicle',
+          action: () => navigate('/profile?tab=vehicle'),
+        },
+      ],
     },
     {
       title: '💬 Support',
       items: [
-        { icon: '🤖', label: 'Help Desk',          sub: 'Chat with AVIRO support bot',       action: () => setShowChatbot(true), highlight: true },
-        { icon: '📧', label: 'Email Support',       sub: 'aviro.support@gmail.com',           action: () => window.open('mailto:aviro.support@gmail.com') },
-        { icon: '📞', label: 'Emergency Helpline',  sub: '112 · Police: 100 · Women: 1091',  action: () => window.open('tel:112') },
-      ]
+        {
+          icon: '🤖',
+          label: 'Help Desk',
+          sub: 'Chat with AVIRO support bot',
+          action: () => setShowChatbot(true),
+          highlight: true,
+        },
+        {
+          icon: '📧',
+          label: 'Email Support',
+          sub: 'aviro.support@gmail.com',
+          action: () => window.open('mailto:aviro.support@gmail.com'),
+        },
+        {
+          icon: '📞',
+          label: 'Emergency Helpline',
+          sub: '112 · Police: 100 · Women: 1091',
+          action: () => window.open('tel:112'),
+        },
+      ],
     },
     {
       title: 'ℹ️ About',
       items: [
-        { icon: '🚀', label: 'About AVIRO',      sub: "Pune's #1 College Ride Platform",  action: () => setShowInfo('about') },
-        { icon: '📄', label: 'Terms of Service', sub: 'Read our terms and conditions',    action: () => navigate('/terms') },
-        { icon: '🔒', label: 'Privacy Policy',   sub: 'How we protect your data',        action: () => navigate('/privacy') },
-      ]
+        {
+          icon: '🚀',
+          label: 'About AVIRO',
+          sub: "Pune's #1 College Ride Platform",
+          action: () => setShowInfo('about'),
+        },
+        {
+          icon: '📄',
+          label: 'Terms of Service',
+          sub: 'Read our terms and conditions',
+          action: () => navigate('/terms'),
+        },
+        {
+          icon: '🔒',
+          label: 'Privacy Policy',
+          sub: 'How we protect your data',
+          action: () => navigate('/privacy'),
+        },
+      ],
     },
   ];
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 animate-fade-up pb-10">
-
-      {/* Header with back button */}
       <div className="flex items-center gap-3">
-        <button onClick={() => navigate(-1)}
-          className="w-9 h-9 rounded-xl bg-aviro-card2 border border-aviro-border flex items-center justify-center text-aviro-muted hover:text-aviro-fg hover:border-aviro-orange/50 transition-all">
+        <button
+          onClick={() => navigate(-1)}
+          className="w-9 h-9 rounded-xl bg-aviro-card2 border border-aviro-border flex items-center justify-center text-aviro-muted hover:text-aviro-fg hover:border-aviro-orange/50 transition-all"
+        >
           ←
         </button>
         <div>
@@ -381,7 +574,6 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* User card */}
       <div className="card p-5 flex items-center gap-4">
         <div className="w-14 h-14 rounded-full bg-aviro-orange/20 border-2 border-aviro-orange/30 flex items-center justify-center text-3xl">
           {initial(user?.fullName)}
@@ -390,30 +582,46 @@ export default function SettingsPage() {
           <p className="font-bold text-lg truncate">{user?.fullName}</p>
           <p className="text-aviro-muted text-sm truncate">{user?.email}</p>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
-            {user?.isCollegeVerified && <span className="text-xs bg-green-500/10 text-green-600 px-2 py-0.5 rounded-full"><Icon e="✓" /> Verified</span>}
-            <span className="text-xs text-aviro-orange"><Icon e="⭐" /> {user?.rating?.toFixed(1) || '5.0'}</span>
-            <span className="text-xs text-aviro-muted"><Icon e="🪙" /> {user?.aviroCredits || 0} credits</span>
+            {user?.isCollegeVerified && (
+              <span className="text-xs bg-green-500/10 text-green-600 px-2 py-0.5 rounded-full">
+                <Icon e="✓" /> Verified
+              </span>
+            )}
+            <span className="text-xs text-aviro-orange">
+              <Icon e="⭐" /> {user?.rating?.toFixed(1) || '5.0'}
+            </span>
+            <span className="text-xs text-aviro-muted">
+              <Icon e="🪙" /> {user?.aviroCredits || 0} credits
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Settings Sections */}
       {settingSections.map((section, si) => (
         <div key={si} className="card overflow-hidden">
           <div className="px-5 py-3 border-b border-aviro-border">
-            <p className="text-xs font-bold text-aviro-muted uppercase tracking-wider">{section.title}</p>
+            <p className="text-xs font-bold text-aviro-muted uppercase tracking-wider">
+              {section.title}
+            </p>
           </div>
           <div className="divide-y divide-aviro-border">
             {section.items.map((item, ii) => (
-              <button key={ii} onClick={item.action}
+              <button
+                key={ii}
+                onClick={item.action}
                 className={`w-full flex items-center gap-4 px-5 py-4 hover:bg-aviro-card2 transition-colors text-left
-                  ${item.highlight ? 'bg-aviro-orange/5' : ''}`}>
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0
-                  ${item.highlight ? 'bg-black text-white' : 'bg-aviro-card2'}`}>
+                  ${item.highlight ? 'bg-aviro-orange/5' : ''}`}
+              >
+                <div
+                  className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0
+                  ${item.highlight ? 'bg-black text-white' : 'bg-aviro-card2'}`}
+                >
                   <Icon e={item.icon} size={18} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className={`font-semibold text-sm ${item.highlight ? 'text-aviro-orange' : 'text-aviro-fg'}`}>
+                  <p
+                    className={`font-semibold text-sm ${item.highlight ? 'text-aviro-orange' : 'text-aviro-fg'}`}
+                  >
                     {item.label}
                   </p>
                   <p className="text-xs text-aviro-muted truncate">{item.sub}</p>
@@ -425,10 +633,13 @@ export default function SettingsPage() {
         </div>
       ))}
 
-      {/* Logout */}
-      <button onClick={handleLogout}
-        className="w-full card p-4 flex items-center gap-4 hover:bg-red-500/5 hover:border-red-500/30 transition-all">
-        <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center text-xl"><Icon e="🚪" /></div>
+      <button
+        onClick={handleLogout}
+        className="w-full card p-4 flex items-center gap-4 hover:bg-red-500/5 hover:border-red-500/30 transition-all"
+      >
+        <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center text-xl">
+          <Icon e="🚪" />
+        </div>
         <div className="flex-1 text-left">
           <p className="font-semibold text-sm text-red-600">Log Out</p>
           <p className="text-xs text-aviro-muted">Sign out from your account</p>
@@ -436,63 +647,71 @@ export default function SettingsPage() {
         <span className="text-aviro-muted text-lg">›</span>
       </button>
 
-      {/* Delete Account */}
-      <button onClick={() => setShowDeleteConfirm(true)}
-        className="w-full text-xs text-red-600/50 hover:text-red-600 text-center py-2 transition-colors">
+      <button
+        onClick={() => setShowDeleteConfirm(true)}
+        className="w-full text-xs text-red-600/50 hover:text-red-600 text-center py-2 transition-colors"
+      >
         Delete Account
       </button>
 
-      {/* App version */}
       <p className="text-center text-xs text-aviro-muted pb-2">
         AVIRO v1.0.0 · Made with <Icon e="❤️" /> for Pune Students
       </p>
 
-      {/* Delete Confirm (portal: the page wrapper is animated with a transform,
-          which would otherwise position this fixed overlay relative to the page) */}
-      {showDeleteConfirm && createPortal(
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <form onSubmit={handleDeleteAccount}
-            className="bg-aviro-card border border-aviro-border rounded-2xl w-full max-w-sm p-6 space-y-4">
-            <div className="text-center">
-              <p className="text-4xl mb-3"><Icon e="⚠️" /></p>
-              <h3 className="font-bold text-lg">Delete Account?</h3>
-              <p className="text-aviro-muted text-sm mt-2">
-                This cannot be undone. Your profile, college ID, vehicle and notifications will be removed,
-                and your open rides and bookings will be cancelled.
-              </p>
-            </div>
-            <div>
-              <label className="text-xs text-aviro-muted font-medium block mb-1.5">
-                Enter your password to confirm
-              </label>
-              <input
-                type="password"
-                value={deletePassword}
-                onChange={e => setDeletePassword(e.target.value)}
-                placeholder="Your password"
-                className="input-field"
-                autoFocus
-              />
-            </div>
-            <div className="flex gap-2">
-              <button type="button" onClick={closeDeleteConfirm}
-                className="flex-1 bg-aviro-card2 border border-aviro-border text-aviro-muted py-2.5 rounded-xl text-sm">
-                Cancel
-              </button>
-              <button type="submit" disabled={deleting || !deletePassword}
-                className="flex-1 bg-red-500/10 border border-red-500/30 text-red-600 font-bold py-2.5 rounded-xl text-sm disabled:opacity-50">
-                {deleting ? 'Deleting...' : 'Delete Forever'}
-              </button>
-            </div>
-          </form>
-        </div>,
-        document.body
-      )}
+      {showDeleteConfirm &&
+        createPortal(
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <form
+              onSubmit={handleDeleteAccount}
+              className="bg-aviro-card border border-aviro-border rounded-2xl w-full max-w-sm p-6 space-y-4"
+            >
+              <div className="text-center">
+                <p className="text-4xl mb-3">
+                  <Icon e="⚠️" />
+                </p>
+                <h3 className="font-bold text-lg">Delete Account?</h3>
+                <p className="text-aviro-muted text-sm mt-2">
+                  This cannot be undone. Your profile, college ID, vehicle and notifications will be
+                  removed, and your open rides and bookings will be cancelled.
+                </p>
+              </div>
+              <div>
+                <label className="text-xs text-aviro-muted font-medium block mb-1.5">
+                  Enter your password to confirm
+                </label>
+                <input
+                  type="password"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  placeholder="Your password"
+                  className="input-field"
+                  autoFocus
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={closeDeleteConfirm}
+                  className="flex-1 bg-aviro-card2 border border-aviro-border text-aviro-muted py-2.5 rounded-xl text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={deleting || !deletePassword}
+                  className="flex-1 bg-red-500/10 border border-red-500/30 text-red-600 font-bold py-2.5 rounded-xl text-sm disabled:opacity-50"
+                >
+                  {deleting ? 'Deleting...' : 'Delete Forever'}
+                </button>
+              </div>
+            </form>
+          </div>,
+          document.body
+        )}
 
-      {/* Modals */}
-      {showChatbot   && <HelpChatbot onClose={() => setShowChatbot(false)} />}
+      {showChatbot && <HelpChatbot onClose={() => setShowChatbot(false)} />}
       {showResetPass && <ResetPasswordModal onClose={() => setShowResetPass(false)} />}
-      {showInfo      && <InfoModal type={showInfo} onClose={() => setShowInfo(null)} />}
+      {showInfo && <InfoModal type={showInfo} onClose={() => setShowInfo(null)} />}
     </div>
   );
 }

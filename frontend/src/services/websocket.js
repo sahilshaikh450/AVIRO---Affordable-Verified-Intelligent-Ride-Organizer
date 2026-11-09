@@ -3,7 +3,6 @@ import SockJS from 'sockjs-client';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
 
-// SockJS needs an http(s) URL; it upgrades to ws(s) by itself
 export const WS_URL = process.env.REACT_APP_WS_URL || `${API_URL.replace(/\/+$/, '')}/ws`;
 
 let stompClient = null;
@@ -17,14 +16,13 @@ export const connectWS = (userId, onMessage, onLocation, onSos) => {
     onConnect: () => {
       console.log('✅ WebSocket connected');
 
-      // Subscribe to personal message queue
       stompClient.subscribe('/user/queue/messages', (msg) => {
         const data = JSON.parse(msg.body);
         onMessage && onMessage(data);
       });
     },
     onDisconnect: () => console.log('❌ WebSocket disconnected'),
-    onStompError:  frame => console.error('STOMP error:', frame),
+    onStompError: (frame) => console.error('STOMP error:', frame),
   });
 
   stompClient.activate();
@@ -32,7 +30,7 @@ export const connectWS = (userId, onMessage, onLocation, onSos) => {
 
 export const subscribeToRideTracking = (rideId, onLocation) => {
   if (!stompClient?.connected) return;
-  const sub = stompClient.subscribe(`/topic/track/${rideId}`, msg => {
+  const sub = stompClient.subscribe(`/topic/track/${rideId}`, (msg) => {
     onLocation && onLocation(JSON.parse(msg.body));
   });
   subscribers[`track_${rideId}`] = sub;
@@ -41,7 +39,7 @@ export const subscribeToRideTracking = (rideId, onLocation) => {
 
 export const subscribeToSos = (rideId, onSos) => {
   if (!stompClient?.connected) return;
-  const sub = stompClient.subscribe(`/topic/sos/${rideId}`, msg => {
+  const sub = stompClient.subscribe(`/topic/sos/${rideId}`, (msg) => {
     onSos && onSos(JSON.parse(msg.body));
   });
   subscribers[`sos_${rideId}`] = sub;
@@ -72,7 +70,7 @@ export const sendSosAlert = (rideId, userId, lat, lng, message = 'SOS! Need help
 };
 
 export const disconnectWS = () => {
-  Object.values(subscribers).forEach(sub => sub?.unsubscribe?.());
+  Object.values(subscribers).forEach((sub) => sub?.unsubscribe?.());
   subscribers = {};
   stompClient?.deactivate();
 };

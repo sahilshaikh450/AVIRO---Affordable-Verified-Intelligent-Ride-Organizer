@@ -1,11 +1,12 @@
 package com.aviro.unit;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.aviro.security.TtlCache;
+
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.atomic.AtomicInteger;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 class TtlCacheTest {
 
@@ -13,8 +14,22 @@ class TtlCacheTest {
     void loadsOnceThenServesFromCache() {
         TtlCache<String, String> cache = new TtlCache<>(60_000, 10);
         AtomicInteger loads = new AtomicInteger();
-        assertThat(cache.get("a", k -> { loads.incrementAndGet(); return "A"; })).isEqualTo("A");
-        assertThat(cache.get("a", k -> { loads.incrementAndGet(); return "B"; })).isEqualTo("A");
+        assertThat(
+                        cache.get(
+                                "a",
+                                k -> {
+                                    loads.incrementAndGet();
+                                    return "A";
+                                }))
+                .isEqualTo("A");
+        assertThat(
+                        cache.get(
+                                "a",
+                                k -> {
+                                    loads.incrementAndGet();
+                                    return "B";
+                                }))
+                .isEqualTo("A");
         assertThat(loads).hasValue(1);
     }
 

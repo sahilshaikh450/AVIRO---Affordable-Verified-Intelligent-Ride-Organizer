@@ -1,4 +1,3 @@
-
 package com.aviro.security;
 
 import jakarta.servlet.FilterChain;
@@ -35,12 +34,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain filterChain
-    ) throws ServletException, IOException {
+            HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
 
-        // CORS preflight requests
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
             filterChain.doFilter(request, response);
             return;
@@ -82,24 +78,17 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
-                                userDetails,
-                                null,
-                                userDetails.getAuthorities()
-                        );
+                                userDetails, null, userDetails.getAuthorities());
 
                 authentication.setDetails(
-                        new WebAuthenticationDetailsSource()
-                                .buildDetails(request)
-                );
+                        new WebAuthenticationDetailsSource().buildDetails(request));
 
-                SecurityContextHolder.getContext()
-                        .setAuthentication(authentication);
+                SecurityContextHolder.getContext().setAuthentication(authentication);
 
                 log.debug(
                         "JWT authenticated for {} with authorities {}",
                         request.getRequestURI(),
-                        userDetails.getAuthorities()
-                );
+                        userDetails.getAuthorities());
             }
 
         } catch (UsernameNotFoundException ex) {
@@ -112,13 +101,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         } catch (Exception ex) {
             SecurityContextHolder.clearContext();
 
-            // Keep details in server logs, not in the API response.
             log.error(
                     "JWT authentication failed for {}: {}",
                     request.getRequestURI(),
                     ex.getMessage(),
-                    ex
-            );
+                    ex);
 
             writeUnauthorized(response, "Authentication failed. Please login again.");
             return;
@@ -130,28 +117,19 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private String extractToken(HttpServletRequest request) {
         String bearerToken = request.getHeader(HttpHeaders.AUTHORIZATION);
 
-        if (StringUtils.hasText(bearerToken)
-                && bearerToken.startsWith("Bearer ")) {
+        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
             return bearerToken.substring(7).trim();
         }
 
         return null;
     }
 
-    private void writeUnauthorized(
-            HttpServletResponse response,
-            String message
-    ) throws IOException {
+    private void writeUnauthorized(HttpServletResponse response, String message)
+            throws IOException {
 
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        response.setHeader(
-                HttpHeaders.CONTENT_TYPE,
-                MediaType.APPLICATION_JSON_VALUE
-        );
+        response.setHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
 
-        response.getWriter().write(
-                "{\"success\":false,\"message\":\"" + message + "\"}"
-        );
+        response.getWriter().write("{\"success\":false,\"message\":\"" + message + "\"}");
     }
 }
-

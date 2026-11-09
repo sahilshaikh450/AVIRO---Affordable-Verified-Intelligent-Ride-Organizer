@@ -2,6 +2,7 @@ package com.aviro.dto.response;
 
 import com.aviro.enums.Gender;
 import com.aviro.enums.Role;
+
 import lombok.Builder;
 import lombok.Data;
 

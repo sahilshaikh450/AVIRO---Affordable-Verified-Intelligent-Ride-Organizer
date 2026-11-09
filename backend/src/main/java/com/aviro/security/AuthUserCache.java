@@ -5,10 +5,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.function.Function;
 
-/**
- * The signed-in user behind each request, kept for a minute so every API call
- * doesn't reload it from the database. Evict when an account is deleted or changed.
- */
 @Component
 public class AuthUserCache {
 

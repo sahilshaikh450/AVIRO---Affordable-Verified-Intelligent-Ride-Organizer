@@ -6,8 +6,10 @@ import com.aviro.repository.RideRepository;
 import com.aviro.repository.UserRepository;
 import com.aviro.security.JwtTokenProvider;
 import com.aviro.security.TokenBlacklistService;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;
@@ -22,11 +24,6 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Reads the JWT from the STOMP CONNECT frame and sets the session user.
- * The principal name is the user's id, so convertAndSendToUser(userId, ...)
- * reaches clients subscribed to /user/queue/...
- */
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -38,7 +35,6 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
     private final RideRepository rideRepository;
     private final BookingRepository bookingRepository;
 
-    // Ride topics carry live location and SOS alerts: only that ride's driver and riders may listen
     private static final Pattern RIDE_TOPIC = Pattern.compile("^/topic/(track|sos)/(\\d+)$");
     private static final Set<BookingStatus> TRACKING_STATUSES = EnumSet.of(BookingStatus.CONFIRMED);
     private static final Set<BookingStatus> SOS_STATUSES =
@@ -52,7 +48,6 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
         if (accessor == null) return message;
 
         if (StompCommand.SUBSCRIBE.equals(accessor.getCommand())) {
-            // Returning null drops the subscription without closing the connection
             return canSubscribe(accessor.getUser(), accessor.getDestination()) ? message : null;
         }
 
@@ -73,21 +68,27 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
         }
 
         String email = jwtTokenProvider.getEmailFromToken(token);
-        userRepository.findByEmailNormalized(email).ifPresent(user -> {
-            String userId = String.valueOf(user.getId());
-            Principal principal = () -> userId;
-            accessor.setUser(principal);
-            log.debug("WebSocket connected for user {}", userId);
-        });
+        userRepository
+                .findByEmailNormalized(email)
+                .ifPresent(
+                        user -> {
+                            String userId = String.valueOf(user.getId());
+                            Principal principal = () -> userId;
+                            accessor.setUser(principal);
+                            log.debug("WebSocket connected for user {}", userId);
+                        });
 
         return message;
     }
 
     private boolean canSubscribe(Principal user, String destination) {
-        if (destination == null || !destination.startsWith("/topic/")) return true; // /user/queue/... is per-user already
+        if (destination == null || !destination.startsWith("/topic/")) return true;
         Matcher m = RIDE_TOPIC.matcher(destination);
         if (user == null || !m.matches()) {
-            log.warn("Rejected subscription to {} by {}", destination, user == null ? "anonymous" : user.getName());
+            log.warn(
+                    "Rejected subscription to {} by {}",
+                    destination,
+                    user == null ? "anonymous" : user.getName());
             return false;
         }
         Long userId = Long.valueOf(user.getName());
