@@ -9,6 +9,7 @@ import DashboardPage from './pages/DashboardPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 import AppLayout from './components/common/AppLayout';
+import GuidelinesGate from './components/common/GuidelinesGate';
 
 const RELOAD_KEY = 'aviro_reloaded_for_update';
 const lazy = (load) =>
@@ -253,6 +254,7 @@ export default function App() {
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>
+      <GuidelinesGate />
     </BrowserRouter>
   );
 }
