@@ -123,4 +123,21 @@ class SignupOtpIT extends IntegrationTest {
         assertThat(r.ok()).isTrue();
         assertThat(r.message()).contains("If this email");
     }
+
+    @Test
+    void noAccountWithoutAcceptingTheGuidelines() throws Exception {
+        String email = "no.consent" + System.nanoTime() + "@gmail.com";
+        Map<String, Object> body = new java.util.HashMap<>(form(email));
+        body.put("acceptedGuidelines", false);
+        var refused = post("/auth/register", null, body);
+        assertThat(refused.status()).isEqualTo(400);
+        assertThat(refused.text()).contains("community guidelines");
+        assertThat(users.findByEmail(email)).isEmpty();
+
+        var ok = post("/auth/register", null, form(email));
+        assertThat(ok.ok()).as(ok.text()).isTrue();
+        User saved = users.findByEmail(email).orElseThrow();
+        assertThat(saved.getGuidelinesAcceptedAt()).isNotNull();
+        assertThat(saved.getGuidelinesVersion()).isEqualTo(GUIDELINES_VERSION);
+    }
 }

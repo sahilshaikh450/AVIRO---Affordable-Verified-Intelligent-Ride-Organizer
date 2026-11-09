@@ -86,6 +86,8 @@ public class AuthServiceImpl implements AuthService {
                         .homeLat(request.getHomeLat())
                         .homeLng(request.getHomeLng())
                         .isVerified(false)
+                        .guidelinesAcceptedAt(java.time.LocalDateTime.now())
+                        .guidelinesVersion(request.getGuidelinesVersion())
                         .aviroCredits(100)
                         .build();
 

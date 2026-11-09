@@ -76,7 +76,7 @@ export const TERMS_SECTIONS = [
   {
     title: '7. Liability',
     content:
-      'AVIRO is a peer-to-peer platform connecting students. AVIRO is not responsible for the conduct of individual users during rides. We strongly recommend using the SOS feature and sharing your trip with family.',
+      'AVIRO is a peer-to-peer platform that only connects students who want to share a ride; AVIRO does not provide transport and drivers are not AVIRO employees. You choose who you ride with, and you use AVIRO at your own risk and are responsible for your own safety and belongings. To the extent permitted by law, AVIRO is not liable for the actions of users or for loss, injury or damage arising from a ride. Every user accepts the community guidelines when signing up; breaking them can lead to suspension. We strongly recommend using the ride OTP, the SOS button and sharing your trip with family.',
   },
   {
     title: '8. Account Termination',

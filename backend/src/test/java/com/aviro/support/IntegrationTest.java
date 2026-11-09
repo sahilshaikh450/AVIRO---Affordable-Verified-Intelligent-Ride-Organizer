@@ -147,7 +147,17 @@ public abstract class IntegrationTest {
         return send(MockMvcRequestBuilders.get("/" + strip(path)), as, null);
     }
 
+    public static final String GUIDELINES_VERSION = "2026-11-09";
+
     protected Res post(String path, User as, Object body) throws Exception {
+        if ("/auth/register".equals(path)
+                && body instanceof Map<?, ?> m
+                && !m.containsKey("acceptedGuidelines")) {
+            Map<Object, Object> withConsent = new java.util.HashMap<>(m);
+            withConsent.put("acceptedGuidelines", true);
+            withConsent.put("guidelinesVersion", GUIDELINES_VERSION);
+            body = withConsent;
+        }
         return send(MockMvcRequestBuilders.post("/" + strip(path)), as, body);
     }
 
