@@ -38,7 +38,7 @@ export const PRIVACY_SECTIONS = [
   },
   {
     title: '8. Contact Us',
-    content: 'For privacy concerns, contact us at: aviro.support@gmail.com',
+    content: 'For privacy concerns, contact us at: aviro.pune.app@gmail.com',
   },
 ];
 
@@ -88,5 +88,8 @@ export const TERMS_SECTIONS = [
     content:
       'We may update these terms from time to time. Continued use of AVIRO after changes constitutes acceptance of the new terms.',
   },
-  { title: '10. Contact', content: 'For any questions about these terms: aviro.support@gmail.com' },
+  {
+    title: '10. Contact',
+    content: 'For any questions about these terms: aviro.pune.app@gmail.com',
+  },
 ];

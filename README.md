@@ -332,20 +332,24 @@ npm start
 | `DATABASE_URL` | ✅ | — | JDBC URL, e.g. `jdbc:mysql://HOST:PORT/DB?useSSL=true` |
 | `DATABASE_USERNAME` | ✅ | — | DB username |
 | `DATABASE_PASSWORD` | ✅ | — | DB password |
-| `REDIS_HOST` | ✅ | — | Redis host |
+| `SPRING_DATA_REDIS_URL` | | empty | Easiest for Upstash: the whole `rediss://default:PASSWORD@HOST:6379` URL; when set, the four `REDIS_*` values below are not needed |
+| `REDIS_HOST` | ✅* | `localhost` | Redis host (*not needed when `SPRING_DATA_REDIS_URL` is set) |
 | `REDIS_PORT` | | `6379` | Redis port |
 | `REDIS_USERNAME` | | `default` | Redis username |
-| `REDIS_PASSWORD` | ✅ | — | Redis password (empty for local) |
+| `REDIS_PASSWORD` | ✅* | empty | Redis password (empty for local) |
 | `SPRING_DATA_REDIS_SSL_ENABLED` | | `true` | Set `false` for local Redis without TLS |
 | `MAIL_USERNAME` | ✅ | — | Gmail address used to send emails |
 | `MAIL_PASSWORD` | ✅ | — | Gmail App Password |
+| `BREVO_API_KEY` | | empty | Brevo API key (`xkeysib-…`); when set, mail goes over HTTPS instead of SMTP (needed on Render's free plan) |
+| `MAIL_FROM` / `MAIL_FROM_NAME` | | SMTP user / `AVIRO` | Sender shown on every email (must be a verified Brevo sender) |
+| `AVIRO_ADMIN_ALERT_EMAIL` | | `aviro.pune.app@gmail.com` | Where safety-report alerts are emailed |
 | `AVIRO_JWT_SECRET` | ✅ | — | JWT signing secret (at least 32 bytes) |
 | `AVIRO_JWT_EXPIRATION` | | `86400000` | Access token lifetime (ms, 24h) |
 | `AVIRO_JWT_REFRESH_EXPIRATION` | | `604800000` | Refresh token lifetime (ms, 7 days) |
 | `AVIRO_ADMIN_EMAILS` | | empty | Comma-separated emails given the ADMIN role at startup (the only way to create an admin) |
 | `VAPID_PUBLIC_KEY` | | empty | Web Push public key (phone notifications are off unless both keys are set) |
 | `VAPID_PRIVATE_KEY` | | empty | Web Push private key (keep secret) |
-| `VAPID_SUBJECT` | | `mailto:aviro.support@gmail.com` | Contact sent to push services |
+| `VAPID_SUBJECT` | | `mailto:aviro.pune.app@gmail.com` | Contact sent to push services |
 | `GEMINI_API_KEY` | | empty | Gemini key for AI college ID scan |
 | `GEMINI_MODEL` | | `gemini-3.5-flash-lite` | Gemini model name |
 | `SENTRY_DSN` | | empty | Sentry DSN for backend error tracking (empty = off) |

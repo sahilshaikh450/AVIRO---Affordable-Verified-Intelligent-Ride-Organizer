@@ -41,7 +41,7 @@ public class WebPushService {
             ObjectMapper objectMapper,
             @Value("${aviro.push.vapid-public-key:}") String publicKey,
             @Value("${aviro.push.vapid-private-key:}") String privateKey,
-            @Value("${aviro.push.subject:mailto:aviro.support@gmail.com}") String subject,
+            @Value("${aviro.push.subject:mailto:aviro.pune.app@gmail.com}") String subject,
             @Value(
                             "${aviro.push.allowed-hosts:fcm.googleapis.com,updates.push.services.mozilla.com,push.apple.com,notify.windows.com}")
                     String allowedHosts) {
