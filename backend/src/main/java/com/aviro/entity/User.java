@@ -8,6 +8,7 @@ import jakarta.persistence.*;
 
 import lombok.*;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -92,6 +93,11 @@ public class User extends BaseEntity {
     @Column(nullable = false)
     @Builder.Default
     private Boolean womenOnlyMode = false;
+
+    private LocalDateTime guidelinesAcceptedAt;
+
+    @Column(length = 20)
+    private String guidelinesVersion;
 
     @OneToMany(mappedBy = "rider", cascade = CascadeType.ALL)
     @Builder.Default
