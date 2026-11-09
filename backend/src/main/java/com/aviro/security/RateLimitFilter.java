@@ -8,7 +8,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -53,7 +52,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private static final String RIDE_OTP_SUFFIX = "/verify-ride-otp";
     private static final Rule RIDE_OTP_RULE = new Rule(5, Duration.ofMinutes(10));
 
-    private final StringRedisTemplate redisTemplate;
+    private final AttemptCounter counter;
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
@@ -83,20 +82,12 @@ public class RateLimitFilter extends OncePerRequestFilter {
                                 && !path.equals(CONTACTS_PATH)
                         ? SAFETY_PREFIX
                         : path;
-        long windowMs = rule.window().toMillis();
-        long windowStart = System.currentTimeMillis() / windowMs;
-        String key = "aviro:rl:" + bucket + ":" + caller(request) + ":" + windowStart;
+        String key = "aviro:rl:" + bucket + ":" + caller(request);
 
         try {
-            Long count = redisTemplate.opsForValue().increment(key);
-            if (count != null && count == 1) {
-                redisTemplate.expire(key, rule.window());
-            }
-            if (count != null && count > rule.maxRequests()) {
-                long retryAfterSec =
-                        Math.max(
-                                1,
-                                ((windowStart + 1) * windowMs - System.currentTimeMillis()) / 1000);
+            long count = counter.increment(key, rule.window());
+            if (count > rule.maxRequests()) {
+                long retryAfterSec = counter.secondsLeftInWindow(rule.window());
                 log.warn("Rate limit hit: {} from {}", path, clientIp(request));
                 response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
                 response.setHeader("Retry-After", String.valueOf(retryAfterSec));
@@ -106,7 +97,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 response.getWriter()
                         .write(
                                 "{\"success\":false,\"message\":\"Too many attempts. Please try"
-                                    + " again in "
+                                        + " again in "
                                         + minutes
                                         + (minutes == 1 ? " minute" : " minutes")
                                         + ".\"}");
@@ -135,7 +126,10 @@ public class RateLimitFilter extends OncePerRequestFilter {
         String cf = request.getHeader("CF-Connecting-IP");
         if (cf != null && !cf.isBlank()) return cf.trim();
         String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) return forwarded.split(",")[0].trim();
+        if (forwarded != null && !forwarded.isBlank()) {
+            String[] hops = forwarded.split(",");
+            return hops[hops.length - 1].trim();
+        }
         return request.getRemoteAddr();
     }
 }

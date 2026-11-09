@@ -75,6 +75,7 @@ aviro:
     brevo-api-key: ${BREVO_API_KEY:}
     from: ${MAIL_FROM:}
     from-name: ${MAIL_FROM_NAME:AVIRO}
+    admin-alerts: ${AVIRO_ADMIN_ALERT_EMAIL:sahilshaikh34088@gmail.com}
 
   push:
     vapid-public-key: ${VAPID_PUBLIC_KEY:}

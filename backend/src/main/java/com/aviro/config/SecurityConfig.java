@@ -8,7 +8,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -33,7 +32,7 @@ public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
     private final AuthenticationProvider authenticationProvider;
-    private final StringRedisTemplate stringRedisTemplate;
+    private final com.aviro.security.AttemptCounter attemptCounter;
 
     @Value("${AVIRO_ALLOWED_ORIGINS:}")
     private String extraOrigins;
@@ -59,7 +58,7 @@ public class SecurityConfig {
                                         .authenticated())
                 .authenticationProvider(authenticationProvider)
                 .addFilterBefore(
-                        new RateLimitFilter(stringRedisTemplate),
+                        new RateLimitFilter(attemptCounter),
                         UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
