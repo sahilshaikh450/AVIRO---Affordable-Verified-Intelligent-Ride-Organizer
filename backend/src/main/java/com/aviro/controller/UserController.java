@@ -141,6 +141,15 @@ public class UserController {
         return ResponseEntity.ok(userService.updateProfile(userDetails.getUsername(), request));
     }
 
+    @PostMapping("/guidelines")
+    public ResponseEntity<ApiResponse<UserResponse>> acceptGuidelines(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @Valid @RequestBody com.aviro.dto.request.GuidelinesRequest request) {
+        return ResponseEntity.ok(
+                userService.acceptGuidelines(
+                        userDetails.getUsername(), request.getGuidelinesVersion()));
+    }
+
     @PostMapping("/vehicle")
     public ResponseEntity<ApiResponse<VehicleResponse>> addVehicle(
             @AuthenticationPrincipal UserDetails userDetails,

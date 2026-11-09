@@ -68,10 +68,16 @@ public class BookingServiceImpl implements BookingService {
     public ApiResponse<BookingResponse> createBooking(String email, BookingRequest.Create request) {
         User rider = getUser(email);
 
+        if (rider.getGuidelinesAcceptedAt() == null) {
+            throw new AviroException(
+                    "Please accept the community guidelines first. Open the app and tick them to"
+                        + " continue.");
+        }
+
         if (!Boolean.TRUE.equals(rider.getIsCollegeVerified())) {
             throw new AviroException(
                     "Please verify your college ID before booking rides. Go to Profile → College ID"
-                        + " Verification.");
+                            + " Verification.");
         }
 
         Ride ride =
