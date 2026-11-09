@@ -9,6 +9,8 @@ import com.aviro.dto.response.VehicleResponse;
 public interface UserService {
     ApiResponse<UserResponse> getProfile(String email);
 
+    ApiResponse<UserResponse> acceptGuidelines(String email, String version);
+
     ApiResponse<UserResponse> updateProfile(String email, ProfileUpdateRequest request);
 
     ApiResponse<VehicleResponse> addVehicle(String email, VehicleRequest request);
