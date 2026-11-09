@@ -67,8 +67,11 @@ public class AdminController {
                 userRepository
                         .findById(userId)
                         .orElseThrow(() -> new RuntimeException("User not found"));
+        String photo = user.getCollegeIdPicUrl();
         user.setIsCollegeVerified(true);
+        user.setCollegeIdPicUrl(null);
         userRepository.save(user);
+        UserController.deleteStoredImage(photo);
         tell(
                 user.getId(),
                 "id",
@@ -83,15 +86,17 @@ public class AdminController {
                 userRepository
                         .findById(userId)
                         .orElseThrow(() -> new RuntimeException("User not found"));
+        String photo = user.getCollegeIdPicUrl();
         user.setIsCollegeVerified(false);
         user.setCollegeIdPicUrl(null);
         userRepository.save(user);
+        UserController.deleteStoredImage(photo);
         tell(
                 user.getId(),
                 "id",
                 "College ID not approved",
                 "We couldn't verify your college ID. Please upload a clear photo of the front of"
-                    + " your ID card.");
+                        + " your ID card.");
         return ResponseEntity.ok(ApiResponse.success("Verification rejected.", null));
     }
 

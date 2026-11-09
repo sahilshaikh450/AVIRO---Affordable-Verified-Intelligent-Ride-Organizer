@@ -56,8 +56,8 @@ export default function LegalPage({ type }) {
             {page.other.label}
           </Link>{' '}
           · Questions?{' '}
-          <a href="mailto:aviro.support@gmail.com" className="text-aviro-orange hover:underline">
-            aviro.support@gmail.com
+          <a href="mailto:aviro.pune.app@gmail.com" className="text-aviro-orange hover:underline">
+            aviro.pune.app@gmail.com
           </a>
         </p>
       </div>
