@@ -3,6 +3,7 @@ package com.aviro.dto.request;
 import com.aviro.enums.Gender;
 import com.aviro.enums.Role;
 
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -61,6 +62,15 @@ public class AuthRequest {
 
         private Double homeLat;
         private Double homeLng;
+
+        @NotNull(message = "Please accept the community guidelines to create an account")
+        @AssertTrue(message = "Please accept the community guidelines to create an account")
+        private Boolean acceptedGuidelines;
+
+        @NotBlank(message = "Please accept the community guidelines to create an account")
+        @Size(max = 20)
+        @Pattern(regexp = "^[0-9A-Za-z.-]+$")
+        private String guidelinesVersion;
     }
 
     @Data
