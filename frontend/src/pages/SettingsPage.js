@@ -25,13 +25,13 @@ const HELP_RESPONSES = {
     'To add a vehicle: Go to Profile → Scroll to "My Vehicle" → Click "Add Vehicle" → Fill in details. Vehicle is auto-verified on AVIRO.',
   sos: 'SOS feature: During a ride, go to Live Tracking page → Press the red "SOS Emergency Alert" button. It will notify your emergency contacts with your live location.',
   refund:
-    'For refund issues, please contact us at aviro.support@gmail.com with your Booking ID. We process refunds within 3-5 business days.',
+    'For refund issues, please contact us at aviro.pune.app@gmail.com with your Booking ID. We process refunds within 3-5 business days.',
   rating:
     'Your rating is calculated based on reviews from riders and drivers. Complete more rides and provide good service to improve your rating.',
   track:
     'Live tracking works when driver clicks "Share Location" on the tracking page. You will see their location on the map in real-time, Zomato-style!',
   default:
-    'I am not sure about that. Please contact our support team at aviro.support@gmail.com or try asking about: login, otp, booking, payment, verification, ride, cancel, vehicle, sos, refund, rating.',
+    'I am not sure about that. Please contact our support team at aviro.pune.app@gmail.com or try asking about: login, otp, booking, payment, verification, ride, cancel, vehicle, sos, refund, rating.',
 };
 
 function getHelpResponse(msg) {
@@ -381,7 +381,7 @@ function InfoModal({ type, onClose }) {
           </div>
           <div className="text-center text-xs">
             <p>
-              <Icon e="📧" /> aviro.support@gmail.com
+              <Icon e="📧" /> aviro.pune.app@gmail.com
             </p>
             <p className="mt-1">
               Made with <Icon e="❤️" /> for Pune College Students
@@ -523,8 +523,8 @@ export default function SettingsPage() {
         {
           icon: '📧',
           label: 'Email Support',
-          sub: 'aviro.support@gmail.com',
-          action: () => window.open('mailto:aviro.support@gmail.com'),
+          sub: 'aviro.pune.app@gmail.com',
+          action: () => window.open('mailto:aviro.pune.app@gmail.com'),
         },
         {
           icon: '📞',

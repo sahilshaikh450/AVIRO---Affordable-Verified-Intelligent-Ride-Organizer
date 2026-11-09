@@ -19,7 +19,7 @@ const CrashFallback = () => (
       <p className="text-4xl">😵</p>
       <h1 className="font-bold text-xl text-aviro-fg">Something went wrong</h1>
       <p className="text-aviro-muted text-sm">
-        Please reload the page. If it keeps happening, contact aviro.support@gmail.com
+        Please reload the page. If it keeps happening, contact aviro.pune.app@gmail.com
       </p>
       <button onClick={() => window.location.reload()} className="btn-primary">
         Reload

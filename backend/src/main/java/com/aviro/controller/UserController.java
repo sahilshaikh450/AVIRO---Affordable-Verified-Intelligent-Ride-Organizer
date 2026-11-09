@@ -117,7 +117,7 @@ public class UserController {
         return null;
     }
 
-    private static void deleteStoredImage(String url) {
+    static void deleteStoredImage(String url) {
         if (url == null) return;
         String name = url.substring(url.lastIndexOf('/') + 1);
         if (name.isEmpty() || name.contains("..")) return;
@@ -217,6 +217,14 @@ public class UserController {
                     user.getId(),
                     result.approved(),
                     result.message());
+
+            if (result.approved()) {
+                User verified = userRepository.findById(user.getId()).orElse(user);
+                verified.setCollegeIdPicUrl(null);
+                userRepository.save(verified);
+                deleteStoredImage(imageUrl);
+                return ResponseEntity.ok(ApiResponse.success(result.message(), null));
+            }
 
             return ResponseEntity.ok(ApiResponse.success(result.message(), imageUrl));
 
