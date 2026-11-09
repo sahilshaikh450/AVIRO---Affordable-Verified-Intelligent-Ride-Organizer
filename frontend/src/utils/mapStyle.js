@@ -1,10 +1,10 @@
 import L from 'leaflet';
 
-export const TILE_URL = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+export const TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 export const TILE_OPTIONS = {
-  attribution: '© OpenStreetMap © CARTO',
-  subdomains: 'abcd',
-  maxZoom: 20,
+  attribution: '© OpenStreetMap contributors',
+  maxZoom: 19,
+  className: 'aviro-tiles',
 };
 
 export const ROUTE_BLUE = '#1A73E8';
