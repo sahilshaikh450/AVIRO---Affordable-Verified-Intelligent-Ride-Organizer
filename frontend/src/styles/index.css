@@ -128,3 +128,7 @@
 .leaflet-container {
   z-index: 0;
 }
+
+.aviro-tiles {
+  filter: saturate(0.55) brightness(1.04) contrast(0.96);
+}
