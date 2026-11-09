@@ -1,10 +1,9 @@
 package com.aviro.service;
 
 import com.aviro.security.TtlCache;
+
 import org.springframework.stereotype.Component;
 
-// Last position the driver and the rider sent for each booking, so a shared trip link can show it.
-// Kept in memory for a few minutes: an old position is worse than none.
 @Component
 public class LiveLocationStore {
 
@@ -32,7 +31,11 @@ public class LiveLocationStore {
     }
 
     public static boolean valid(Double lat, Double lng) {
-        return lat != null && lng != null && Math.abs(lat) <= 90 && Math.abs(lng) <= 180
-                && !Double.isNaN(lat) && !Double.isNaN(lng);
+        return lat != null
+                && lng != null
+                && Math.abs(lat) <= 90
+                && Math.abs(lng) <= 180
+                && !Double.isNaN(lat)
+                && !Double.isNaN(lng);
     }
 }

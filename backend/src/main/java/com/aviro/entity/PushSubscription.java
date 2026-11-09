@@ -1,11 +1,13 @@
 package com.aviro.entity;
 
 import jakarta.persistence.*;
+
 import lombok.*;
 
-// A browser/phone that agreed to receive push notifications for a user
 @Entity
-@Table(name = "push_subscriptions", indexes = @Index(name = "idx_push_user", columnList = "user_id"))
+@Table(
+        name = "push_subscriptions",
+        indexes = @Index(name = "idx_push_user", columnList = "user_id"))
 @Getter
 @Setter
 @NoArgsConstructor

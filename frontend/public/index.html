@@ -3,7 +3,6 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <!-- Light bars, matching the app header and bottom nav -->
     <meta name="theme-color" content="#FFFFFF" />
     <meta name="description" content="AVIRO - Affordable Verified Intelligent Ride Organizer. Pune's #1 College Ride Sharing Platform." />
     <meta name="mobile-web-app-capable" content="yes" />
@@ -11,7 +10,6 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="AVIRO" />
 
-    <!-- PWA -->
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/apple-touch-icon.png" />
     <link rel="icon" type="image/svg+xml" href="%PUBLIC_URL%/favicon.svg" />
@@ -29,7 +27,6 @@
         overscroll-behavior: none;
       }
       #root { min-height: 100vh; }
-      /* Loading screen */
       .app-loading {
         display: flex;
         flex-direction: column;
@@ -53,7 +50,6 @@
         0%, 100% { transform: scale(1); opacity: 1; }
         50% { transform: scale(1.05); opacity: 0.8; }
       }
-      /* Opening animation: a pin drops, then becomes the dot of the "i". Once per visit. */
       #splash { position: fixed; inset: 0; z-index: 9999; background: #FFFFFF; overflow: hidden; transition: opacity .35s ease; }
       #splash.out { opacity: 0; pointer-events: none; }
       #splash .stage { position: absolute; left: 50%; top: 50%; width: 390px; height: 844px; margin: -422px 0 0 -195px; }
@@ -85,7 +81,6 @@
       </div>
     </div>
     <script>
-      // Play once per visit; skip it for reduce-motion; a tap skips it too
       (function () {
         var el = document.getElementById('splash');
         var seen = false;
@@ -104,7 +99,6 @@
     </script>
     <noscript>You need to enable JavaScript to run AVIRO.</noscript>
     <div id="root">
-      <!-- Initial loading screen before React loads -->
       <div class="app-loading">
         <img class="app-loading-logo" src="%PUBLIC_URL%/icon-192.png" alt="AVIRO" />
         <p>Loading AVIRO...</p>

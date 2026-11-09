@@ -1,7 +1,9 @@
 package com.aviro.entity;
 
 import com.aviro.enums.VehicleType;
+
 import jakarta.persistence.*;
+
 import lombok.*;
 
 @Entity
@@ -43,7 +45,6 @@ public class Vehicle extends BaseEntity {
     private String rcDocUrl;
     private String insuranceDocUrl;
 
-    // Photos an admin checks before the vehicle is verified
     private String platePhotoUrl;
     private String licencePhotoUrl;
 

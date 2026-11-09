@@ -1,7 +1,9 @@
 package com.aviro.config;
 
 import com.aviro.repository.UserRepository;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -25,13 +27,17 @@ public class ApplicationConfig {
     @Bean
     public UserDetailsService userDetailsService() {
         return email -> {
-            com.aviro.entity.User user = userRepository.findByEmailNormalized(email)
-                    .orElseThrow(() -> new UsernameNotFoundException("User not found: " + email));
+            com.aviro.entity.User user =
+                    userRepository
+                            .findByEmailNormalized(email)
+                            .orElseThrow(
+                                    () ->
+                                            new UsernameNotFoundException(
+                                                    "User not found: " + email));
             return new org.springframework.security.core.userdetails.User(
                     user.getEmail(),
                     user.getPassword(),
-                    List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
-            );
+                    List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name())));
         };
     }
 
@@ -44,7 +50,8 @@ public class ApplicationConfig {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config)
+            throws Exception {
         return config.getAuthenticationManager();
     }
 

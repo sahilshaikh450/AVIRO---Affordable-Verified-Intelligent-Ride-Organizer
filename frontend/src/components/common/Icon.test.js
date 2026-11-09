@@ -19,12 +19,13 @@ test('map labels and popups escape user text', () => {
   expect(esc(null)).toBe('');
 });
 
-// Regression: ride cards pass an element as the icon; the Home page crashed on it
 test('Icon accepts an element or number instead of an emoji', () => {
   const React = require('react');
   const { renderToStaticMarkup } = require('react-dom/server');
   const Icon = require('./Icon').default;
-  expect(renderToStaticMarkup(React.createElement(Icon, { e: React.createElement('b', null, 'car') }))).toBe('<b>car</b>');
+  expect(
+    renderToStaticMarkup(React.createElement(Icon, { e: React.createElement('b', null, 'car') }))
+  ).toBe('<b>car</b>');
   expect(renderToStaticMarkup(React.createElement(Icon, { e: 5 }))).toContain('5');
   expect(renderToStaticMarkup(React.createElement(Icon, { e: '📍' }))).toContain('<svg');
   expect(renderToStaticMarkup(React.createElement(Icon, { e: undefined }))).toBe('');

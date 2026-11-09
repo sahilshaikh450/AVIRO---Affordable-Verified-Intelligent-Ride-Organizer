@@ -6,16 +6,22 @@ import Icon from './Icon';
 
 export default function CollegeIdUpload({ user, onUploaded }) {
   const [uploading, setUploading] = useState(false);
-  const [preview, setPreview]     = useState(null);
+  const [preview, setPreview] = useState(null);
   const [verifying, setVerifying] = useState(false);
-  const [result, setResult]       = useState(null);
+  const [result, setResult] = useState(null);
   const fileRef = useRef(null);
 
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { toast.error('Please choose a JPG, PNG or WEBP photo'); return; }
-    if (file.size > 5 * 1024 * 1024) { toast.error('Photo must be under 5 MB'); return; }
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      toast.error('Please choose a JPG, PNG or WEBP photo');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Photo must be under 5 MB');
+      return;
+    }
     setPreview(URL.createObjectURL(file));
     setResult(null);
     handleUpload(file);
@@ -32,7 +38,7 @@ export default function CollegeIdUpload({ user, onUploaded }) {
 
       const res = await api.post('/users/upload-college-id', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
-        timeout: 30000, // 30 sec for Gemini API
+        timeout: 30000,
       });
 
       const msg = res.data?.message || res.data?.data || '';
@@ -59,13 +65,16 @@ export default function CollegeIdUpload({ user, onUploaded }) {
     }
   };
 
-  // ── Already verified ──
   if (user?.isCollegeVerified) {
     return (
       <div className="card p-5">
-        <h3 className="font-semibold mb-3"><Icon e="🎓" /> College ID Verification</h3>
+        <h3 className="font-semibold mb-3">
+          <Icon e="🎓" /> College ID Verification
+        </h3>
         <div className="flex items-center gap-3 bg-aviro-green/10 border border-aviro-green/20 rounded-xl p-4">
-          <span className="text-2xl"><Icon e="✅" /></span>
+          <span className="text-2xl">
+            <Icon e="✅" />
+          </span>
           <div>
             <p className="text-sm font-semibold text-aviro-green">College ID Verified!</p>
             <p className="text-xs text-aviro-muted">You can book and offer rides on AVIRO</p>
@@ -73,8 +82,11 @@ export default function CollegeIdUpload({ user, onUploaded }) {
         </div>
         {user?.collegeIdPicUrl && (
           <div className="mt-3">
-            <PrivatePhoto url={user.collegeIdPicUrl} alt="College ID"
-              className="w-full max-h-40 object-contain rounded-xl border border-aviro-border bg-aviro-card2 mt-2" />
+            <PrivatePhoto
+              url={user.collegeIdPicUrl}
+              alt="College ID"
+              className="w-full max-h-40 object-contain rounded-xl border border-aviro-border bg-aviro-card2 mt-2"
+            />
           </div>
         )}
       </div>
@@ -83,7 +95,9 @@ export default function CollegeIdUpload({ user, onUploaded }) {
 
   return (
     <div className="card p-5">
-      <h3 className="font-semibold mb-1"><Icon e="🎓" /> College ID Verification</h3>
+      <h3 className="font-semibold mb-1">
+        <Icon e="🎓" /> College ID Verification
+      </h3>
       <p className="text-aviro-muted text-sm mb-3">
         Upload your college ID — our AI verifies it instantly!
       </p>
@@ -94,7 +108,6 @@ export default function CollegeIdUpload({ user, onUploaded }) {
         </p>
       </div>
 
-      {/* Already uploaded but not verified */}
       {user?.collegeIdPicUrl && !user?.isCollegeVerified && !preview && (
         <div className="space-y-3 mb-4">
           <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 flex items-center gap-3">
@@ -104,54 +117,75 @@ export default function CollegeIdUpload({ user, onUploaded }) {
               <p className="text-xs text-aviro-muted">Admin will review your ID shortly</p>
             </div>
           </div>
-          <PrivatePhoto url={user.collegeIdPicUrl} alt="Uploaded College ID"
-            className="w-full max-h-48 object-contain rounded-xl border border-aviro-border bg-aviro-card2" />
+          <PrivatePhoto
+            url={user.collegeIdPicUrl}
+            alt="Uploaded College ID"
+            className="w-full max-h-48 object-contain rounded-xl border border-aviro-border bg-aviro-card2"
+          />
         </div>
       )}
 
-      {/* Upload area (once a photo is waiting for review, the button below replaces it) */}
-      {!(user?.collegeIdPicUrl && !preview && !verifying) && <div
-        onClick={() => !uploading && fileRef.current?.click()}
-        className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all
-          ${uploading
-            ? 'border-aviro-orange/50 bg-aviro-orange/5'
-            : 'border-aviro-border hover:border-aviro-orange/50 hover:bg-aviro-orange/5'}`}
-      >
-        {verifying ? (
-          <div className="space-y-3">
-            {preview && (
-              <img src={preview} alt="Preview" className="max-h-36 mx-auto rounded-lg opacity-70"/>
-            )}
-            <div className="flex items-center justify-center gap-2">
-              <div className="w-5 h-5 border-2 border-aviro-orange/30 border-t-aviro-orange rounded-full animate-spin"/>
-              <p className="text-sm text-aviro-orange font-semibold"><Icon e="🤖" /> AI verifying your ID...</p>
+      {!(user?.collegeIdPicUrl && !preview && !verifying) && (
+        <div
+          onClick={() => !uploading && fileRef.current?.click()}
+          className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all
+          ${
+            uploading
+              ? 'border-aviro-orange/50 bg-aviro-orange/5'
+              : 'border-aviro-border hover:border-aviro-orange/50 hover:bg-aviro-orange/5'
+          }`}
+        >
+          {verifying ? (
+            <div className="space-y-3">
+              {preview && (
+                <img
+                  src={preview}
+                  alt="Preview"
+                  className="max-h-36 mx-auto rounded-lg opacity-70"
+                />
+              )}
+              <div className="flex items-center justify-center gap-2">
+                <div className="w-5 h-5 border-2 border-aviro-orange/30 border-t-aviro-orange rounded-full animate-spin" />
+                <p className="text-sm text-aviro-orange font-semibold">
+                  <Icon e="🤖" /> AI verifying your ID...
+                </p>
+              </div>
+              <p className="text-xs text-aviro-muted">This may take 5-10 seconds</p>
             </div>
-            <p className="text-xs text-aviro-muted">This may take 5-10 seconds</p>
-          </div>
-        ) : preview ? (
-          <div className="space-y-2">
-            <img src={preview} alt="Preview" className="max-h-40 mx-auto rounded-lg"/>
-            <p className="text-xs text-aviro-muted">Click to upload a different photo</p>
-          </div>
-        ) : (
-          <>
-            <div className="text-4xl mb-3"><Icon e="📷" /></div>
-            <p className="text-sm text-aviro-fg font-semibold">Tap to upload College ID</p>
-            <p className="text-xs text-aviro-muted mt-1">JPG, PNG or WEBP, up to 5 MB</p>
-            <div className="mt-3 flex items-center justify-center gap-2 bg-aviro-orange/10 border border-aviro-orange/20 rounded-lg px-3 py-2">
-              <span><Icon e="🤖" /></span>
-              <p className="text-xs text-aviro-orange font-medium">AI auto-verifies instantly</p>
+          ) : preview ? (
+            <div className="space-y-2">
+              <img src={preview} alt="Preview" className="max-h-40 mx-auto rounded-lg" />
+              <p className="text-xs text-aviro-muted">Click to upload a different photo</p>
             </div>
-          </>
-        )}
-      </div>}
+          ) : (
+            <>
+              <div className="text-4xl mb-3">
+                <Icon e="📷" />
+              </div>
+              <p className="text-sm text-aviro-fg font-semibold">Tap to upload College ID</p>
+              <p className="text-xs text-aviro-muted mt-1">JPG, PNG or WEBP, up to 5 MB</p>
+              <div className="mt-3 flex items-center justify-center gap-2 bg-aviro-orange/10 border border-aviro-orange/20 rounded-lg px-3 py-2">
+                <span>
+                  <Icon e="🤖" />
+                </span>
+                <p className="text-xs text-aviro-orange font-medium">AI auto-verifies instantly</p>
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
-      {/* Result message */}
       {result && !verifying && (
-        <div className={`mt-3 rounded-xl p-3 text-sm font-medium
-          ${result.includes('✅') ? 'bg-aviro-green/10 border border-aviro-green/20 text-aviro-green'
-          : result.includes('❌') ? 'bg-red-500/10 border border-red-500/20 text-red-600'
-          : 'bg-yellow-500/10 border border-yellow-500/20 text-yellow-600'}`}>
+        <div
+          className={`mt-3 rounded-xl p-3 text-sm font-medium
+          ${
+            result.includes('✅')
+              ? 'bg-aviro-green/10 border border-aviro-green/20 text-aviro-green'
+              : result.includes('❌')
+                ? 'bg-red-500/10 border border-red-500/20 text-red-600'
+                : 'bg-yellow-500/10 border border-yellow-500/20 text-yellow-600'
+          }`}
+        >
           {result}
         </div>
       )}
@@ -159,7 +193,8 @@ export default function CollegeIdUpload({ user, onUploaded }) {
       {user?.collegeIdPicUrl && !preview && (
         <button
           onClick={() => fileRef.current?.click()}
-          className="w-full mt-3 text-xs text-aviro-orange border border-aviro-orange/30 py-2 rounded-xl hover:bg-aviro-orange/10 transition-colors">
+          className="w-full mt-3 text-xs text-aviro-orange border border-aviro-orange/30 py-2 rounded-xl hover:bg-aviro-orange/10 transition-colors"
+        >
           <Icon e="📷" /> Upload a different photo
         </button>
       )}

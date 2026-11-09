@@ -1,4 +1,3 @@
-
 package com.aviro.service;
 
 import com.aviro.entity.User;
@@ -7,8 +6,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -30,7 +31,6 @@ public class CollegeIdVerificationService {
     private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
 
-    // Render Environment variables
     @Value("${GEMINI_API_KEY:}")
     private String geminiApiKey;
 
@@ -40,17 +40,16 @@ public class CollegeIdVerificationService {
     private static final String GEMINI_API_BASE =
             "https://generativelanguage.googleapis.com/v1beta/models/";
 
-    private final HttpClient httpClient = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(15))
-            .build();
+    private final HttpClient httpClient =
+            HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(15)).build();
 
-    public VerificationResult verifyCollegeId(
-            Long userId, String imagePath) {
+    public VerificationResult verifyCollegeId(Long userId, String imagePath) {
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        User user =
+                userRepository
+                        .findById(userId)
+                        .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Never auto-approve when AI is unavailable.
         if (geminiApiKey == null || geminiApiKey.isBlank()) {
             log.warn("GEMINI_API_KEY is missing; manual review required");
             return pendingReview();
@@ -80,7 +79,6 @@ public class CollegeIdVerificationService {
 
             String prompt = buildPrompt(user.getCollegeName());
 
-            // Build valid JSON safely using Jackson.
             ObjectNode requestBody = objectMapper.createObjectNode();
             ArrayNode contents = requestBody.putArray("contents");
             ObjectNode content = contents.addObject();
@@ -89,51 +87,37 @@ public class CollegeIdVerificationService {
             ObjectNode imagePart = parts.addObject();
             ObjectNode inlineData = imagePart.putObject("inline_data");
             inlineData.put("mime_type", mimeType);
-            inlineData.put(
-                    "data",
-                    Base64.getEncoder().encodeToString(imageBytes)
-            );
+            inlineData.put("data", Base64.getEncoder().encodeToString(imageBytes));
 
             parts.addObject().put("text", prompt);
 
-            ObjectNode generationConfig =
-                    requestBody.putObject("generationConfig");
+            ObjectNode generationConfig = requestBody.putObject("generationConfig");
             generationConfig.put("temperature", 0.1);
             generationConfig.put("maxOutputTokens", 300);
             generationConfig.put("responseMimeType", "application/json");
 
-            String endpoint = GEMINI_API_BASE
-                    + geminiModel
-                    + ":generateContent";
+            String endpoint = GEMINI_API_BASE + geminiModel + ":generateContent";
 
-            // API key is sent as a header, not logged or exposed in responses.
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(endpoint))
-                    .timeout(Duration.ofSeconds(45))
-                    .header("Content-Type", "application/json")
-                    .header("x-goog-api-key", geminiApiKey)
-                    .POST(HttpRequest.BodyPublishers.ofString(
-                            objectMapper.writeValueAsString(requestBody)))
-                    .build();
+            HttpRequest request =
+                    HttpRequest.newBuilder()
+                            .uri(URI.create(endpoint))
+                            .timeout(Duration.ofSeconds(45))
+                            .header("Content-Type", "application/json")
+                            .header("x-goog-api-key", geminiApiKey)
+                            .POST(
+                                    HttpRequest.BodyPublishers.ofString(
+                                            objectMapper.writeValueAsString(requestBody)))
+                            .build();
 
-            log.info(
-                    "Starting college ID AI verification for user {}",
-                    userId
-            );
+            log.info("Starting college ID AI verification for user {}", userId);
 
-            HttpResponse<String> response = httpClient.send(
-                    request,
-                    HttpResponse.BodyHandlers.ofString()
-            );
+            HttpResponse<String> response =
+                    httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
             log.info("Gemini API status: {}", response.statusCode());
 
             if (response.statusCode() != 200) {
-                // Log status only; avoid logging sensitive image data.
-                log.error(
-                        "Gemini verification failed with HTTP status {}",
-                        response.statusCode()
-                );
+                log.error("Gemini verification failed with HTTP status {}", response.statusCode());
                 return pendingReview();
             }
 
@@ -145,53 +129,45 @@ public class CollegeIdVerificationService {
             return pendingReview();
 
         } catch (Exception e) {
-            log.error(
-                    "College ID verification failed for user {}: {}",
-                    userId,
-                    e.getMessage()
-            );
+            log.error("College ID verification failed for user {}: {}", userId, e.getMessage());
             return pendingReview();
         }
     }
 
     private String buildPrompt(String collegeName) {
         return """
-                Review this image for AVIRO college ID verification.
+               Review this image for AVIRO college ID verification.
 
-                Determine whether it appears to be an Indian college or
-                university student identity card.
+               Determine whether it appears to be an Indian college or
+               university student identity card.
 
-                Look for a student name, institution name, and student
-                identifier where visible.
+               Look for a student name, institution name, and student
+               identifier where visible.
 
-                Claimed institution: %s
+               Claimed institution: %s
 
-                Do not assume authenticity from appearance alone. If the
-                image is ambiguous, unreadable, or lacks sufficient
-                evidence, set approved to false.
+               Do not assume authenticity from appearance alone. If the
+               image is ambiguous, unreadable, or lacks sufficient
+               evidence, set approved to false.
 
-                Return JSON only:
-                {
-                  "approved": false,
-                  "confidence": "LOW",
-                  "reason": "Brief explanation"
-                }
-                """.formatted(
-                collegeName == null || collegeName.isBlank()
-                        ? "Not provided"
-                        : collegeName
-        );
+               Return JSON only:
+               {
+                 "approved": false,
+                 "confidence": "LOW",
+                 "reason": "Brief explanation"
+               }
+               """
+                .formatted(
+                        collegeName == null || collegeName.isBlank()
+                                ? "Not provided"
+                                : collegeName);
     }
 
-    private VerificationResult parseGeminiResponse(
-            String responseBody, User user) {
+    private VerificationResult parseGeminiResponse(String responseBody, User user) {
 
         try {
             JsonNode root = objectMapper.readTree(responseBody);
-            JsonNode parts = root.path("candidates")
-                    .path(0)
-                    .path("content")
-                    .path("parts");
+            JsonNode parts = root.path("candidates").path(0).path("content").path("parts");
 
             if (!parts.isArray() || parts.isEmpty()) {
                 log.warn("Gemini returned no response text");
@@ -207,8 +183,7 @@ public class CollegeIdVerificationService {
             JsonNode result = objectMapper.readTree(text);
 
             boolean approved = result.path("approved").asBoolean(false);
-            String reason = result.path("reason")
-                    .asText("Manual review required");
+            String reason = result.path("reason").asText("Manual review required");
 
             if (!approved) {
                 log.info("College ID requires manual review");
@@ -221,9 +196,7 @@ public class CollegeIdVerificationService {
             log.info("College ID AI verification approved");
 
             return new VerificationResult(
-                    true,
-                    "College ID verified. You can now book and offer rides."
-            );
+                    true, "College ID verified. You can now book and offer rides.");
 
         } catch (Exception e) {
             log.warn("Could not parse Gemini verification response");
@@ -232,16 +205,11 @@ public class CollegeIdVerificationService {
     }
 
     private VerificationResult pendingReview() {
-        return new VerificationResult(
-                false,
-                "ID uploaded! Admin will verify shortly."
-        );
+        return new VerificationResult(false, "ID uploaded! Admin will verify shortly.");
     }
 
     private String detectMimeType(Path filePath) {
-        String name = filePath.getFileName()
-                .toString()
-                .toLowerCase();
+        String name = filePath.getFileName().toString().toLowerCase();
 
         if (name.endsWith(".jpg") || name.endsWith(".jpeg")) {
             return "image/jpeg";
@@ -256,8 +224,5 @@ public class CollegeIdVerificationService {
         return null;
     }
 
-    public record VerificationResult(
-            boolean approved,
-            String message
-    ) {}
+    public record VerificationResult(boolean approved, String message) {}
 }

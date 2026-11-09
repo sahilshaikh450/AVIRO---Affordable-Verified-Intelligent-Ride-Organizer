@@ -8,9 +8,11 @@ import com.aviro.exception.AviroException;
 import com.aviro.repository.BookingRepository;
 import com.aviro.repository.UserRepository;
 import com.aviro.service.ChatService;
+
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -33,7 +35,6 @@ import java.util.Map;
 @Slf4j
 public class ChatController {
 
-    // A confirmed ride stuck open (never ended) stops showing a chat this long after departure
     private static final int OPEN_HOURS_AFTER_DEPARTURE = 12;
 
     private final ChatService chatService;
@@ -43,8 +44,6 @@ public class ChatController {
 
     private static final int MAX_MESSAGE_LENGTH = 1000;
 
-    // WebSocket handler - /app/chat.send
-    // Sender always comes from the authenticated session, never from the payload
     @MessageMapping("/chat.send")
     public void sendMessageWS(@Payload ChatSocketMessage message, Principal principal) {
         if (principal == null) {
@@ -55,15 +54,9 @@ public class ChatController {
 
         ChatMessage saved = saveAndDeliver(senderId, message);
 
-        // Send back to sender too (for confirmation)
-        messagingTemplate.convertAndSendToUser(
-                String.valueOf(senderId),
-                "/queue/messages",
-                saved
-        );
+        messagingTemplate.convertAndSendToUser(String.valueOf(senderId), "/queue/messages", saved);
     }
 
-    // REST fallback - POST /chat/send
     @PostMapping("/send")
     public ResponseEntity<ApiResponse<ChatMessage>> sendMessageREST(
             @AuthenticationPrincipal UserDetails userDetails,
@@ -72,7 +65,6 @@ public class ChatController {
         return ResponseEntity.ok(ApiResponse.success(saveAndDeliver(senderId, message)));
     }
 
-    // GET conversation (myId param kept for old clients, but the logged-in user is used)
     @GetMapping("/{rideId}/{otherUserId}")
     public ResponseEntity<ApiResponse<List<ChatMessage>>> getConversation(
             @AuthenticationPrincipal UserDetails userDetails,
@@ -85,16 +77,14 @@ public class ChatController {
         return ResponseEntity.ok(ApiResponse.success(messages));
     }
 
-    // Unread count of messages sent to me by senderId
     @GetMapping("/unread/{senderId}/{receiverId}")
     public ResponseEntity<ApiResponse<Long>> getUnreadCount(
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable Long senderId,
             @PathVariable Long receiverId) {
         requireSelf(userDetails, receiverId);
-        return ResponseEntity.ok(ApiResponse.success(
-                chatService.getUnreadCount(senderId, receiverId)
-        ));
+        return ResponseEntity.ok(
+                ApiResponse.success(chatService.getUnreadCount(senderId, receiverId)));
     }
 
     @PostMapping("/mark-read/{senderId}/{receiverId}")
@@ -108,7 +98,6 @@ public class ChatController {
     }
 
     private ChatMessage saveAndDeliver(Long senderId, ChatSocketMessage message) {
-        // Only the driver and a rider of the same ride, once the booking is confirmed and until the trip ends
         if (message.getRideId() == null || message.getReceiverId() == null) {
             throw new AccessDeniedException("You can only message people on your rides");
         }
@@ -118,29 +107,27 @@ public class ChatController {
             throw new AviroException("Messages must be 1 to " + MAX_MESSAGE_LENGTH + " characters");
         }
         message.setContent(content);
-        ChatMessage saved = chatService.saveMessage(
-                senderId,
-                message.getReceiverId(),
-                message.getRideId(),
-                message.getContent(),
-                message.getType() != null ? message.getType() : "TEXT"
-        );
+        ChatMessage saved =
+                chatService.saveMessage(
+                        senderId,
+                        message.getReceiverId(),
+                        message.getRideId(),
+                        message.getContent(),
+                        message.getType() != null ? message.getType() : "TEXT");
 
-        // Send to receiver
         messagingTemplate.convertAndSendToUser(
-                String.valueOf(message.getReceiverId()),
-                "/queue/messages",
-                saved
-        );
+                String.valueOf(message.getReceiverId()), "/queue/messages", saved);
         return saved;
     }
 
-    // People the user can chat with now: one entry per confirmed booking they are on
     @GetMapping("/active")
-    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> activeChats(@AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> activeChats(
+            @AuthenticationPrincipal UserDetails userDetails) {
         Long me = currentUserId(userDetails);
         List<Map<String, Object>> chats = new ArrayList<>();
-        for (Booking b : bookingRepository.findOpenChats(me, LocalDateTime.now().minusHours(OPEN_HOURS_AFTER_DEPARTURE))) {
+        for (Booking b :
+                bookingRepository.findOpenChats(
+                        me, LocalDateTime.now().minusHours(OPEN_HOURS_AFTER_DEPARTURE))) {
             boolean iDrive = b.getRide().getDriver().getId().equals(me);
             User other = iDrive ? b.getRider() : b.getRide().getDriver();
             Map<String, Object> c = new LinkedHashMap<>();
@@ -164,12 +151,14 @@ public class ChatController {
             throw new AccessDeniedException("You can only message people on your rides");
         }
         if (!bookingRepository.sharesConfirmedRide(rideId, a, b)) {
-            throw new AviroException("Chat opens when the driver confirms the ride and closes when the trip ends");
+            throw new AviroException(
+                    "Chat opens when the driver confirms the ride and closes when the trip ends");
         }
     }
 
     private Long currentUserId(UserDetails userDetails) {
-        return userRepository.findByEmail(userDetails.getUsername())
+        return userRepository
+                .findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new AviroException("User not found"))
                 .getId();
     }

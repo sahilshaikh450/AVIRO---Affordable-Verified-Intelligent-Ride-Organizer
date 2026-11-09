@@ -2,6 +2,7 @@ package com.aviro.repository;
 
 import com.aviro.entity.Booking;
 import com.aviro.enums.BookingStatus;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -16,10 +17,8 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     List<Booking> findByRiderId(Long riderId);
 
-    // A rider's own list: latest 100 is plenty and keeps the response small
     List<Booking> findTop100ByRiderIdOrderByCreatedAtDesc(Long riderId);
 
-    // Ids only, so callers outside a transaction (WebSocket handlers) don't hit lazy loading
     @Query("SELECT b.rider.id FROM Booking b WHERE b.id = :bookingId")
     Optional<Long> findRiderIdByBookingId(@Param("bookingId") Long bookingId);
 
@@ -32,53 +31,61 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     Optional<Booking> findByRideIdAndRiderId(Long rideId, Long riderId);
 
-    boolean existsByRideIdAndRiderIdAndStatusIn(Long rideId, Long riderId, Collection<BookingStatus> statuses);
+    boolean existsByRideIdAndRiderIdAndStatusIn(
+            Long rideId, Long riderId, Collection<BookingStatus> statuses);
 
-    // ✅ Added — used in RideServiceImpl to check confirmed bookings before cancel/delete
     long countByRideIdAndStatus(Long rideId, BookingStatus status);
 
     @Query("SELECT COUNT(b) FROM Booking b WHERE b.rider.id = :riderId AND b.status = 'COMPLETED'")
     Long countCompletedByRider(@Param("riderId") Long riderId);
 
-    @Query("SELECT SUM(b.totalAmount) FROM Booking b WHERE b.rider.id = :riderId AND b.paymentStatus = 'COMPLETED'")
+    @Query(
+            "SELECT SUM(b.totalAmount) FROM Booking b WHERE b.rider.id = :riderId AND"
+                + " b.paymentStatus = 'COMPLETED'")
     Double totalSpentByRider(@Param("riderId") Long riderId);
 
-    // True when one of the two users drives this ride and the other has booked it
-    @Query("""
-        SELECT COUNT(b) > 0 FROM Booking b
-        WHERE b.ride.id = :rideId
-        AND ((b.rider.id = :userA AND b.ride.driver.id = :userB) OR (b.rider.id = :userB AND b.ride.driver.id = :userA))
-        """)
-    boolean sharesRide(@Param("rideId") Long rideId, @Param("userA") Long userA, @Param("userB") Long userB);
+    @Query(
+            """
+SELECT COUNT(b) > 0 FROM Booking b
+WHERE b.ride.id = :rideId
+AND ((b.rider.id = :userA AND b.ride.driver.id = :userB) OR (b.rider.id = :userB AND b.ride.driver.id = :userA))
+""")
+    boolean sharesRide(
+            @Param("rideId") Long rideId, @Param("userA") Long userA, @Param("userB") Long userB);
 
-    // Chat is open only while the two share a confirmed booking (driver accepted, trip not over)
-    @Query("""
-        SELECT COUNT(b) > 0 FROM Booking b
-        WHERE b.ride.id = :rideId AND b.status = com.aviro.enums.BookingStatus.CONFIRMED
-        AND ((b.rider.id = :userA AND b.ride.driver.id = :userB) OR (b.rider.id = :userB AND b.ride.driver.id = :userA))
-        """)
-    boolean sharesConfirmedRide(@Param("rideId") Long rideId, @Param("userA") Long userA, @Param("userB") Long userB);
+    @Query(
+            """
+SELECT COUNT(b) > 0 FROM Booking b
+WHERE b.ride.id = :rideId AND b.status = com.aviro.enums.BookingStatus.CONFIRMED
+AND ((b.rider.id = :userA AND b.ride.driver.id = :userB) OR (b.rider.id = :userB AND b.ride.driver.id = :userA))
+""")
+    boolean sharesConfirmedRide(
+            @Param("rideId") Long rideId, @Param("userA") Long userA, @Param("userB") Long userB);
 
-    // Confirmed bookings the user is on, as rider or driver: their open chats
-    @Query("""
-        SELECT b FROM Booking b JOIN FETCH b.ride r JOIN FETCH r.driver JOIN FETCH b.rider
-        WHERE (b.rider.id = :userId OR r.driver.id = :userId)
-          AND b.status = com.aviro.enums.BookingStatus.CONFIRMED AND r.departureTime >= :since
-        ORDER BY r.departureTime ASC
-        """)
-    List<Booking> findOpenChats(@Param("userId") Long userId, @Param("since") java.time.LocalDateTime since);
+    @Query(
+            """
+            SELECT b FROM Booking b JOIN FETCH b.ride r JOIN FETCH r.driver JOIN FETCH b.rider
+            WHERE (b.rider.id = :userId OR r.driver.id = :userId)
+              AND b.status = com.aviro.enums.BookingStatus.CONFIRMED AND r.departureTime >= :since
+            ORDER BY r.departureTime ASC
+            """)
+    List<Booking> findOpenChats(
+            @Param("userId") Long userId, @Param("since") java.time.LocalDateTime since);
 
-    @Query("SELECT b FROM Booking b WHERE b.ride.id = :rideId AND b.status IN ('REQUESTED', 'CONFIRMED')")
+    @Query(
+            "SELECT b FROM Booking b WHERE b.ride.id = :rideId AND b.status IN ('REQUESTED',"
+                + " 'CONFIRMED')")
     List<Booking> findActiveBookingsForRide(@Param("rideId") Long rideId);
 
-    // The user's trips as rider or driver since a date, newest departure first (Safety Center pickers)
-    @Query("""
-        SELECT b FROM Booking b JOIN FETCH b.ride r JOIN FETCH r.driver JOIN FETCH b.rider
-        WHERE (b.rider.id = :userId OR r.driver.id = :userId)
-          AND r.departureTime >= :since AND b.status IN :statuses
-        ORDER BY r.departureTime DESC
-        """)
-    List<Booking> findTripsForUser(@Param("userId") Long userId,
-                                   @Param("since") java.time.LocalDateTime since,
-                                   @Param("statuses") java.util.Collection<BookingStatus> statuses);
+    @Query(
+            """
+            SELECT b FROM Booking b JOIN FETCH b.ride r JOIN FETCH r.driver JOIN FETCH b.rider
+            WHERE (b.rider.id = :userId OR r.driver.id = :userId)
+              AND r.departureTime >= :since AND b.status IN :statuses
+            ORDER BY r.departureTime DESC
+            """)
+    List<Booking> findTripsForUser(
+            @Param("userId") Long userId,
+            @Param("since") java.time.LocalDateTime since,
+            @Param("statuses") java.util.Collection<BookingStatus> statuses);
 }

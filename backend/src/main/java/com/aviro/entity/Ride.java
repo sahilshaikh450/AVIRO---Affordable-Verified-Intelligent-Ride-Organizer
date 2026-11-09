@@ -2,7 +2,9 @@ package com.aviro.entity;
 
 import com.aviro.enums.Gender;
 import com.aviro.enums.RideStatus;
+
 import jakarta.persistence.*;
+
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -10,11 +12,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-// Search filters on status + departure time; a driver's list is ordered by departure time
-@Table(name = "rides", indexes = {
-        @Index(name = "idx_ride_status_departure", columnList = "status, departure_time"),
-        @Index(name = "idx_ride_driver_departure", columnList = "driver_id, departure_time")
-})
+@Table(
+        name = "rides",
+        indexes = {
+            @Index(name = "idx_ride_status_departure", columnList = "status, departure_time"),
+            @Index(name = "idx_ride_driver_departure", columnList = "driver_id, departure_time")
+        })
 @Getter
 @Setter
 @NoArgsConstructor

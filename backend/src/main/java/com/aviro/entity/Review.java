@@ -1,6 +1,7 @@
 package com.aviro.entity;
 
 import jakarta.persistence.*;
+
 import lombok.*;
 
 @Entity

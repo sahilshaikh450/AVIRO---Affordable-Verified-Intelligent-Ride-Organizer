@@ -3,8 +3,11 @@ package com.aviro.entity;
 import com.aviro.enums.Gender;
 import com.aviro.enums.Role;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.*;
+
 import lombok.*;
+
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -30,12 +33,11 @@ public class User extends BaseEntity {
     private String email;
 
     @Column(nullable = false)
-    @JsonIgnore // never expose password hash in any JSON response
+    @JsonIgnore
     private String password;
 
     private String phone;
 
-    // Where riders send UPI payments for this driver's rides, e.g. name@okaxis
     @Column(length = 100)
     private String upiId;
 
@@ -93,30 +95,27 @@ public class User extends BaseEntity {
 
     @OneToMany(mappedBy = "rider", cascade = CascadeType.ALL)
     @Builder.Default
-    @JsonIgnore // CRITICAL: prevents User -> bookings -> Booking -> rider(User) infinite loop
+    @JsonIgnore
     private List<Booking> bookings = new ArrayList<>();
 
     @OneToMany(mappedBy = "driver", cascade = CascadeType.ALL)
     @Builder.Default
-    @JsonIgnore // CRITICAL: prevents User -> ridesOffered -> Ride -> driver(User) infinite loop
+    @JsonIgnore
     private List<Ride> ridesOffered = new ArrayList<>();
 
     @ManyToMany
     @JoinTable(
-        name = "ride_buddies",
-        joinColumns = @JoinColumn(name = "user_id"),
-        inverseJoinColumns = @JoinColumn(name = "buddy_id")
-    )
-    // A Set, so Hibernate gives the join table a primary key (user_id, buddy_id):
-    // Aiven MySQL refuses to create tables without one
+            name = "ride_buddies",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "buddy_id"))
     @Builder.Default
-    @JsonIgnore // self-referencing many-to-many, also a loop risk
+    @JsonIgnore
     private Set<User> rideBuddies = new LinkedHashSet<>();
 
     @ElementCollection
     @CollectionTable(name = "emergency_contacts", joinColumns = @JoinColumn(name = "user_id"))
-    @Column(name = "emergency_contacts", nullable = false) // not null, so it can be part of the primary key
+    @Column(name = "emergency_contacts", nullable = false)
     @Builder.Default
-    @JsonIgnore // CRITICAL: prevents lazy-load DB crash when User is serialized (table may not exist)
-    private Set<String> emergencyContacts = new LinkedHashSet<>(); // a Set for the same primary-key reason
+    @JsonIgnore
+    private Set<String> emergencyContacts = new LinkedHashSet<>();
 }

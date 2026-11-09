@@ -1,8 +1,11 @@
 package com.aviro.exception;
 
 import com.aviro.dto.response.ApiResponse;
+
 import io.sentry.Sentry;
+
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -43,34 +46,45 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<Map<String, String>>> handleValidation(MethodArgumentNotValidException ex) {
+    public ResponseEntity<ApiResponse<Map<String, String>>> handleValidation(
+            MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
-        ex.getBindingResult().getAllErrors().forEach(error -> {
-            String field = ((FieldError) error).getField();
-            errors.put(field, error.getDefaultMessage());
-        });
-        return ResponseEntity.badRequest().body(
-                ApiResponse.<Map<String, String>>builder()
-                        .success(false)
-                        // The first problem in plain words, so the app can show it as is
-                        .message(errors.isEmpty() ? "Validation failed" : errors.values().iterator().next())
-                        .data(errors)
-                        .build()
-        );
+        ex.getBindingResult()
+                .getAllErrors()
+                .forEach(
+                        error -> {
+                            String field = ((FieldError) error).getField();
+                            errors.put(field, error.getDefaultMessage());
+                        });
+        return ResponseEntity.badRequest()
+                .body(
+                        ApiResponse.<Map<String, String>>builder()
+                                .success(false)
+                                .message(
+                                        errors.isEmpty()
+                                                ? "Validation failed"
+                                                : errors.values().iterator().next())
+                                .data(errors)
+                                .build());
     }
 
-    // Malformed JSON or a bad value (e.g. an invalid date) is the client's mistake
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ApiResponse<Object>> handleUnreadable(HttpMessageNotReadableException ex) {
+    public ResponseEntity<ApiResponse<Object>> handleUnreadable(
+            HttpMessageNotReadableException ex) {
         log.warn("Unreadable request body: {}", ex.getMostSpecificCause().getMessage());
-        return ResponseEntity.badRequest().body(ApiResponse.error("Invalid request data. Please check the form and try again."));
+        return ResponseEntity.badRequest()
+                .body(
+                        ApiResponse.error(
+                                "Invalid request data. Please check the form and try again."));
     }
 
-    // Wrong HTTP method / unknown path should not show up as a 500
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-    public ResponseEntity<ApiResponse<Object>> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex) {
+    public ResponseEntity<ApiResponse<Object>> handleMethodNotSupported(
+            HttpRequestMethodNotSupportedException ex) {
         return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
-                .body(ApiResponse.error("Method " + ex.getMethod() + " not supported for this endpoint"));
+                .body(
+                        ApiResponse.error(
+                                "Method " + ex.getMethod() + " not supported for this endpoint"));
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
@@ -79,29 +93,29 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error("Endpoint not found"));
     }
 
-    // e.g. /rides/abc where a number is expected
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public ResponseEntity<ApiResponse<Object>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+    public ResponseEntity<ApiResponse<Object>> handleTypeMismatch(
+            MethodArgumentTypeMismatchException ex) {
         return ResponseEntity.badRequest()
                 .body(ApiResponse.error("Invalid value for '" + ex.getName() + "'"));
     }
 
-    // DB constraint errors (duplicate email, missing column value, etc.)
     @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<ApiResponse<Object>> handleDataIntegrity(DataIntegrityViolationException ex) {
+    public ResponseEntity<ApiResponse<Object>> handleDataIntegrity(
+            DataIntegrityViolationException ex) {
         log.error("Database constraint violation: {}", ex.getMostSpecificCause().getMessage());
         Sentry.captureException(ex);
         String cause = String.valueOf(ex.getMostSpecificCause().getMessage()).toLowerCase();
-        String message = cause.contains("duplicate") && cause.contains("email")
-                ? "Email already registered. Please login."
-                : "Could not save data. Please check your details and try again.";
+        String message =
+                cause.contains("duplicate") && cause.contains("email")
+                        ? "Email already registered. Please login."
+                        : "Could not save data. Please check your details and try again.";
         return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.error(message));
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Object>> handleGeneral(Exception ex) {
         log.error("Unexpected error: {}", ex.getMessage(), ex);
-        // Handled here, so Sentry would not see it otherwise (no-op when SENTRY_DSN is unset)
         Sentry.captureException(ex);
         return ResponseEntity.internalServerError()
                 .body(ApiResponse.error("Something went wrong. Please try again."));

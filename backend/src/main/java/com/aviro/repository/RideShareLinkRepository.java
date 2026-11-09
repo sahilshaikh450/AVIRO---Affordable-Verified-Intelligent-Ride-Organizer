@@ -1,6 +1,7 @@
 package com.aviro.repository;
 
 import com.aviro.entity.RideShareLink;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -12,5 +13,6 @@ public interface RideShareLinkRepository extends JpaRepository<RideShareLink, Lo
 
     Optional<RideShareLink> findByToken(String token);
 
-    Optional<RideShareLink> findFirstByBookingIdAndSharerIdAndExpiresAtAfter(Long bookingId, Long sharerId, LocalDateTime now);
+    Optional<RideShareLink> findFirstByBookingIdAndSharerIdAndExpiresAtAfter(
+            Long bookingId, Long sharerId, LocalDateTime now);
 }

@@ -1,46 +1,54 @@
-/** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: ["./src/**/*.{js,jsx,ts,tsx}"],
+  content: ['./src/**/*.{js,jsx,ts,tsx}'],
   theme: {
     extend: {
       colors: {
-        // "Mono" look: white surfaces, black text and buttons, one green for good news
         aviro: {
-          orange:  "#000000",   // accent (buttons, active tab, links)
-          dark:    "#FFFFFF",   // page background
-          card:    "#FFFFFF",
-          card2:   "#F3F3F3",   // inputs, chips, inner panels
-          border:  "#E8E8E8",
-          muted:   "#6B6B6B",
-          fg:      "#000000",   // main text
-          green:   "#05944F",
-          blue:    "#276EF1",
-          purple:  "#7356BF",
-          yellow:  "#B7791F",
-        }
+          orange: '#000000',
+          dark: '#FFFFFF',
+          card: '#FFFFFF',
+          card2: '#F3F3F3',
+          border: '#E8E8E8',
+          muted: '#6B6B6B',
+          fg: '#000000',
+          green: '#05944F',
+          blue: '#276EF1',
+          purple: '#7356BF',
+          yellow: '#B7791F',
+        },
       },
       fontFamily: {
-        sans:    ["Inter", "system-ui", "sans-serif"],
-        display: ["Inter", "system-ui", "sans-serif"],
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        display: ['Inter', 'system-ui', 'sans-serif'],
       },
       animation: {
-        // "backwards", not "both": once it ends no transform stays on the page, which would
-        // otherwise trap position:fixed popups (SOS, dialogs) inside the page instead of the screen
-        "fade-up":   "fadeUp 0.5s ease backwards",
-        "pulse-dot": "pulseDot 1.5s ease infinite",
-        "float":     "float 3s ease-in-out infinite",
-        "slide-in":  "slideIn 0.3s ease both",
+        'fade-up': 'fadeUp 0.5s ease backwards',
+        'pulse-dot': 'pulseDot 1.5s ease infinite',
+        float: 'float 3s ease-in-out infinite',
+        'slide-in': 'slideIn 0.3s ease both',
       },
       keyframes: {
-        fadeUp:   { from: { opacity: 0, transform: "translateY(20px)" }, to: { opacity: 1, transform: "translateY(0)" } },
-        pulseDot: { "0%,100%": { opacity: 1, transform: "scale(1)" }, "50%": { opacity: 0.4, transform: "scale(0.6)" } },
-        float:    { "0%,100%": { transform: "translateY(0)" }, "50%": { transform: "translateY(-8px)" } },
-        slideIn:  { from: { opacity: 0, transform: "translateX(-16px)" }, to: { opacity: 1, transform: "translateX(0)" } },
+        fadeUp: {
+          from: { opacity: 0, transform: 'translateY(20px)' },
+          to: { opacity: 1, transform: 'translateY(0)' },
+        },
+        pulseDot: {
+          '0%,100%': { opacity: 1, transform: 'scale(1)' },
+          '50%': { opacity: 0.4, transform: 'scale(0.6)' },
+        },
+        float: {
+          '0%,100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-8px)' },
+        },
+        slideIn: {
+          from: { opacity: 0, transform: 'translateX(-16px)' },
+          to: { opacity: 1, transform: 'translateX(0)' },
+        },
       },
       backgroundImage: {
-        "hero-glow": "radial-gradient(circle at 50% 0%, rgba(255,107,43,0.12) 0%, transparent 60%)",
-      }
-    }
+        'hero-glow': 'radial-gradient(circle at 50% 0%, rgba(255,107,43,0.12) 0%, transparent 60%)',
+      },
+    },
   },
   plugins: [],
-}
+};

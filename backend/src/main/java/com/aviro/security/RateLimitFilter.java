@@ -4,8 +4,10 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -15,38 +17,32 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.Map;
 
-/**
- * Fixed-window rate limiting for auth endpoints, counted per client IP in Redis.
- * Added inside the security chain (after CORS) so 429 responses still carry CORS headers.
- */
 @RequiredArgsConstructor
 @Slf4j
 public class RateLimitFilter extends OncePerRequestFilter {
 
     private record Rule(int maxRequests, Duration window) {}
 
-    private static final Map<String, Rule> RULES = Map.ofEntries(
-            Map.entry("/auth/login",                    new Rule(10, Duration.ofMinutes(1))),
-            Map.entry("/auth/register",                 new Rule(5,  Duration.ofMinutes(10))),
-            Map.entry("/auth/forgot-password",          new Rule(3,  Duration.ofMinutes(10))),
-            Map.entry("/auth/resend-otp",               new Rule(3,  Duration.ofMinutes(10))),
-            Map.entry("/auth/send-college-email-otp",   new Rule(3,  Duration.ofMinutes(10))),
-            Map.entry("/auth/reset-password",           new Rule(10, Duration.ofMinutes(10))),
-            Map.entry("/auth/verify-otp",               new Rule(10, Duration.ofMinutes(10))),
-            Map.entry("/auth/login-verify-otp",         new Rule(10, Duration.ofMinutes(10))),
-            Map.entry("/auth/verify-college-email-otp", new Rule(10, Duration.ofMinutes(10))),
-            Map.entry("/auth/refresh-token",            new Rule(30, Duration.ofMinutes(1))),
-            // Signed-in actions: counted per account, generous enough for normal use
-            Map.entry("/rides",                         new Rule(20, Duration.ofHours(1))),
-            Map.entry("/bookings",                      new Rule(30, Duration.ofHours(1))),
-            Map.entry("/chat/send",                     new Rule(60, Duration.ofMinutes(1))),
-            Map.entry("/reviews",                       new Rule(20, Duration.ofHours(1))),
-            Map.entry("/users/upload-college-id",       new Rule(10, Duration.ofHours(1))),
-            Map.entry("/ride-requests",                 new Rule(20, Duration.ofHours(1)))
-    );
+    private static final Map<String, Rule> RULES =
+            Map.ofEntries(
+                    Map.entry("/auth/login", new Rule(10, Duration.ofMinutes(1))),
+                    Map.entry("/auth/register", new Rule(5, Duration.ofMinutes(10))),
+                    Map.entry("/auth/forgot-password", new Rule(3, Duration.ofMinutes(10))),
+                    Map.entry("/auth/resend-otp", new Rule(3, Duration.ofMinutes(10))),
+                    Map.entry("/auth/send-college-email-otp", new Rule(3, Duration.ofMinutes(10))),
+                    Map.entry("/auth/reset-password", new Rule(10, Duration.ofMinutes(10))),
+                    Map.entry("/auth/verify-otp", new Rule(10, Duration.ofMinutes(10))),
+                    Map.entry("/auth/login-verify-otp", new Rule(10, Duration.ofMinutes(10))),
+                    Map.entry(
+                            "/auth/verify-college-email-otp", new Rule(10, Duration.ofMinutes(10))),
+                    Map.entry("/auth/refresh-token", new Rule(30, Duration.ofMinutes(1))),
+                    Map.entry("/rides", new Rule(20, Duration.ofHours(1))),
+                    Map.entry("/bookings", new Rule(30, Duration.ofHours(1))),
+                    Map.entry("/chat/send", new Rule(60, Duration.ofMinutes(1))),
+                    Map.entry("/reviews", new Rule(20, Duration.ofHours(1))),
+                    Map.entry("/users/upload-college-id", new Rule(10, Duration.ofHours(1))),
+                    Map.entry("/ride-requests", new Rule(20, Duration.ofHours(1))));
 
-    // /safety/... calls that send emails (share link, report) share one budget.
-    // SOS has its own, so saving contacts or sharing a trip can never use up the SOS button.
     private static final String SAFETY_PREFIX = "/safety/";
     private static final Rule SAFETY_RULE = new Rule(10, Duration.ofMinutes(10));
     private static final String SOS_PATH = "/safety/sos";
@@ -54,7 +50,6 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private static final String CONTACTS_PATH = "/safety/emergency-contacts";
     private static final Rule CONTACTS_RULE = new Rule(20, Duration.ofHours(1));
 
-    // The trip OTP has only 4 digits, so a driver gets a few tries per booking, not 10,000
     private static final String RIDE_OTP_SUFFIX = "/verify-ride-otp";
     private static final Rule RIDE_OTP_RULE = new Rule(5, Duration.ofMinutes(10));
 
@@ -71,17 +66,23 @@ public class RateLimitFilter extends OncePerRequestFilter {
         if (path.equals(SOS_PATH)) return SOS_RULE;
         if (path.equals(CONTACTS_PATH)) return CONTACTS_RULE;
         if (path.startsWith(SAFETY_PREFIX)) return SAFETY_RULE;
-        return path.startsWith("/bookings/") && path.endsWith(RIDE_OTP_SUFFIX) ? RIDE_OTP_RULE : null;
+        return path.startsWith("/bookings/") && path.endsWith(RIDE_OTP_SUFFIX)
+                ? RIDE_OTP_RULE
+                : null;
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(
+            HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
         String path = path(request);
         Rule rule = ruleFor(path);
-        String bucket = path.startsWith(SAFETY_PREFIX) && !path.equals(SOS_PATH) && !path.equals(CONTACTS_PATH)
-                ? SAFETY_PREFIX : path;
+        String bucket =
+                path.startsWith(SAFETY_PREFIX)
+                                && !path.equals(SOS_PATH)
+                                && !path.equals(CONTACTS_PATH)
+                        ? SAFETY_PREFIX
+                        : path;
         long windowMs = rule.window().toMillis();
         long windowStart = System.currentTimeMillis() / windowMs;
         String key = "aviro:rl:" + bucket + ":" + caller(request) + ":" + windowStart;
@@ -92,20 +93,26 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 redisTemplate.expire(key, rule.window());
             }
             if (count != null && count > rule.maxRequests()) {
-                long retryAfterSec = Math.max(1,
-                        ((windowStart + 1) * windowMs - System.currentTimeMillis()) / 1000);
+                long retryAfterSec =
+                        Math.max(
+                                1,
+                                ((windowStart + 1) * windowMs - System.currentTimeMillis()) / 1000);
                 log.warn("Rate limit hit: {} from {}", path, clientIp(request));
                 response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
                 response.setHeader("Retry-After", String.valueOf(retryAfterSec));
                 response.setContentType(MediaType.APPLICATION_JSON_VALUE);
                 response.setCharacterEncoding("UTF-8");
                 long minutes = (retryAfterSec + 59) / 60;
-                response.getWriter().write("{\"success\":false,\"message\":\"Too many attempts. Please try again in "
-                        + minutes + (minutes == 1 ? " minute" : " minutes") + ".\"}");
+                response.getWriter()
+                        .write(
+                                "{\"success\":false,\"message\":\"Too many attempts. Please try"
+                                    + " again in "
+                                        + minutes
+                                        + (minutes == 1 ? " minute" : " minutes")
+                                        + ".\"}");
                 return;
             }
         } catch (Exception e) {
-            // Redis down: let the request through rather than blocking all logins
             log.warn("Rate limit check failed: {}", e.getMessage());
         }
 
@@ -116,7 +123,6 @@ public class RateLimitFilter extends OncePerRequestFilter {
         return request.getRequestURI().substring(request.getContextPath().length());
     }
 
-    // Signed-in calls count per token, so students sharing college Wi-Fi don't block each other
     private String caller(HttpServletRequest request) {
         String auth = request.getHeader("Authorization");
         if (auth != null && auth.startsWith("Bearer ") && auth.length() > 40) {
@@ -126,7 +132,6 @@ public class RateLimitFilter extends OncePerRequestFilter {
     }
 
     private String clientIp(HttpServletRequest request) {
-        // Render sits behind Cloudflare, which sets the real client IP here
         String cf = request.getHeader("CF-Connecting-IP");
         if (cf != null && !cf.isBlank()) return cf.trim();
         String forwarded = request.getHeader("X-Forwarded-For");
