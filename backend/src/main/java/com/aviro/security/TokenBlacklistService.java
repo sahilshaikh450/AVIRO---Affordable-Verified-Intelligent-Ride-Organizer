@@ -13,6 +13,8 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.util.Date;
 import java.util.HexFormat;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +31,9 @@ public class TokenBlacklistService {
     private final TtlCache<String, Boolean> knownGood = new TtlCache<>(60_000, 50_000);
     private final JwtTokenProvider jwtTokenProvider;
 
+    private final Map<String, Long> revokedLocally = new ConcurrentHashMap<>();
+    private final Map<String, Long> revokedBeforeLocally = new ConcurrentHashMap<>();
+
     public void revoke(String token) {
         if (token == null || token.isBlank() || !jwtTokenProvider.validateToken(token)) {
             return;
@@ -38,6 +43,8 @@ public class TokenBlacklistService {
             Date expiry = jwtTokenProvider.getExpirationFromToken(token);
             long ttlMs = expiry.getTime() - System.currentTimeMillis();
             if (ttlMs > 0) {
+                pruneLocal();
+                revokedLocally.put(hash(token), expiry.getTime());
                 redisTemplate
                         .opsForValue()
                         .set(PREFIX + hash(token), "1", Duration.ofMillis(ttlMs));
@@ -48,6 +55,8 @@ public class TokenBlacklistService {
     }
 
     public void revokeAllFor(String email) {
+        revokedBeforeLocally.put(email, System.currentTimeMillis());
+        knownGood.clear();
         try {
             redisTemplate
                     .opsForValue()
@@ -63,6 +72,7 @@ public class TokenBlacklistService {
 
     public boolean isRevoked(String token) {
         String key = hash(token);
+        if (revokedLocally.containsKey(key) || issuedBeforeLocalCutoff(token)) return true;
         if (knownGood.getIfPresent(key) != null) return false;
         try {
             if (Boolean.TRUE.equals(redisTemplate.hasKey(PREFIX + key))) return true;
@@ -77,9 +87,25 @@ public class TokenBlacklistService {
             if (!revoked) knownGood.put(key, Boolean.TRUE);
             return revoked;
         } catch (Exception e) {
-            log.warn("Token blacklist check failed: {}", e.getMessage());
+            log.warn("Token blacklist check failed, using this server's list: {}", e.getMessage());
             return false;
         }
+    }
+
+    private boolean issuedBeforeLocalCutoff(String token) {
+        if (revokedBeforeLocally.isEmpty()) return false;
+        try {
+            Long before = revokedBeforeLocally.get(jwtTokenProvider.getEmailFromToken(token));
+            return before != null && jwtTokenProvider.getIssuedAtMsFromToken(token) < before;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private void pruneLocal() {
+        long now = System.currentTimeMillis();
+        revokedLocally.values().removeIf(expiry -> expiry < now);
+        revokedBeforeLocally.values().removeIf(at -> at + refreshExpirationMs < now);
     }
 
     private String hash(String token) {

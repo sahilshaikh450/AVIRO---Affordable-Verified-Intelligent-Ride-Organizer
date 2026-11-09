@@ -7,6 +7,7 @@ import com.aviro.entity.User;
 import com.aviro.enums.Role;
 import com.aviro.exception.AviroException;
 import com.aviro.repository.UserRepository;
+import com.aviro.security.AttemptCounter;
 import com.aviro.security.JwtTokenProvider;
 import com.aviro.security.TokenBlacklistService;
 import com.aviro.service.AuthService;
@@ -17,11 +18,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.util.regex.Pattern;
 
 @Service
@@ -37,6 +40,12 @@ public class AuthServiceImpl implements AuthService {
 
     private final OtpService otpService;
     private final EmailService emailService;
+    private final AttemptCounter attempts;
+
+    private static final int MAX_FAILED_LOGINS = 10;
+    private static final Duration LOGIN_LOCK_WINDOW = Duration.ofMinutes(15);
+    private static final Duration CODE_COOLDOWN = Duration.ofMinutes(1);
+    private static final int MAX_CODES_PER_HOUR = 5;
 
     private static final String VERIFY_OTP_PREFIX = "verify:";
     private static final String RESET_OTP_PREFIX = "reset:";
@@ -90,14 +99,32 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private void sendSignupCode(User user) {
+        if (!sendSignupCodeUnlessRecent(user)) {
+            throw new AviroException(
+                    "We just sent a code to "
+                            + user.getEmail()
+                            + ". Please wait a minute before asking again.");
+        }
+    }
+
+    private boolean sendSignupCodeUnlessRecent(User user) {
         String email = user.getEmail();
+        if (attempts.increment("aviro:code-sent:" + email, CODE_COOLDOWN) > 1) {
+            return false;
+        }
+        if (attempts.increment("aviro:code-hour:" + email, Duration.ofHours(1))
+                > MAX_CODES_PER_HOUR) {
+            throw new AviroException(
+                    "Too many codes sent to this email. Please try again in an hour.");
+        }
         String otp = otpService.generateAndSaveOtp(VERIFY_OTP_PREFIX + email);
         if (!emailService.sendVerificationEmailNow(email, user.getFullName(), otp)) {
             otpService.discard(VERIFY_OTP_PREFIX + email);
             throw new AviroException(
                     "We couldn't send the verification email right now. Please try again in a few"
-                        + " minutes.");
+                            + " minutes.");
         }
+        return true;
     }
 
     private AuthResponse pendingVerification(User user) {
@@ -115,9 +142,28 @@ public class AuthServiceImpl implements AuthService {
     public ApiResponse<AuthResponse> login(AuthRequest.Login request) {
 
         String email = normalizeEmail(request.getEmail());
+        String failKey = "aviro:login-fail:" + email;
 
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(email, request.getPassword()));
+        if (attempts.current(failKey, LOGIN_LOCK_WINDOW) >= MAX_FAILED_LOGINS) {
+            long minutes = (attempts.secondsLeftInWindow(LOGIN_LOCK_WINDOW) + 59) / 60;
+            throw new AviroException(
+                    "Too many wrong passwords for this account. Try again in "
+                            + minutes
+                            + (minutes == 1 ? " minute" : " minutes")
+                            + ", or reset your password.");
+        }
+
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(email, request.getPassword()));
+        } catch (BadCredentialsException e) {
+            long failed = attempts.increment(failKey, LOGIN_LOCK_WINDOW);
+            if (failed >= MAX_FAILED_LOGINS) {
+                log.warn("Login locked for {} after {} wrong passwords", email, failed);
+            }
+            throw e;
+        }
+        attempts.reset(failKey, LOGIN_LOCK_WINDOW);
 
         User user =
                 userRepository
@@ -129,9 +175,15 @@ public class AuthServiceImpl implements AuthService {
         }
 
         if (!Boolean.TRUE.equals(user.getIsVerified())) {
-            sendSignupCode(user);
+            boolean sent = sendSignupCodeUnlessRecent(user);
             return ApiResponse.success(
-                    "Please verify your email first. We sent a new 6-digit code to " + email + ".",
+                    sent
+                            ? "Please verify your email first. We sent a new 6-digit code to "
+                                    + email
+                                    + "."
+                            : "Please verify your email first. Use the code we just sent to "
+                                    + email
+                                    + ".",
                     pendingVerification(user));
         }
 
@@ -268,6 +320,7 @@ public class AuthServiceImpl implements AuthService {
         userRepository.save(user);
 
         tokenBlacklistService.revokeAllFor(user.getEmail());
+        attempts.reset("aviro:login-fail:" + user.getEmail(), LOGIN_LOCK_WINDOW);
 
         return ApiResponse.success(
                 "Password changed. Please sign in with your new password.", null);
