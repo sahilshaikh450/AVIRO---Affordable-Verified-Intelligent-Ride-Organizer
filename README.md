@@ -116,6 +116,8 @@
 
 ## 🏗️ Tech Stack
 
+> Full system design (architecture, flows, classes, ER diagram, APIs, state machines): [docs/HLD-LLD.md](docs/HLD-LLD.md)
+
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
 | **Frontend** | React.js 18 | UI Development |
