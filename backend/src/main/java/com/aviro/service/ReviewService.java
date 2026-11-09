@@ -10,7 +10,9 @@ import com.aviro.exception.AviroException;
 import com.aviro.repository.BookingRepository;
 import com.aviro.repository.ReviewRepository;
 import com.aviro.repository.UserRepository;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,18 +28,25 @@ public class ReviewService {
 
     @Transactional
     public ApiResponse<String> submitReview(String reviewerEmail, ReviewRequest request) {
-        User reviewer = userRepository.findByEmail(reviewerEmail)
-                .orElseThrow(() -> new AviroException("User not found"));
-        User reviewee = userRepository.findById(request.getRevieweeId())
-                .orElseThrow(() -> new AviroException("Reviewee not found"));
-        Booking booking = bookingRepository.findById(request.getBookingId())
-                .orElseThrow(() -> new AviroException("Booking not found"));
+        User reviewer =
+                userRepository
+                        .findByEmail(reviewerEmail)
+                        .orElseThrow(() -> new AviroException("User not found"));
+        User reviewee =
+                userRepository
+                        .findById(request.getRevieweeId())
+                        .orElseThrow(() -> new AviroException("Reviewee not found"));
+        Booking booking =
+                bookingRepository
+                        .findById(request.getBookingId())
+                        .orElseThrow(() -> new AviroException("Booking not found"));
 
-        // Only the rider and driver of this booking can review each other
         Long riderId = booking.getRider().getId();
         Long driverId = booking.getRide().getDriver().getId();
-        boolean riderReviewsDriver = reviewer.getId().equals(riderId) && reviewee.getId().equals(driverId);
-        boolean driverReviewsRider = reviewer.getId().equals(driverId) && reviewee.getId().equals(riderId);
+        boolean riderReviewsDriver =
+                reviewer.getId().equals(riderId) && reviewee.getId().equals(driverId);
+        boolean driverReviewsRider =
+                reviewer.getId().equals(driverId) && reviewee.getId().equals(riderId);
         if (!riderReviewsDriver && !driverReviewsRider) {
             throw new AviroException("You can only review the other person on your own ride");
         }
@@ -50,13 +59,16 @@ public class ReviewService {
             throw new AviroException("You have already reviewed this ride");
         }
 
-        Review review = Review.builder()
-                .reviewer(reviewer).reviewee(reviewee)
-                .booking(booking).rating(request.getRating())
-                .comment(request.getComment()).build();
+        Review review =
+                Review.builder()
+                        .reviewer(reviewer)
+                        .reviewee(reviewee)
+                        .booking(booking)
+                        .rating(request.getRating())
+                        .comment(request.getComment())
+                        .build();
         reviewRepository.save(review);
 
-        // Update reviewee average rating
         Double avg = reviewRepository.getAverageRating(reviewee.getId());
         reviewee.setRating(avg != null ? Math.round(avg * 10.0) / 10.0 : 5.0);
         userRepository.save(reviewee);

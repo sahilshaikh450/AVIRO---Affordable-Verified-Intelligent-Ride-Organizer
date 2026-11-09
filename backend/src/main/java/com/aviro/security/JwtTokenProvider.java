@@ -2,7 +2,9 @@ package com.aviro.security;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -57,13 +59,13 @@ public class JwtTokenProvider {
                 .getSubject();
     }
 
-    // Issue time in milliseconds ("iat" alone is whole seconds); tokens made before this claim existed use "iat"
     public long getIssuedAtMsFromToken(String token) {
-        Claims claims = Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
+        Claims claims =
+                Jwts.parserBuilder()
+                        .setSigningKey(getSigningKey())
+                        .build()
+                        .parseClaimsJws(token)
+                        .getBody();
         Number ms = claims.get(ISSUED_MS, Number.class);
         return ms != null ? ms.longValue() : claims.getIssuedAt().getTime();
     }
@@ -79,17 +81,12 @@ public class JwtTokenProvider {
 
     public boolean validateToken(String token) {
         try {
-            Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
-                .build()
-                .parseClaimsJws(token);
+            Jwts.parserBuilder().setSigningKey(getSigningKey()).build().parseClaimsJws(token);
             return true;
         } catch (ExpiredJwtException e) {
-            // Token expired — warn level only, not error (this is normal/expected)
             log.warn("JWT token expired: {}", e.getMessage());
             return false;
         } catch (JwtException | IllegalArgumentException e) {
-            // Truly invalid token — warn level
             log.warn("Invalid JWT token: {}", e.getMessage());
             return false;
         }
@@ -97,10 +94,7 @@ public class JwtTokenProvider {
 
     public boolean isTokenExpired(String token) {
         try {
-            Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
-                .build()
-                .parseClaimsJws(token);
+            Jwts.parserBuilder().setSigningKey(getSigningKey()).build().parseClaimsJws(token);
             return false;
         } catch (ExpiredJwtException e) {
             return true;

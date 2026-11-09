@@ -1,13 +1,14 @@
 package com.aviro.it;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.aviro.entity.User;
 import com.aviro.enums.Role;
 import com.aviro.support.IntegrationTest;
+
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 class AuthAccessIT extends IntegrationTest {
 
@@ -28,27 +29,74 @@ class AuthAccessIT extends IntegrationTest {
         User u = student("Token User");
         String good = token(u);
         String[] parts = good.split("\\.");
-        String swapped = parts[0] + "." + java.util.Base64.getUrlEncoder().withoutPadding()
-                .encodeToString(("{\"sub\":\"admin@aviro.app\",\"iat\":1,\"exp\":9999999999}").getBytes()) + "." + parts[2];
-        for (String bad : new String[]{swapped, good + "x", "not.a.token"}) {
-            var r = mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/users/profile")
-                    .header("Authorization", "Bearer " + bad)).andReturn();
+        String swapped =
+                parts[0]
+                        + "."
+                        + java.util.Base64.getUrlEncoder()
+                                .withoutPadding()
+                                .encodeToString(
+                                        ("{\"sub\":\"admin@aviro.app\",\"iat\":1,\"exp\":9999999999}")
+                                                .getBytes())
+                        + "."
+                        + parts[2];
+        for (String bad : new String[] {swapped, good + "x", "not.a.token"}) {
+            var r =
+                    mvc.perform(
+                                    org.springframework.test.web.servlet.request
+                                            .MockMvcRequestBuilders.get("/users/profile")
+                                            .header("Authorization", "Bearer " + bad))
+                            .andReturn();
             assertThat(r.getResponse().getStatus()).isIn(401, 403);
         }
     }
 
     @Test
     void registeringCannotGrantAdminOrVerification() throws Exception {
-        var admin = post("/auth/register", null, Map.of(
-                "fullName", "Evil Student", "email", "evil.admin@gmail.com", "password", "password123",
-                "gender", "MALE", "role", "ADMIN", "collegeName", "PICT", "locality", "Katraj"));
+        var admin =
+                post(
+                        "/auth/register",
+                        null,
+                        Map.of(
+                                "fullName",
+                                "Evil Student",
+                                "email",
+                                "evil.admin@gmail.com",
+                                "password",
+                                "password123",
+                                "gender",
+                                "MALE",
+                                "role",
+                                "ADMIN",
+                                "collegeName",
+                                "PICT",
+                                "locality",
+                                "Katraj"));
         assertThat(admin.status()).isEqualTo(400);
         assertThat(users.findByEmail("evil.admin@gmail.com")).isEmpty();
 
-        var sneaky = post("/auth/register", null, Map.of(
-                "fullName", "Evil Student", "email", "evil.student@gmail.com", "password", "password123",
-                "gender", "MALE", "role", "RIDER", "collegeName", "PICT", "locality", "Katraj",
-                "isCollegeVerified", true, "aviroCredits", 999999));
+        var sneaky =
+                post(
+                        "/auth/register",
+                        null,
+                        Map.of(
+                                "fullName",
+                                "Evil Student",
+                                "email",
+                                "evil.student@gmail.com",
+                                "password",
+                                "password123",
+                                "gender",
+                                "MALE",
+                                "role",
+                                "RIDER",
+                                "collegeName",
+                                "PICT",
+                                "locality",
+                                "Katraj",
+                                "isCollegeVerified",
+                                true,
+                                "aviroCredits",
+                                999999));
         assertThat(sneaky.status()).as(sneaky.text()).isLessThan(300);
         User saved = users.findByEmail("evil.student@gmail.com").orElseThrow();
         assertThat(saved.getRole()).isEqualTo(Role.RIDER);
@@ -59,7 +107,10 @@ class AuthAccessIT extends IntegrationTest {
     @Test
     void profileUpdateIgnoresRoleEmailAndCredits() throws Exception {
         User u = student("Plain Student");
-        put("/users/profile", u, Map.of("role", "ADMIN", "email", "hijack@x.com", "aviroCredits", 999999));
+        put(
+                "/users/profile",
+                u,
+                Map.of("role", "ADMIN", "email", "hijack@x.com", "aviroCredits", 999999));
         User after = users.findById(u.getId()).orElseThrow();
         assertThat(after.getRole()).isEqualTo(Role.BOTH);
         assertThat(after.getEmail()).isEqualTo(u.getEmail());

@@ -4,10 +4,8 @@ import { Spinner, GenderBadge } from '../components/common/UIComponents';
 import toast from 'react-hot-toast';
 import Icon, { initial } from '../components/common/Icon';
 
-// The image endpoint needs the JWT, which a plain <img src> or link can't send.
-// Fetch it through the api client (adds the token) and show it as a blob URL.
 function CollegeIdImage({ url, onExpand }) {
-  const [src, setSrc]     = useState(null);
+  const [src, setSrc] = useState(null);
   const [error, setError] = useState(null);
   const [retry, setRetry] = useState(0);
 
@@ -16,18 +14,20 @@ function CollegeIdImage({ url, onExpand }) {
     let cancelled = false;
     setSrc(null);
     setError(null);
-    // Stored as "/api/users/..."; the api client already has the /api base
-    api.get(url.replace(/^\/api/, ''), { responseType: 'blob' })
-      .then(res => {
+    api
+      .get(url.replace(/^\/api/, ''), { responseType: 'blob' })
+      .then((res) => {
         if (cancelled) return;
         objectUrl = URL.createObjectURL(res.data);
         setSrc(objectUrl);
       })
-      .catch(err => {
+      .catch((err) => {
         if (cancelled) return;
-        setError(err.response?.status === 404
-          ? 'Image file not found on server. Ask the user to upload again.'
-          : 'Image not loading');
+        setError(
+          err.response?.status === 404
+            ? 'Image file not found on server. Ask the user to upload again.'
+            : 'Image not loading'
+        );
       });
     return () => {
       cancelled = true;
@@ -41,8 +41,11 @@ function CollegeIdImage({ url, onExpand }) {
         <span className="text-2xl">🖼️</span>
         <div>
           <p className="text-xs text-aviro-muted">{error}</p>
-          <button type="button" onClick={() => setRetry(r => r + 1)}
-            className="text-xs text-aviro-orange hover:underline">
+          <button
+            type="button"
+            onClick={() => setRetry((r) => r + 1)}
+            className="text-xs text-aviro-orange hover:underline"
+          >
             Try again →
           </button>
         </div>
@@ -66,25 +69,25 @@ function CollegeIdImage({ url, onExpand }) {
         className="w-full max-h-64 object-contain rounded-xl border border-aviro-border bg-aviro-card2 cursor-zoom-in hover:opacity-90 transition-opacity"
         onClick={() => onExpand(src)}
       />
-      <p className="text-xs text-aviro-muted mt-1 text-center">
-        Tap image to view full size
-      </p>
+      <p className="text-xs text-aviro-muted mt-1 text-center">Tap image to view full size</p>
     </>
   );
 }
 
 export default function AdminPage() {
-  const [pending, setPending]               = useState([]);
+  const [pending, setPending] = useState([]);
   const [pendingVehicles, setPendingVehicles] = useState([]);
-  const [stats, setStats]                   = useState(null);
-  const [loading, setLoading]               = useState(true);
-  const [processingId, setProcessingId]     = useState(null);
-  const [tab, setTab]                       = useState('college');
-  const [expandedImg, setExpandedImg]       = useState(null); // fullscreen image
-  const [forbidden, setForbidden]           = useState(false);
-  const [reports, setReports]               = useState([]);
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [processingId, setProcessingId] = useState(null);
+  const [tab, setTab] = useState('college');
+  const [expandedImg, setExpandedImg] = useState(null);
+  const [forbidden, setForbidden] = useState(false);
+  const [reports, setReports] = useState([]);
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const loadData = async () => {
     setLoading(true);
@@ -110,9 +113,15 @@ export default function AdminPage() {
     setProcessingId(`r${id}`);
     try {
       await api.post(`/admin/safety-reports/${id}/resolve`);
-      setReports(rs => rs.map(r => r.id === id ? { ...r, status: 'RESOLVED', resolvedAt: new Date().toISOString() } : r));
+      setReports((rs) =>
+        rs.map((r) =>
+          r.id === id ? { ...r, status: 'RESOLVED', resolvedAt: new Date().toISOString() } : r
+        )
+      );
       toast.success('Marked as resolved');
-    } catch { toast.error('Failed to update'); }
+    } catch {
+      toast.error('Failed to update');
+    }
     setProcessingId(null);
   };
 
@@ -122,7 +131,9 @@ export default function AdminPage() {
       await api.post(`/admin/verify-college-id/${userId}`);
       toast.success('College ID verified! ✅');
       loadData();
-    } catch { toast.error('Failed to approve'); }
+    } catch {
+      toast.error('Failed to approve');
+    }
     setProcessingId(null);
   };
 
@@ -132,7 +143,9 @@ export default function AdminPage() {
       await api.post(`/admin/reject-college-id/${userId}`);
       toast.success('Verification rejected');
       loadData();
-    } catch { toast.error('Failed to reject'); }
+    } catch {
+      toast.error('Failed to reject');
+    }
     setProcessingId(null);
   };
 
@@ -142,7 +155,9 @@ export default function AdminPage() {
       await api.post(`/admin/verify-vehicle/${vehicleId}`);
       toast.success('Vehicle verified! ✅');
       loadData();
-    } catch { toast.error('Failed to approve vehicle'); }
+    } catch {
+      toast.error('Failed to approve vehicle');
+    }
     setProcessingId(null);
   };
 
@@ -152,36 +167,50 @@ export default function AdminPage() {
       await api.post(`/admin/reject-vehicle/${vehicleId}`);
       toast.success('Vehicle rejected');
       loadData();
-    } catch { toast.error('Failed to reject vehicle'); }
+    } catch {
+      toast.error('Failed to reject vehicle');
+    }
     setProcessingId(null);
   };
 
-  if (loading) return <div className="flex justify-center py-20"><Spinner size="lg" /></div>;
+  if (loading)
+    return (
+      <div className="flex justify-center py-20">
+        <Spinner size="lg" />
+      </div>
+    );
 
-  if (forbidden) return (
-    <div className="max-w-md mx-auto text-center py-20 space-y-3">
-      <div className="text-5xl"><Icon e="🔒" /></div>
-      <h1 className="font-display font-bold text-xl">Admin access only</h1>
-      <p className="text-aviro-muted text-sm">
-        Your account does not have admin rights. Ask the project admin to add your email to AVIRO_ADMIN_EMAILS.
-      </p>
-    </div>
-  );
+  if (forbidden)
+    return (
+      <div className="max-w-md mx-auto text-center py-20 space-y-3">
+        <div className="text-5xl">
+          <Icon e="🔒" />
+        </div>
+        <h1 className="font-display font-bold text-xl">Admin access only</h1>
+        <p className="text-aviro-muted text-sm">
+          Your account does not have admin rights. Ask the project admin to add your email to
+          AVIRO_ADMIN_EMAILS.
+        </p>
+      </div>
+    );
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 animate-fade-up">
-
-      {/* Fullscreen image modal */}
       {expandedImg && (
         <div
           className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
           onClick={() => setExpandedImg(null)}
         >
           <div className="relative max-w-2xl w-full">
-            <img src={expandedImg} alt="College ID Full"
-              className="w-full rounded-2xl object-contain max-h-[80vh]"/>
-            <button onClick={() => setExpandedImg(null)}
-              className="absolute top-2 right-2 bg-black/50 text-aviro-fg rounded-full w-8 h-8 flex items-center justify-center text-lg">
+            <img
+              src={expandedImg}
+              alt="College ID Full"
+              className="w-full rounded-2xl object-contain max-h-[80vh]"
+            />
+            <button
+              onClick={() => setExpandedImg(null)}
+              className="absolute top-2 right-2 bg-black/50 text-aviro-fg rounded-full w-8 h-8 flex items-center justify-center text-lg"
+            >
               <Icon e="✕" />
             </button>
             <p className="text-center text-xs text-gray-400 mt-2">Tap anywhere to close</p>
@@ -191,10 +220,11 @@ export default function AdminPage() {
 
       <div>
         <h1 className="font-display font-bold text-2xl mb-1">Admin Panel</h1>
-        <p className="text-aviro-muted text-sm">Review and verify college ID & vehicle submissions</p>
+        <p className="text-aviro-muted text-sm">
+          Review and verify college ID & vehicle submissions
+        </p>
       </div>
 
-      {/* Stats */}
       {stats && (
         <div className="grid grid-cols-3 gap-4">
           <div className="card p-4 text-center">
@@ -212,59 +242,86 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* Tabs */}
       <div className="flex gap-2 bg-aviro-card2 p-1.5 rounded-xl border border-aviro-border">
-        <button onClick={() => setTab('college')}
+        <button
+          onClick={() => setTab('college')}
           className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all
-            ${tab === 'college' ? 'bg-aviro-orange text-white' : 'text-aviro-muted hover:text-aviro-fg'}`}>
+            ${tab === 'college' ? 'bg-aviro-orange text-white' : 'text-aviro-muted hover:text-aviro-fg'}`}
+        >
           🎓 College IDs
           {pending.length > 0 && (
-            <span className="ml-2 bg-white/20 text-xs px-1.5 py-0.5 rounded-full">{pending.length}</span>
+            <span className="ml-2 bg-white/20 text-xs px-1.5 py-0.5 rounded-full">
+              {pending.length}
+            </span>
           )}
         </button>
-        <button onClick={() => setTab('vehicle')}
+        <button
+          onClick={() => setTab('vehicle')}
           className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all
-            ${tab === 'vehicle' ? 'bg-aviro-orange text-white' : 'text-aviro-muted hover:text-aviro-fg'}`}>
+            ${tab === 'vehicle' ? 'bg-aviro-orange text-white' : 'text-aviro-muted hover:text-aviro-fg'}`}
+        >
           🏍️ Vehicles
           {pendingVehicles.length > 0 && (
-            <span className="ml-2 bg-white/20 text-xs px-1.5 py-0.5 rounded-full">{pendingVehicles.length}</span>
+            <span className="ml-2 bg-white/20 text-xs px-1.5 py-0.5 rounded-full">
+              {pendingVehicles.length}
+            </span>
           )}
         </button>
-        <button onClick={() => setTab('reports')}
+        <button
+          onClick={() => setTab('reports')}
           className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all
-            ${tab === 'reports' ? 'bg-aviro-orange text-white' : 'text-aviro-muted hover:text-aviro-fg'}`}>
+            ${tab === 'reports' ? 'bg-aviro-orange text-white' : 'text-aviro-muted hover:text-aviro-fg'}`}
+        >
           🚩 Reports
-          {reports.some(r => r.status === 'OPEN') && (
-            <span className="ml-2 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">{reports.filter(r => r.status === 'OPEN').length}</span>
+          {reports.some((r) => r.status === 'OPEN') && (
+            <span className="ml-2 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+              {reports.filter((r) => r.status === 'OPEN').length}
+            </span>
           )}
         </button>
       </div>
 
-      {/* ── SAFETY REPORTS TAB ── */}
       {tab === 'reports' && (
         <div data-testid="admin-reports">
-          <h2 className="font-bold text-lg mb-3">Safety reports ({reports.filter(r => r.status === 'OPEN').length} open)</h2>
+          <h2 className="font-bold text-lg mb-3">
+            Safety reports ({reports.filter((r) => r.status === 'OPEN').length} open)
+          </h2>
           {reports.length === 0 ? (
             <div className="card p-8 text-center text-aviro-muted text-sm">No reports yet.</div>
           ) : (
             <div className="space-y-3">
-              {reports.map(r => (
-                <div key={r.id} className={`card p-4 space-y-2 ${r.status === 'OPEN' ? 'border-red-500/40' : 'opacity-70'}`}>
+              {reports.map((r) => (
+                <div
+                  key={r.id}
+                  className={`card p-4 space-y-2 ${r.status === 'OPEN' ? 'border-red-500/40' : 'opacity-70'}`}
+                >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="font-semibold text-red-700">{r.reason}</p>
-                      <p className="text-xs text-aviro-muted">#{r.id} · {new Date(r.createdAt).toLocaleString('en-IN')} · booking #{r.bookingId}</p>
+                      <p className="text-xs text-aviro-muted">
+                        #{r.id} · {new Date(r.createdAt).toLocaleString('en-IN')} · booking #
+                        {r.bookingId}
+                      </p>
                     </div>
-                    <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${r.status === 'OPEN' ? 'bg-red-500/15 text-red-700' : 'bg-green-500/15 text-green-700'}`}>
+                    <span
+                      className={`text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${r.status === 'OPEN' ? 'bg-red-500/15 text-red-700' : 'bg-green-500/15 text-green-700'}`}
+                    >
                       {r.status === 'OPEN' ? 'Open' : 'Resolved'}
                     </span>
                   </div>
-                  {r.details && <p className="text-sm bg-aviro-card2 rounded-lg p-3 whitespace-pre-wrap break-words">{r.details}</p>}
+                  {r.details && (
+                    <p className="text-sm bg-aviro-card2 rounded-lg p-3 whitespace-pre-wrap break-words">
+                      {r.details}
+                    </p>
+                  )}
                   <div className="grid sm:grid-cols-2 gap-2 text-xs">
                     <div className="bg-aviro-card2 rounded-lg p-2.5">
                       <p className="text-aviro-muted">Reported</p>
                       <p className="font-semibold">{r.reportedName}</p>
-                      <p className="text-aviro-muted break-all">{r.reportedEmail}{r.reportedPhone ? ` · ${r.reportedPhone}` : ''}</p>
+                      <p className="text-aviro-muted break-all">
+                        {r.reportedEmail}
+                        {r.reportedPhone ? ` · ${r.reportedPhone}` : ''}
+                      </p>
                     </div>
                     <div className="bg-aviro-card2 rounded-lg p-2.5">
                       <p className="text-aviro-muted">By</p>
@@ -272,10 +329,15 @@ export default function AdminPage() {
                       <p className="text-aviro-muted break-all">{r.reporterEmail}</p>
                     </div>
                   </div>
-                  <p className="text-xs text-aviro-muted"><Icon e="🗺️" /> {r.route} · {new Date(r.departureTime).toLocaleString('en-IN')}</p>
+                  <p className="text-xs text-aviro-muted">
+                    <Icon e="🗺️" /> {r.route} · {new Date(r.departureTime).toLocaleString('en-IN')}
+                  </p>
                   {r.status === 'OPEN' && (
-                    <button onClick={() => resolveReport(r.id)} disabled={processingId === `r${r.id}`}
-                      className="w-full bg-aviro-green/15 text-aviro-green border border-aviro-green/30 font-bold py-2 rounded-xl text-sm disabled:opacity-50">
+                    <button
+                      onClick={() => resolveReport(r.id)}
+                      disabled={processingId === `r${r.id}`}
+                      className="w-full bg-aviro-green/15 text-aviro-green border border-aviro-green/30 font-bold py-2 rounded-xl text-sm disabled:opacity-50"
+                    >
                       <Icon e="✓" /> Mark as resolved
                     </button>
                   )}
@@ -286,17 +348,19 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* ── COLLEGE ID TAB ── */}
       {tab === 'college' && (
         <div>
           <h2 className="font-bold text-lg mb-3">⏳ Pending College IDs ({pending.length})</h2>
           {pending.length === 0 ? (
             <div className="card p-8 text-center text-aviro-muted text-sm">
-              <div className="text-3xl mb-2"><Icon e="✅" /></div>No pending college ID verifications!
+              <div className="text-3xl mb-2">
+                <Icon e="✅" />
+              </div>
+              No pending college ID verifications!
             </div>
           ) : (
             <div className="space-y-4">
-              {pending.map(u => (
+              {pending.map((u) => (
                 <div key={u.id} className="card p-5">
                   <div className="flex items-start justify-between gap-4 mb-4">
                     <div className="flex items-center gap-3">
@@ -312,26 +376,35 @@ export default function AdminPage() {
                     <GenderBadge gender={u.gender} label="" />
                   </div>
 
-                  {/* College ID image (loaded with the admin's token) */}
                   {u.collegeIdPicUrl ? (
                     <div className="mb-4">
-                      <p className="text-xs text-aviro-muted mb-2"><Icon e="📷" /> Uploaded College ID:</p>
+                      <p className="text-xs text-aviro-muted mb-2">
+                        <Icon e="📷" /> Uploaded College ID:
+                      </p>
                       <CollegeIdImage url={u.collegeIdPicUrl} onExpand={setExpandedImg} />
                     </div>
                   ) : (
                     <div className="mb-4 bg-aviro-card2 rounded-xl p-4 text-center text-aviro-muted text-sm">
-                      <span className="text-2xl block mb-1"><Icon e="📷" /></span>
+                      <span className="text-2xl block mb-1">
+                        <Icon e="📷" />
+                      </span>
                       No image uploaded yet
                     </div>
                   )}
 
                   <div className="flex gap-3">
-                    <button onClick={() => handleApprove(u.id)} disabled={processingId === u.id}
-                      className="flex-1 bg-aviro-green text-white font-bold py-2.5 rounded-xl text-sm hover:opacity-90 disabled:opacity-50">
+                    <button
+                      onClick={() => handleApprove(u.id)}
+                      disabled={processingId === u.id}
+                      className="flex-1 bg-aviro-green text-white font-bold py-2.5 rounded-xl text-sm hover:opacity-90 disabled:opacity-50"
+                    >
                       {processingId === u.id ? 'Processing...' : '✅ Approve'}
                     </button>
-                    <button onClick={() => handleReject(u.id)} disabled={processingId === u.id}
-                      className="flex-1 bg-red-500/10 text-red-600 border border-red-500/30 font-bold py-2.5 rounded-xl text-sm hover:bg-red-500/20 disabled:opacity-50">
+                    <button
+                      onClick={() => handleReject(u.id)}
+                      disabled={processingId === u.id}
+                      className="flex-1 bg-red-500/10 text-red-600 border border-red-500/30 font-bold py-2.5 rounded-xl text-sm hover:bg-red-500/20 disabled:opacity-50"
+                    >
                       <Icon e="❌" /> Reject
                     </button>
                   </div>
@@ -342,30 +415,43 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* ── VEHICLE TAB ── */}
       {tab === 'vehicle' && (
         <div>
           <h2 className="font-bold text-lg mb-3">⏳ Pending Vehicles ({pendingVehicles.length})</h2>
           {pendingVehicles.length === 0 ? (
             <div className="card p-8 text-center text-aviro-muted text-sm">
-              <div className="text-3xl mb-2"><Icon e="✅" /></div>No pending vehicle verifications!
+              <div className="text-3xl mb-2">
+                <Icon e="✅" />
+              </div>
+              No pending vehicle verifications!
             </div>
           ) : (
             <div className="space-y-4">
-              {pendingVehicles.map(v => (
+              {pendingVehicles.map((v) => (
                 <div key={v.vehicleId} className="card p-5">
                   <div className="flex items-start justify-between gap-4 mb-4">
                     <div className="flex items-center gap-3">
                       <div className="text-4xl">
-                        {v.vehicleType === 'CAR'    ? '🚗' :
-                         v.vehicleType === 'BIKE'   ? '🏍️' :
-                         v.vehicleType === 'SCOOTY' ? '🛵' :
-                         v.vehicleType === 'AUTO'   ? '🛺' : '🚐'}
+                        {v.vehicleType === 'CAR'
+                          ? '🚗'
+                          : v.vehicleType === 'BIKE'
+                            ? '🏍️'
+                            : v.vehicleType === 'SCOOTY'
+                              ? '🛵'
+                              : v.vehicleType === 'AUTO'
+                                ? '🛺'
+                                : '🚐'}
                       </div>
                       <div>
-                        <p className="font-bold text-sm">{[[v.make, v.model].filter(Boolean).join(' '), v.color].filter(Boolean).join(' · ') || v.vehicleType}</p>
+                        <p className="font-bold text-sm">
+                          {[[v.make, v.model].filter(Boolean).join(' '), v.color]
+                            .filter(Boolean)
+                            .join(' · ') || v.vehicleType}
+                        </p>
                         <p className="text-xs text-aviro-muted">Reg: {v.registrationNumber}</p>
-                        <p className="text-xs text-aviro-muted">{v.totalSeats} seats · {v.vehicleType}</p>
+                        <p className="text-xs text-aviro-muted">
+                          {v.totalSeats} seats · {v.vehicleType}
+                        </p>
                       </div>
                     </div>
                     <div className="text-right">
@@ -376,26 +462,40 @@ export default function AdminPage() {
                   <div className="bg-aviro-card2 rounded-xl p-3 mb-4">
                     <p className="text-xs text-aviro-muted mb-1">Owner</p>
                     <p className="text-sm font-semibold">{v.ownerName}</p>
-                    <p className="text-xs text-aviro-muted">{v.ownerEmail} · {v.collegeName}</p>
+                    <p className="text-xs text-aviro-muted">
+                      {v.ownerEmail} · {v.collegeName}
+                    </p>
                   </div>
 
-                  {/* Compare the plate in the photo with the number above, and the licence name with the owner */}
                   <div className="grid grid-cols-2 gap-3 mb-4">
-                    {[['Number plate', v.platePhotoUrl], ['Driving licence', v.licencePhotoUrl]].map(([label, url]) => (
+                    {[
+                      ['Number plate', v.platePhotoUrl],
+                      ['Driving licence', v.licencePhotoUrl],
+                    ].map(([label, url]) => (
                       <div key={label}>
                         <p className="text-xs text-aviro-muted mb-1">{label}</p>
-                        {url ? <CollegeIdImage url={url} onExpand={setExpandedImg} /> : <p className="text-xs text-red-600">Not uploaded</p>}
+                        {url ? (
+                          <CollegeIdImage url={url} onExpand={setExpandedImg} />
+                        ) : (
+                          <p className="text-xs text-red-600">Not uploaded</p>
+                        )}
                       </div>
                     ))}
                   </div>
 
                   <div className="flex gap-3">
-                    <button onClick={() => handleVehicleApprove(v.vehicleId)} disabled={processingId === v.vehicleId}
-                      className="flex-1 bg-aviro-green text-white font-bold py-2.5 rounded-xl text-sm hover:opacity-90 disabled:opacity-50">
+                    <button
+                      onClick={() => handleVehicleApprove(v.vehicleId)}
+                      disabled={processingId === v.vehicleId}
+                      className="flex-1 bg-aviro-green text-white font-bold py-2.5 rounded-xl text-sm hover:opacity-90 disabled:opacity-50"
+                    >
                       {processingId === v.vehicleId ? 'Processing...' : '✅ Approve Vehicle'}
                     </button>
-                    <button onClick={() => handleVehicleReject(v.vehicleId)} disabled={processingId === v.vehicleId}
-                      className="flex-1 bg-red-500/10 text-red-600 border border-red-500/30 font-bold py-2.5 rounded-xl text-sm hover:bg-red-500/20 disabled:opacity-50">
+                    <button
+                      onClick={() => handleVehicleReject(v.vehicleId)}
+                      disabled={processingId === v.vehicleId}
+                      className="flex-1 bg-red-500/10 text-red-600 border border-red-500/30 font-bold py-2.5 rounded-xl text-sm hover:bg-red-500/20 disabled:opacity-50"
+                    >
                       <Icon e="❌" /> Reject
                     </button>
                   </div>

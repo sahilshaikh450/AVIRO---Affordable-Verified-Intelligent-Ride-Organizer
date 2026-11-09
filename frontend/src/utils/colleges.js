@@ -1,6 +1,4 @@
-// Colleges in and around Pune, for the sign-up picker. Students can still type a college that isn't listed.
 export const PUNE_COLLEGES = [
-  // Universities
   'MIT World Peace University (MIT-WPU)',
   'Savitribai Phule Pune University (SPPU)',
   'Symbiosis International University (SIU)',
@@ -18,7 +16,6 @@ export const PUNE_COLLEGES = [
   'Defence Institute of Advanced Technology (DIAT)',
   'IISER Pune',
 
-  // Engineering
   'COEP Technological University',
   'Pune Institute of Computer Technology (PICT)',
   'Vishwakarma Institute of Technology (VIT)',
@@ -52,7 +49,6 @@ export const PUNE_COLLEGES = [
   'Genba Sopanrao Moze College of Engineering, Balewadi',
   'Dr. D. Y. Patil College of Engineering and Innovation, Talegaon',
 
-  // Management and computer applications
   'Symbiosis Institute of Business Management (SIBM)',
   'Symbiosis Centre for Management and HRD (SCMHRD)',
   'Symbiosis Institute of Computer Studies and Research (SICSR)',
@@ -69,7 +65,6 @@ export const PUNE_COLLEGES = [
   'Sinhgad Institute of Management',
   'Modern Institute of Business Management',
 
-  // Arts, science and commerce
   'Fergusson College',
   'Brihan Maharashtra College of Commerce (BMCC)',
   'Sir Parashurambhau College (S. P. College)',
@@ -81,7 +76,7 @@ export const PUNE_COLLEGES = [
   'Marathwada Mitra Mandal College of Commerce',
   'H. V. Desai College',
   'Ness Wadia College of Commerce',
-  'St. Mira\'s College for Girls',
+  "St. Mira's College for Girls",
   'MES Garware College of Commerce',
   'Indira College of Commerce and Science',
   'Dr. D. Y. Patil Arts, Commerce and Science College, Pimpri',
@@ -90,7 +85,6 @@ export const PUNE_COLLEGES = [
   'Prof. Ramkrishna More College, Akurdi',
   'Sinhgad College of Commerce',
 
-  // Medical, pharmacy and design
   'B. J. Government Medical College (BJMC)',
   'Armed Forces Medical College (AFMC)',
   'Bharati Vidyapeeth Medical College',

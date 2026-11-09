@@ -1,6 +1,7 @@
 package com.aviro.repository;
 
 import com.aviro.entity.Notification;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -12,18 +13,19 @@ import java.util.List;
 
 @Repository
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
-    // The bell shows the newest ones; older notifications stay stored but are not sent
     List<Notification> findTop50ByUserIdOrderByCreatedAtDesc(Long userId);
 
     void deleteByUserId(Long userId);
+
     Long countByUserIdAndIsRead(Long userId, Boolean isRead);
 
     @Modifying
     @Transactional
-    @Query("UPDATE Notification n SET n.isRead = true WHERE n.user.id = :userId AND n.isRead = false")
+    @Query(
+            "UPDATE Notification n SET n.isRead = true WHERE n.user.id = :userId AND n.isRead ="
+                + " false")
     int markAllRead(@Param("userId") Long userId);
 
-    // One statement instead of loading and deleting each row
     @Modifying
     @Transactional
     @Query("DELETE FROM Notification n WHERE n.user.id = :userId")

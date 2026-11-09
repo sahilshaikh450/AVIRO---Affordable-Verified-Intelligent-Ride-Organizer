@@ -4,8 +4,11 @@ import com.aviro.dto.request.AuthRequest;
 import com.aviro.dto.response.ApiResponse;
 import com.aviro.dto.response.AuthResponse;
 import com.aviro.service.AuthService;
+
 import jakarta.validation.Valid;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -25,7 +28,6 @@ public class AuthController {
         return ResponseEntity.ok(authService.register(request));
     }
 
-    // Temporary: password login → JWT directly
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<AuthResponse>> login(
             @Valid @RequestBody AuthRequest.Login request) {
@@ -33,7 +35,6 @@ public class AuthController {
         return ResponseEntity.ok(authService.login(request));
     }
 
-    // Keep this endpoint for OTP feature restoration later
     @PostMapping("/login-verify-otp")
     public ResponseEntity<ApiResponse<AuthResponse>> verifyLoginOtp(
             @Valid @RequestBody AuthRequest.LoginVerifyOtp request) {
@@ -41,7 +42,6 @@ public class AuthController {
         return ResponseEntity.ok(authService.verifyLoginOtp(request));
     }
 
-    // Registration email verification OTP
     @PostMapping("/verify-otp")
     public ResponseEntity<ApiResponse<AuthResponse>> verifyOtp(
             @Valid @RequestBody AuthRequest.VerifyOtp request) {
@@ -77,32 +77,27 @@ public class AuthController {
         return ResponseEntity.ok(authService.resetPassword(request));
     }
 
-    // Revokes the access token (Authorization header) and the refresh token (body, optional)
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<String>> logout(
             @RequestHeader(value = "Authorization", required = false) String authHeader,
             @RequestBody(required = false) AuthRequest.Logout request) {
 
-        String accessToken = (authHeader != null && authHeader.startsWith("Bearer "))
-                ? authHeader.substring(7).trim()
-                : null;
+        String accessToken =
+                (authHeader != null && authHeader.startsWith("Bearer "))
+                        ? authHeader.substring(7).trim()
+                        : null;
         String refreshToken = request != null ? request.getRefreshToken() : null;
 
         return ResponseEntity.ok(authService.logout(accessToken, refreshToken));
     }
 
-    // College email verification endpoints
     @PostMapping("/send-college-email-otp")
     public ResponseEntity<ApiResponse<String>> sendCollegeEmailOtp(
             @AuthenticationPrincipal UserDetails userDetails,
             @Valid @RequestBody AuthRequest.SendCollegeEmailOtp request) {
 
         return ResponseEntity.ok(
-                authService.sendCollegeEmailOtp(
-                        userDetails.getUsername(),
-                        request
-                )
-        );
+                authService.sendCollegeEmailOtp(userDetails.getUsername(), request));
     }
 
     @PostMapping("/verify-college-email-otp")
@@ -111,10 +106,6 @@ public class AuthController {
             @Valid @RequestBody AuthRequest.VerifyCollegeEmailOtp request) {
 
         return ResponseEntity.ok(
-                authService.verifyCollegeEmailOtp(
-                        userDetails.getUsername(),
-                        request
-                )
-        );
+                authService.verifyCollegeEmailOtp(userDetails.getUsername(), request));
     }
 }

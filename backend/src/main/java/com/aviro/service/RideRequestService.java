@@ -8,8 +8,10 @@ import com.aviro.enums.RideRequestStatus;
 import com.aviro.exception.AviroException;
 import com.aviro.repository.RideRequestRepository;
 import com.aviro.repository.UserRepository;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,19 +26,15 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-/**
- * Ride alerts: a rider who finds no ride asks to be told when one appears. Drivers see these
- * requests as demand, and posting a matching ride notifies the riders straight away.
- */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class RideRequestService {
 
-    // A ride within this many minutes of the wanted time counts as a match
     private static final long MATCH_WINDOW_MINUTES = 60;
     private static final int MAX_ACTIVE_PER_RIDER = 5;
-    private static final DateTimeFormatter WHEN = DateTimeFormatter.ofPattern("d MMM, h:mm a", Locale.ENGLISH);
+    private static final DateTimeFormatter WHEN =
+            DateTimeFormatter.ofPattern("d MMM, h:mm a", Locale.ENGLISH);
 
     private final RideRequestRepository rideRequestRepository;
     private final UserRepository userRepository;
@@ -44,14 +42,18 @@ public class RideRequestService {
 
     @Value("${aviro.ride.first-departure:06:00}")
     private LocalTime firstDeparture;
+
     @Value("${aviro.ride.last-departure:20:00}")
     private LocalTime lastDeparture;
 
     @Transactional
-    public Map<String, Object> create(String email, String from, String to, LocalDateTime time, Integer seats) {
+    public Map<String, Object> create(
+            String email, String from, String to, LocalDateTime time, Integer seats) {
         User rider = getUser(email);
         if (!Boolean.TRUE.equals(rider.getIsCollegeVerified())) {
-            throw new AviroException("Please verify your college ID first. Go to Profile → College ID Verification.");
+            throw new AviroException(
+                    "Please verify your college ID first. Go to Profile → College ID"
+                        + " Verification.");
         }
         String fromPlace = clean(from), toPlace = clean(to);
         if (fromPlace.isEmpty() || toPlace.isEmpty()) {
@@ -66,45 +68,63 @@ public class RideRequestService {
         if (time == null || time.isBefore(LocalDateTime.now().plusMinutes(10))) {
             throw new AviroException("Pick a time at least 10 minutes from now");
         }
-        if (time.toLocalTime().isBefore(firstDeparture) || time.toLocalTime().isAfter(lastDeparture)) {
+        if (time.toLocalTime().isBefore(firstDeparture)
+                || time.toLocalTime().isAfter(lastDeparture)) {
             throw new AviroException("Rides run between 6:00 AM and 8:00 PM");
         }
         int seatsNeeded = seats == null ? 1 : Math.max(1, Math.min(4, seats));
         LocalDateTime now = LocalDateTime.now();
 
-        // Asking twice for the same trip just returns the alert that already exists
-        for (RideRequest r : rideRequestRepository.findByRiderIdAndStatusInAndDesiredTimeAfterOrderByDesiredTimeAsc(
-                rider.getId(), EnumSet.of(RideRequestStatus.ACTIVE), now)) {
-            if (squash(r.getFromLocation()).equals(squash(fromPlace)) && squash(r.getToLocation()).equals(squash(toPlace))
+        for (RideRequest r :
+                rideRequestRepository
+                        .findByRiderIdAndStatusInAndDesiredTimeAfterOrderByDesiredTimeAsc(
+                                rider.getId(), EnumSet.of(RideRequestStatus.ACTIVE), now)) {
+            if (squash(r.getFromLocation()).equals(squash(fromPlace))
+                    && squash(r.getToLocation()).equals(squash(toPlace))
                     && Math.abs(Duration.between(r.getDesiredTime(), time).toMinutes()) <= 30) {
                 return toMap(r, false);
             }
         }
-        if (rideRequestRepository.countByRiderIdAndStatusAndDesiredTimeAfter(rider.getId(), RideRequestStatus.ACTIVE, now)
+        if (rideRequestRepository.countByRiderIdAndStatusAndDesiredTimeAfter(
+                        rider.getId(), RideRequestStatus.ACTIVE, now)
                 >= MAX_ACTIVE_PER_RIDER) {
-            throw new AviroException("You can keep up to " + MAX_ACTIVE_PER_RIDER + " ride alerts. Remove one first.");
+            throw new AviroException(
+                    "You can keep up to "
+                            + MAX_ACTIVE_PER_RIDER
+                            + " ride alerts. Remove one first.");
         }
-        RideRequest saved = rideRequestRepository.save(RideRequest.builder()
-                .rider(rider).fromLocation(fromPlace).toLocation(toPlace)
-                .desiredTime(time).seatsNeeded(seatsNeeded).build());
+        RideRequest saved =
+                rideRequestRepository.save(
+                        RideRequest.builder()
+                                .rider(rider)
+                                .fromLocation(fromPlace)
+                                .toLocation(toPlace)
+                                .desiredTime(time)
+                                .seatsNeeded(seatsNeeded)
+                                .build());
         log.info("Ride alert {} created by rider {}", saved.getId(), rider.getId());
         return toMap(saved, false);
     }
 
-    // The rider's upcoming alerts, waiting or already matched
     public List<Map<String, Object>> mine(String email) {
         User rider = getUser(email);
-        return rideRequestRepository.findByRiderIdAndStatusInAndDesiredTimeAfterOrderByDesiredTimeAsc(
-                        rider.getId(), EnumSet.of(RideRequestStatus.ACTIVE, RideRequestStatus.MATCHED),
+        return rideRequestRepository
+                .findByRiderIdAndStatusInAndDesiredTimeAfterOrderByDesiredTimeAsc(
+                        rider.getId(),
+                        EnumSet.of(RideRequestStatus.ACTIVE, RideRequestStatus.MATCHED),
                         LocalDateTime.now().minusHours(1))
-                .stream().map(r -> toMap(r, false)).toList();
+                .stream()
+                .map(r -> toMap(r, false))
+                .toList();
     }
 
     @Transactional
     public void cancel(String email, Long id) {
         User rider = getUser(email);
-        RideRequest r = rideRequestRepository.findById(id)
-                .orElseThrow(() -> new AviroException("Ride alert not found"));
+        RideRequest r =
+                rideRequestRepository
+                        .findById(id)
+                        .orElseThrow(() -> new AviroException("Ride alert not found"));
         if (!r.getRider().getId().equals(rider.getId())) {
             throw new AviroException("You can only remove your own ride alerts");
         }
@@ -112,11 +132,11 @@ public class RideRequestService {
         rideRequestRepository.save(r);
     }
 
-    // What students are asking for, so drivers can offer those rides (only first name and gender shown)
     public List<Map<String, Object>> openForDrivers(String email) {
         User driver = getUser(email);
         LocalDateTime now = LocalDateTime.now();
-        return rideRequestRepository.findByStatusAndTimeBetween(RideRequestStatus.ACTIVE, now, now.plusDays(7))
+        return rideRequestRepository
+                .findByStatusAndTimeBetween(RideRequestStatus.ACTIVE, now, now.plusDays(7))
                 .stream()
                 .filter(r -> !r.getRider().getId().equals(driver.getId()))
                 .limit(20)
@@ -124,28 +144,40 @@ public class RideRequestService {
                 .toList();
     }
 
-    // Called after a ride is posted: tell every rider waiting for this route and time
     @Transactional
     public int notifyMatches(Ride ride) {
         LocalDateTime t = ride.getDepartureTime();
-        List<RideRequest> candidates = rideRequestRepository.findByStatusAndTimeBetween(RideRequestStatus.ACTIVE,
-                t.minusMinutes(MATCH_WINDOW_MINUTES), t.plusMinutes(MATCH_WINDOW_MINUTES));
+        List<RideRequest> candidates =
+                rideRequestRepository.findByStatusAndTimeBetween(
+                        RideRequestStatus.ACTIVE,
+                        t.minusMinutes(MATCH_WINDOW_MINUTES),
+                        t.plusMinutes(MATCH_WINDOW_MINUTES));
         int told = 0;
         for (RideRequest r : candidates) {
             User rider = r.getRider();
             if (rider.getId().equals(ride.getDriver().getId())) continue;
             if (r.getSeatsNeeded() > ride.getAvailableSeats()) continue;
-            if (Boolean.TRUE.equals(ride.getWomenOnly()) && rider.getGender() != Gender.FEMALE) continue;
-            if (ride.getAllowedGender() != null && rider.getGender() != ride.getAllowedGender()) continue;
-            if (!placesMatch(ride.getFromLocation(), r.getFromLocation()) || !placesMatch(ride.getToLocation(), r.getToLocation())) continue;
+            if (Boolean.TRUE.equals(ride.getWomenOnly()) && rider.getGender() != Gender.FEMALE)
+                continue;
+            if (ride.getAllowedGender() != null && rider.getGender() != ride.getAllowedGender())
+                continue;
+            if (!placesMatch(ride.getFromLocation(), r.getFromLocation())
+                    || !placesMatch(ride.getToLocation(), r.getToLocation())) continue;
             r.setStatus(RideRequestStatus.MATCHED);
             r.setMatchedRideId(ride.getId());
             rideRequestRepository.save(r);
             try {
-                notificationService.send(rider.getId(), "Ride found! 🎉",
-                        ride.getFromLocation() + " → " + ride.getToLocation() + ", " + t.format(WHEN)
+                notificationService.send(
+                        rider.getId(),
+                        "Ride found! 🎉",
+                        ride.getFromLocation()
+                                + " → "
+                                + ride.getToLocation()
+                                + ", "
+                                + t.format(WHEN)
                                 + ". Book your seat before it fills up.",
-                        "RIDE_MATCH", String.valueOf(ride.getId()));
+                        "RIDE_MATCH",
+                        String.valueOf(ride.getId()));
                 told++;
             } catch (Exception e) {
                 log.warn("Ride alert notification failed: {}", e.getMessage());
@@ -155,7 +187,6 @@ public class RideRequestService {
         return told;
     }
 
-    // "Karve Nagar" matches "Karvenagar", and "MIT College - Kothrud" matches "Kothrud"
     static boolean placesMatch(String a, String b) {
         String x = squash(a), y = squash(b);
         return !x.isEmpty() && !y.isEmpty() && (x.contains(y) || y.contains(x));
@@ -189,6 +220,8 @@ public class RideRequestService {
     }
 
     private User getUser(String email) {
-        return userRepository.findByEmail(email).orElseThrow(() -> new AviroException("User not found"));
+        return userRepository
+                .findByEmail(email)
+                .orElseThrow(() -> new AviroException("User not found"));
     }
 }

@@ -19,9 +19,6 @@ COPY --from=build /app/target/*.jar app.jar
 
 EXPOSE 10000
 
-# Render free tier: 512 MB RAM, 0.1 CPU. These flags halve startup CPU time
-# (less JIT work, single-threaded GC) and let the heap use most of the RAM.
-# Override on Render with the JAVA_OPTS environment variable if needed.
 ENV JAVA_OPTS="-XX:MaxRAMPercentage=70 -XX:+UseSerialGC -XX:TieredStopAtLevel=1 -Xss512k"
 
 ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -Dspring.profiles.active=prod -jar app.jar"]

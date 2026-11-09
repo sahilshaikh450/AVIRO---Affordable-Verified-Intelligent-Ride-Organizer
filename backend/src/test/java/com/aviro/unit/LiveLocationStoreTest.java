@@ -1,9 +1,10 @@
 package com.aviro.unit;
 
-import com.aviro.service.LiveLocationStore;
-import org.junit.jupiter.api.Test;
-
 import static org.assertj.core.api.Assertions.assertThat;
+
+import com.aviro.service.LiveLocationStore;
+
+import org.junit.jupiter.api.Test;
 
 class LiveLocationStoreTest {
 

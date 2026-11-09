@@ -1,7 +1,5 @@
 package com.aviro.service.impl;
 
-import com.aviro.enums.VehicleType;
-
 import com.aviro.dto.request.ProfileUpdateRequest;
 import com.aviro.dto.request.VehicleRequest;
 import com.aviro.dto.response.ApiResponse;
@@ -9,13 +7,16 @@ import com.aviro.dto.response.UserResponse;
 import com.aviro.dto.response.VehicleResponse;
 import com.aviro.entity.User;
 import com.aviro.entity.Vehicle;
+import com.aviro.enums.VehicleType;
 import com.aviro.exception.AviroException;
 import com.aviro.repository.BookingRepository;
 import com.aviro.repository.RideRepository;
 import com.aviro.repository.UserRepository;
 import com.aviro.repository.VehicleRepository;
 import com.aviro.service.UserService;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,15 +33,15 @@ public class UserServiceImpl implements UserService {
     private final RideRepository rideRepository;
     private final BookingRepository bookingRepository;
 
-    // Tells the app whether drivers must verify their vehicle before posting rides
-    @org.springframework.beans.factory.annotation.Value("${aviro.vehicle.require-verification:false}")
+    @org.springframework.beans.factory.annotation.Value(
+            "${aviro.vehicle.require-verification:false}")
     private boolean requireVehicleVerification;
 
-    // Indian plates after removing spaces/dashes: MH12AB1234, DL3CAF1234, MH121234 or BH series 22BH1234AA
     private static final Pattern INDIAN_PLATE =
             Pattern.compile("^([A-Z]{2}\\d{1,2}[A-Z]{0,3}\\d{1,4}|\\d{2}BH\\d{4}[A-Z]{1,2})$");
 
-    private static final Pattern UPI_ID = Pattern.compile("^[a-z0-9._-]{2,64}@[a-z][a-z0-9]{1,30}$");
+    private static final Pattern UPI_ID =
+            Pattern.compile("^[a-z0-9._-]{2,64}@[a-z][a-z0-9]{1,30}$");
 
     @Override
     public ApiResponse<UserResponse> getProfile(String email) {
@@ -61,7 +62,6 @@ public class UserServiceImpl implements UserService {
         if (request.getDepartment() != null) user.setDepartment(request.getDepartment());
         if (request.getYearOfStudy() != null) user.setYearOfStudy(request.getYearOfStudy());
         if (request.getWomenOnlyMode() != null) user.setWomenOnlyMode(request.getWomenOnlyMode());
-        // Emergency contacts are changed only through /safety/emergency-contacts, which checks them
         userRepository.save(user);
         return ApiResponse.success("Profile updated successfully", toResponse(user));
     }
@@ -70,8 +70,8 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public ApiResponse<VehicleResponse> addVehicle(String email, VehicleRequest request) {
         User user = getUser(email);
-        // "mh 12-ab 1234" and "MH12AB1234" are the same plate
-        String registration = request.getRegistrationNumber().toUpperCase().replaceAll("[\\s-]", "");
+        String registration =
+                request.getRegistrationNumber().toUpperCase().replaceAll("[\\s-]", "");
         if (!INDIAN_PLATE.matcher(registration).matches()) {
             throw new AviroException("Enter a valid number plate, like MH12AB1234 or 22BH1234AA");
         }
@@ -80,20 +80,22 @@ public class UserServiceImpl implements UserService {
             throw new AviroException("AVIRO supports bikes, scooties and cars");
         }
         if (request.getTotalSeats() > type.maxRiders()) {
-            throw new AviroException(type == VehicleType.CAR
-                    ? "A car can take up to 4 riders"
-                    : "A " + type.name().toLowerCase() + " can take 1 rider");
+            throw new AviroException(
+                    type == VehicleType.CAR
+                            ? "A car can take up to 4 riders"
+                            : "A " + type.name().toLowerCase() + " can take 1 rider");
         }
-        // A user has one vehicle: adding again replaces its details
-        Vehicle vehicle = vehicleRepository.findByUserId(user.getId())
-                .orElseGet(() -> Vehicle.builder().user(user).build());
+        Vehicle vehicle =
+                vehicleRepository
+                        .findByUserId(user.getId())
+                        .orElseGet(() -> Vehicle.builder().user(user).build());
         boolean sameAsBefore = registration.equals(vehicle.getRegistrationNumber());
         if (!sameAsBefore && vehicleRepository.existsByRegistrationNumber(registration)) {
             throw new AviroException("Vehicle with this registration number already exists");
         }
         boolean updating = vehicle.getId() != null;
-        // A new vehicle, or a different plate or type, has to be checked by an admin again
-        boolean needsReview = !updating || !sameAsBefore || vehicle.getVehicleType() != request.getVehicleType();
+        boolean needsReview =
+                !updating || !sameAsBefore || vehicle.getVehicleType() != request.getVehicleType();
         vehicle.setVehicleType(request.getVehicleType());
         vehicle.setRegistrationNumber(registration);
         vehicle.setMake(request.getMake());
@@ -103,17 +105,22 @@ public class UserServiceImpl implements UserService {
         vehicle.setTotalSeats(request.getTotalSeats());
         if (needsReview) vehicle.setIsVerified(false);
         vehicleRepository.save(vehicle);
-        return ApiResponse.success(needsReview
-                ? "Vehicle saved. Upload the number plate and driving licence photos for verification."
-                : "Vehicle updated!", toVehicleResponse(vehicle));
+        return ApiResponse.success(
+                needsReview
+                        ? "Vehicle saved. Upload the number plate and driving licence photos for"
+                              + " verification."
+                        : "Vehicle updated!",
+                toVehicleResponse(vehicle));
     }
 
     @Override
     @Transactional
     public VehiclePhotoResult setVehiclePhoto(String email, String kind, String url) {
         User user = getUser(email);
-        Vehicle vehicle = vehicleRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new AviroException("Add your vehicle details first"));
+        Vehicle vehicle =
+                vehicleRepository
+                        .findByUserId(user.getId())
+                        .orElseThrow(() -> new AviroException("Add your vehicle details first"));
         String previous;
         if ("plate".equals(kind)) {
             previous = vehicle.getPlatePhotoUrl();
@@ -122,7 +129,7 @@ public class UserServiceImpl implements UserService {
             previous = vehicle.getLicencePhotoUrl();
             vehicle.setLicencePhotoUrl(url);
         }
-        vehicle.setIsVerified(false); // a new photo needs a new look
+        vehicle.setIsVerified(false);
         vehicleRepository.save(vehicle);
         return new VehiclePhotoResult(toVehicleResponse(vehicle), previous);
     }
@@ -130,8 +137,10 @@ public class UserServiceImpl implements UserService {
     @Override
     public ApiResponse<VehicleResponse> getVehicle(String email) {
         User user = getUser(email);
-        Vehicle vehicle = vehicleRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new AviroException("No vehicle registered"));
+        Vehicle vehicle =
+                vehicleRepository
+                        .findByUserId(user.getId())
+                        .orElseThrow(() -> new AviroException("No vehicle registered"));
         return ApiResponse.success(toVehicleResponse(vehicle));
     }
 
@@ -139,8 +148,10 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public ApiResponse<String> addRideBuddy(String email, Long buddyId) {
         User user = getUser(email);
-        User buddy = userRepository.findById(buddyId)
-                .orElseThrow(() -> new AviroException("User not found"));
+        User buddy =
+                userRepository
+                        .findById(buddyId)
+                        .orElseThrow(() -> new AviroException("User not found"));
         if (user.getRideBuddies().contains(buddy)) {
             throw new AviroException("Already a ride buddy");
         }
@@ -177,7 +188,6 @@ public class UserServiceImpl implements UserService {
         return ApiResponse.success(stats);
     }
 
-    // Blank clears it; otherwise it must look like name@bank
     private static String normalizeUpiId(String raw) {
         String upi = raw.trim().toLowerCase();
         if (upi.isEmpty()) return null;
@@ -188,8 +198,11 @@ public class UserServiceImpl implements UserService {
     }
 
     private UserResponse toResponse(User user) {
-        VehicleResponse vehicleResponse = vehicleRepository.findByUserId(user.getId())
-                .map(this::toVehicleResponse).orElse(null);
+        VehicleResponse vehicleResponse =
+                vehicleRepository
+                        .findByUserId(user.getId())
+                        .map(this::toVehicleResponse)
+                        .orElse(null);
         return UserResponse.builder()
                 .id(user.getId())
                 .fullName(user.getFullName())
@@ -234,7 +247,8 @@ public class UserServiceImpl implements UserService {
     }
 
     private User getUser(String email) {
-        return userRepository.findByEmail(email)
+        return userRepository
+                .findByEmail(email)
                 .orElseThrow(() -> new AviroException("User not found"));
     }
 }

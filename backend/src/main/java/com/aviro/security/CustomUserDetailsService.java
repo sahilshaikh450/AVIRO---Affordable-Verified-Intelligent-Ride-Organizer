@@ -2,7 +2,9 @@ package com.aviro.security;
 
 import com.aviro.entity.User;
 import com.aviro.repository.UserRepository;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -19,13 +21,15 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        User user = userRepository.findByEmailNormalized(email)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + email));
+        User user =
+                userRepository
+                        .findByEmailNormalized(email)
+                        .orElseThrow(
+                                () -> new UsernameNotFoundException("User not found: " + email));
 
         return new org.springframework.security.core.userdetails.User(
                 user.getEmail(),
                 user.getPassword(),
-                List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
-        );
+                List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name())));
     }
 }

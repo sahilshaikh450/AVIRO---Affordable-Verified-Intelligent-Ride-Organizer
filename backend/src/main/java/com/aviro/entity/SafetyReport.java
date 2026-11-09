@@ -1,17 +1,22 @@
 package com.aviro.entity;
 
 import com.aviro.enums.SafetyReportStatus;
+
 import jakarta.persistence.*;
+
 import lombok.*;
 
 import java.time.LocalDateTime;
 
-// A rider or driver reporting the other person on a trip; reviewed by an admin
 @Entity
-@Table(name = "safety_reports", indexes = {
-        @Index(name = "idx_safety_report_status", columnList = "status, created_at"),
-        @Index(name = "idx_safety_report_booking_reporter", columnList = "booking_id, reporter_id")
-})
+@Table(
+        name = "safety_reports",
+        indexes = {
+            @Index(name = "idx_safety_report_status", columnList = "status, created_at"),
+            @Index(
+                    name = "idx_safety_report_booking_reporter",
+                    columnList = "booking_id, reporter_id")
+        })
 @Getter
 @Setter
 @NoArgsConstructor

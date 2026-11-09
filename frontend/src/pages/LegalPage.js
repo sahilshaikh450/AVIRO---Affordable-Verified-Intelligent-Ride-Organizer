@@ -3,11 +3,18 @@ import { Link, useNavigate } from 'react-router-dom';
 import { PRIVACY_SECTIONS, TERMS_SECTIONS, LEGAL_LAST_UPDATED } from '../content/legal';
 
 const PAGES = {
-  privacy: { title: 'Privacy Policy 🔒', sections: PRIVACY_SECTIONS, other: { to: '/terms', label: 'Terms of Service' } },
-  terms:   { title: 'Terms of Service 📄', sections: TERMS_SECTIONS, other: { to: '/privacy', label: 'Privacy Policy' } },
+  privacy: {
+    title: 'Privacy Policy 🔒',
+    sections: PRIVACY_SECTIONS,
+    other: { to: '/terms', label: 'Terms of Service' },
+  },
+  terms: {
+    title: 'Terms of Service 📄',
+    sections: TERMS_SECTIONS,
+    other: { to: '/privacy', label: 'Privacy Policy' },
+  },
 };
 
-// Public page: /privacy and /terms
 export default function LegalPage({ type }) {
   const navigate = useNavigate();
   const page = PAGES[type];
@@ -45,8 +52,13 @@ export default function LegalPage({ type }) {
 
         <p className="text-center text-xs text-aviro-muted">
           See also our{' '}
-          <Link to={page.other.to} className="text-aviro-orange hover:underline">{page.other.label}</Link>
-          {' '}· Questions? <a href="mailto:aviro.support@gmail.com" className="text-aviro-orange hover:underline">aviro.support@gmail.com</a>
+          <Link to={page.other.to} className="text-aviro-orange hover:underline">
+            {page.other.label}
+          </Link>{' '}
+          · Questions?{' '}
+          <a href="mailto:aviro.support@gmail.com" className="text-aviro-orange hover:underline">
+            aviro.support@gmail.com
+          </a>
         </p>
       </div>
     </div>

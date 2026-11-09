@@ -4,8 +4,10 @@ import com.aviro.enums.BookingStatus;
 import com.aviro.enums.Gender;
 import com.aviro.enums.PaymentStatus;
 import com.aviro.enums.TripStage;
+
 import lombok.Builder;
 import lombok.Data;
+
 import java.time.LocalDateTime;
 
 @Data
@@ -26,7 +28,6 @@ public class BookingResponse {
     private PaymentStatus paymentStatus;
     private String paymentMethod;
     private String paymentReference;
-    // Only filled in for an accepted or finished ride, so the rider can pay the driver
     private String driverUpiId;
     private String pickupPoint;
     private Double pickupLat;
@@ -43,9 +44,9 @@ public class BookingResponse {
         private String fullName;
         private Gender gender;
         private String collegeName;
-        private String department;      // ✅ Branch/Department
-        private String yearOfStudy;     // ✅ Year
-        private String phone;           // ✅ Mobile number
+        private String department;
+        private String yearOfStudy;
+        private String phone;
         private String profilePicUrl;
         private Double rating;
         private Integer totalRides;

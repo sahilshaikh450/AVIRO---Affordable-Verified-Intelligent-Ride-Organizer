@@ -1,4 +1,3 @@
-
 package com.aviro.config;
 
 import org.springframework.context.annotation.Bean;
@@ -15,15 +14,11 @@ public class CorsConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
-                    .allowedOrigins(
-                        "https://aviro-affordable-verified-intelligent-ride-organizer-6196wgm.vercel.app"
-                    )
-                    .allowedMethods(
-                        "GET", "POST", "PUT",
-                        "DELETE", "PATCH", "OPTIONS"
-                    )
-                    .allowedHeaders("*")
-                    .allowCredentials(true);
+                        .allowedOrigins(
+                                "https://aviro-affordable-verified-intelligent-ride-organizer-6196wgm.vercel.app")
+                        .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
+                        .allowedHeaders("*")
+                        .allowCredentials(true);
             }
         };
     }
