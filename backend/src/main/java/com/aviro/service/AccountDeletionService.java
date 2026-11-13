@@ -52,6 +52,10 @@ public class AccountDeletionService {
     private final BookingService bookingService;
     private final PasswordEncoder passwordEncoder;
     private final AuthUserCache authUserCache;
+    private final com.aviro.security.AttemptCounter attempts;
+
+    private static final java.time.Duration DELETE_LOCK_WINDOW = java.time.Duration.ofMinutes(15);
+    private static final int MAX_WRONG_PASSWORDS = 5;
 
     @Transactional
     public ApiResponse<String> deleteAccount(String email, String password) {
@@ -60,7 +64,12 @@ public class AccountDeletionService {
                         .findByEmail(email)
                         .orElseThrow(() -> new AviroException("User not found"));
 
+        String failKey = "aviro:delete-fail:" + user.getId();
+        if (attempts.current(failKey, DELETE_LOCK_WINDOW) >= MAX_WRONG_PASSWORDS) {
+            throw new AviroException("Too many wrong passwords. Please try again in 15 minutes.");
+        }
         if (password == null || !passwordEncoder.matches(password, user.getPassword())) {
+            attempts.increment(failKey, DELETE_LOCK_WINDOW);
             throw new AviroException("Incorrect password");
         }
 

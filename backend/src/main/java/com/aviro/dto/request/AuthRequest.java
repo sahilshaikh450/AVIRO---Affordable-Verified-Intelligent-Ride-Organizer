@@ -84,12 +84,6 @@ public class AuthRequest {
     }
 
     @Data
-    public static class LoginVerifyOtp {
-        @NotBlank @Email private String email;
-        @NotBlank private String otp;
-    }
-
-    @Data
     public static class VerifyOtp {
         @NotBlank private String email;
         @NotBlank private String otp;

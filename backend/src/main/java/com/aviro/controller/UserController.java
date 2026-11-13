@@ -198,7 +198,7 @@ public class UserController {
         User user =
                 userRepository
                         .findByEmail(userDetails.getUsername())
-                        .orElseThrow(() -> new RuntimeException("User not found"));
+                        .orElseThrow(() -> new AviroException("User not found"));
 
         try {
             String filename = saveImage(file, "college_id", user.getId());

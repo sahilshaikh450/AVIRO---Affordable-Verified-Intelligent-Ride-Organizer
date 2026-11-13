@@ -30,9 +30,14 @@ public class JwtTokenProvider {
         return Keys.hmacShaKeyFor(jwtSecret.getBytes());
     }
 
+    private static final String TYPE = "typ";
+    private static final String ACCESS = "access";
+    private static final String REFRESH = "refresh";
+
     public String generateAccessToken(String email) {
         return Jwts.builder()
                 .setSubject(email)
+                .claim(TYPE, ACCESS)
                 .setIssuedAt(new Date())
                 .claim(ISSUED_MS, System.currentTimeMillis())
                 .setExpiration(new Date(System.currentTimeMillis() + jwtExpiration))
@@ -43,6 +48,7 @@ public class JwtTokenProvider {
     public String generateRefreshToken(String email) {
         return Jwts.builder()
                 .setSubject(email)
+                .claim(TYPE, REFRESH)
                 .setIssuedAt(new Date())
                 .claim(ISSUED_MS, System.currentTimeMillis())
                 .setExpiration(new Date(System.currentTimeMillis() + refreshExpiration))
@@ -77,6 +83,26 @@ public class JwtTokenProvider {
                 .parseClaimsJws(token)
                 .getBody()
                 .getExpiration();
+    }
+
+    public boolean isAccessToken(String token) {
+        Claims claims = claimsOf(token);
+        Object type = claims.get(TYPE);
+        if (type != null) return ACCESS.equals(type);
+        long lifetime = claims.getExpiration().getTime() - claims.getIssuedAt().getTime();
+        return lifetime <= jwtExpiration + 60_000;
+    }
+
+    public boolean isRefreshToken(String token) {
+        return REFRESH.equals(claimsOf(token).get(TYPE));
+    }
+
+    private Claims claimsOf(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
     }
 
     public boolean validateToken(String token) {
