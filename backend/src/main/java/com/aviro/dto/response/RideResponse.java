@@ -31,6 +31,7 @@ public class RideResponse {
     private Gender allowedGender;
     private String notes;
     private LocalDateTime createdAt;
+    private Integer pickupDistanceMeters;
 
     @Data
     @Builder
