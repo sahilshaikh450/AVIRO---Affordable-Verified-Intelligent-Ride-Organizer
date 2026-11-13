@@ -179,7 +179,7 @@ public abstract class IntegrationTest {
         return path.startsWith("/") ? path.substring(1) : path;
     }
 
-    private Res send(MockHttpServletRequestBuilder req, User as, Object body) throws Exception {
+    protected Res send(MockHttpServletRequestBuilder req, User as, Object body) throws Exception {
         if (as != null) req.header("Authorization", "Bearer " + token(as));
         if (body != null)
             req.contentType(MediaType.APPLICATION_JSON)

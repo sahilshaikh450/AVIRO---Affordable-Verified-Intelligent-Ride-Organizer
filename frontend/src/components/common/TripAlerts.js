@@ -81,7 +81,8 @@ export default function TripAlerts() {
       if (
         e.data?.type === 'AVIRO_NAVIGATE' &&
         typeof e.data.url === 'string' &&
-        e.data.url.startsWith('/')
+        /^\/[A-Za-z0-9/_?=&.-]*$/.test(e.data.url) &&
+        !e.data.url.startsWith('//')
       ) {
         navigate(e.data.url);
       }

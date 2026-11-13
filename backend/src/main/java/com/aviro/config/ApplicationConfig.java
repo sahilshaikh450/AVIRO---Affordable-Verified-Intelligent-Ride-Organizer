@@ -37,6 +37,10 @@ public class ApplicationConfig {
             return new org.springframework.security.core.userdetails.User(
                     user.getEmail(),
                     user.getPassword(),
+                    !Boolean.FALSE.equals(user.getIsActive()),
+                    true,
+                    true,
+                    true,
                     List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name())));
         };
     }
