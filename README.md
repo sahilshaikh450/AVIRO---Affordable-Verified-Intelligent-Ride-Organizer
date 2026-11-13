@@ -197,7 +197,6 @@ AVIRO/
 │           ├── dto/                    # Request/Response DTOs
 │           ├── repository/             # Spring Data JPA repositories
 │           ├── security/               # JWT filter + token provider
-│           │   ├── CustomUserDetailsService.java
 │           │   ├── JwtAuthFilter.java
 │           │   ├── JwtTokenProvider.java
 │           │   ├── RateLimitFilter.java          # Per-IP limits on auth endpoints

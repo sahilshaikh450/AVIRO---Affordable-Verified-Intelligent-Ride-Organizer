@@ -3,6 +3,7 @@ package com.aviro.controller;
 import com.aviro.dto.response.ApiResponse;
 import com.aviro.entity.Notification;
 import com.aviro.entity.User;
+import com.aviro.exception.AviroException;
 import com.aviro.repository.UserRepository;
 import com.aviro.service.NotificationService;
 
@@ -29,7 +30,7 @@ public class NotificationController {
         User user =
                 userRepository
                         .findByEmail(userDetails.getUsername())
-                        .orElseThrow(() -> new RuntimeException("User not found"));
+                        .orElseThrow(() -> new AviroException("User not found"));
         List<Notification> notifications = notificationService.getUserNotifications(user.getId());
         return ResponseEntity.ok(ApiResponse.success(notifications));
     }
@@ -40,7 +41,7 @@ public class NotificationController {
         User user =
                 userRepository
                         .findByEmail(userDetails.getUsername())
-                        .orElseThrow(() -> new RuntimeException("User not found"));
+                        .orElseThrow(() -> new AviroException("User not found"));
         return ResponseEntity.ok(
                 ApiResponse.success(notificationService.getUnreadCount(user.getId())));
     }
@@ -53,7 +54,7 @@ public class NotificationController {
         User user =
                 userRepository
                         .findByEmail(userDetails.getUsername())
-                        .orElseThrow(() -> new RuntimeException("User not found"));
+                        .orElseThrow(() -> new AviroException("User not found"));
         notificationService.markAllRead(user.getId());
         return ResponseEntity.ok(ApiResponse.success("All marked as read", null));
     }
@@ -64,7 +65,7 @@ public class NotificationController {
         User user =
                 userRepository
                         .findByEmail(userDetails.getUsername())
-                        .orElseThrow(() -> new RuntimeException("User not found"));
+                        .orElseThrow(() -> new AviroException("User not found"));
         notificationService.deleteAll(user.getId());
         return ResponseEntity.ok(ApiResponse.success("All notifications cleared", null));
     }
@@ -75,7 +76,7 @@ public class NotificationController {
         User user =
                 userRepository
                         .findByEmail(userDetails.getUsername())
-                        .orElseThrow(() -> new RuntimeException("User not found"));
+                        .orElseThrow(() -> new AviroException("User not found"));
         notificationService.deleteNotification(user.getId(), id);
         return ResponseEntity.ok(ApiResponse.success("Notification deleted", null));
     }

@@ -49,7 +49,6 @@ public class AuthServiceImpl implements AuthService {
 
     private static final String VERIFY_OTP_PREFIX = "verify:";
     private static final String RESET_OTP_PREFIX = "reset:";
-    private static final String LOGIN_OTP_PREFIX = "login:";
     private static final String COLLEGE_OTP_PREFIX = "college:";
 
     private static final Pattern COLLEGE_DOMAIN_PATTERN =
@@ -194,27 +193,6 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public ApiResponse<AuthResponse> verifyLoginOtp(AuthRequest.LoginVerifyOtp request) {
-
-        String email = normalizeEmail(request.getEmail());
-
-        boolean valid = otpService.verifyOtp(LOGIN_OTP_PREFIX + email, request.getOtp());
-
-        if (!valid) {
-            throw new AviroException("Invalid or expired OTP");
-        }
-
-        User user =
-                userRepository
-                        .findByEmailNormalized(email)
-                        .orElseThrow(() -> new AviroException("User not found"));
-
-        log.info("Login OTP verified, issuing token: {}", email);
-
-        return ApiResponse.success("Login successful", buildAuthResponse(user));
-    }
-
-    @Override
     @Transactional
     public ApiResponse<AuthResponse> verifyOtp(AuthRequest.VerifyOtp request) {
 
@@ -259,6 +237,7 @@ public class AuthServiceImpl implements AuthService {
     public ApiResponse<AuthResponse> refreshToken(AuthRequest.RefreshToken request) {
 
         if (!jwtTokenProvider.validateToken(request.getRefreshToken())
+                || !jwtTokenProvider.isRefreshToken(request.getRefreshToken())
                 || tokenBlacklistService.isRevoked(request.getRefreshToken())) {
             throw new AviroException("Invalid or expired refresh token");
         }
@@ -270,6 +249,11 @@ public class AuthServiceImpl implements AuthService {
                         .findByEmail(email)
                         .orElseThrow(() -> new AviroException("User not found"));
 
+        if (!Boolean.TRUE.equals(user.getIsActive())) {
+            throw new AviroException("This account is no longer active.");
+        }
+
+        tokenBlacklistService.revoke(request.getRefreshToken());
         return ApiResponse.success(buildAuthResponse(user));
     }
 

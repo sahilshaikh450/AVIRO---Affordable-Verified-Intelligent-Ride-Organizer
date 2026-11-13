@@ -66,7 +66,7 @@ public class AdminController {
         User user =
                 userRepository
                         .findById(userId)
-                        .orElseThrow(() -> new RuntimeException("User not found"));
+                        .orElseThrow(() -> new AviroException("User not found"));
         String photo = user.getCollegeIdPicUrl();
         user.setIsCollegeVerified(true);
         user.setCollegeIdPicUrl(null);
@@ -85,7 +85,7 @@ public class AdminController {
         User user =
                 userRepository
                         .findById(userId)
-                        .orElseThrow(() -> new RuntimeException("User not found"));
+                        .orElseThrow(() -> new AviroException("User not found"));
         String photo = user.getCollegeIdPicUrl();
         user.setIsCollegeVerified(false);
         user.setCollegeIdPicUrl(null);
@@ -135,7 +135,7 @@ public class AdminController {
         Vehicle vehicle =
                 vehicleRepository
                         .findById(vehicleId)
-                        .orElseThrow(() -> new RuntimeException("Vehicle not found"));
+                        .orElseThrow(() -> new AviroException("Vehicle not found"));
         if (!vehicle.hasBothPhotos()) {
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("The plate and licence photos are not uploaded yet."));
@@ -157,7 +157,7 @@ public class AdminController {
         Vehicle vehicle =
                 vehicleRepository
                         .findById(vehicleId)
-                        .orElseThrow(() -> new RuntimeException("Vehicle not found"));
+                        .orElseThrow(() -> new AviroException("Vehicle not found"));
         vehicle.setIsVerified(false);
         vehicleRepository.save(vehicle);
         tell(

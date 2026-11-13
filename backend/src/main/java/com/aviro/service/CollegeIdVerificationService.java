@@ -1,6 +1,7 @@
 package com.aviro.service;
 
 import com.aviro.entity.User;
+import com.aviro.exception.AviroException;
 import com.aviro.repository.UserRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -48,7 +49,7 @@ public class CollegeIdVerificationService {
         User user =
                 userRepository
                         .findById(userId)
-                        .orElseThrow(() -> new RuntimeException("User not found"));
+                        .orElseThrow(() -> new AviroException("User not found"));
 
         if (geminiApiKey == null || geminiApiKey.isBlank()) {
             log.warn("GEMINI_API_KEY is missing; manual review required");

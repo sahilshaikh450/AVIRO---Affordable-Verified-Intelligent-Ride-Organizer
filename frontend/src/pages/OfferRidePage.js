@@ -391,6 +391,10 @@ export default function OfferRidePage() {
                 value: 5,
                 message: 'Each share must be at least ₹5. Enter a higher trip cost.',
               },
+              max: {
+                value: 500,
+                message: 'Each share can be at most ₹500. AVIRO is for sharing fuel costs.',
+              },
             })}
           />
 
