@@ -90,15 +90,34 @@ export const currentPosition = () =>
     );
   });
 
+const firstOf = (a, keys) => keys.map((k) => a[k]).find((v) => typeof v === 'string' && v.trim());
+
+export const formatPlace = (address) => {
+  const a = address || {};
+  const street = firstOf(a, ['road', 'pedestrian', 'footway', 'residential', 'path', 'cycleway']);
+  const landmark = firstOf(a, ['amenity', 'building', 'shop', 'office', 'tourism', 'leisure']);
+  const locality = firstOf(a, ['neighbourhood', 'quarter', 'hamlet', 'residential']);
+  const area = firstOf(a, ['suburb', 'city_district', 'village', 'town']);
+  const city = firstOf(a, ['city', 'town', 'county']);
+
+  const parts = [];
+  const add = (v) => {
+    const clean = (v || '').trim();
+    if (clean && !parts.some((p) => p.toLowerCase() === clean.toLowerCase())) parts.push(clean);
+  };
+  add(street || landmark);
+  add(locality);
+  add(area);
+  if (parts.length < 2) add(city);
+  return parts.length ? parts.slice(0, 3).join(', ') : null;
+};
+
 export const placeName = async (point) => {
   try {
     const data = await fetchJson(
-      `${NOMINATIM_REVERSE_URL}?format=json&zoom=16&lat=${point.lat}&lon=${point.lng}`
+      `${NOMINATIM_REVERSE_URL}?format=json&zoom=18&addressdetails=1&accept-language=en&lat=${point.lat}&lon=${point.lng}`
     );
-    const a = data?.address || {};
-    return (
-      a.suburb || a.neighbourhood || a.quarter || a.village || a.road || a.town || a.city || null
-    );
+    return formatPlace(data?.address);
   } catch {
     return null;
   }
