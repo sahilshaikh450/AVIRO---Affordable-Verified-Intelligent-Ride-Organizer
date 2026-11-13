@@ -10,8 +10,6 @@ public interface AuthService {
 
     ApiResponse<AuthResponse> login(AuthRequest.Login request);
 
-    ApiResponse<AuthResponse> verifyLoginOtp(AuthRequest.LoginVerifyOtp request);
-
     ApiResponse<AuthResponse> verifyOtp(AuthRequest.VerifyOtp request);
 
     ApiResponse<String> resendOtp(AuthRequest.ResendOtp request);

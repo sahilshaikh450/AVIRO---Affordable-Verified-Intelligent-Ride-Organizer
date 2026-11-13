@@ -62,7 +62,9 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
         }
 
         String token = header.substring(7);
-        if (!jwtTokenProvider.validateToken(token) || tokenBlacklistService.isRevoked(token)) {
+        if (!jwtTokenProvider.validateToken(token)
+                || !jwtTokenProvider.isAccessToken(token)
+                || tokenBlacklistService.isRevoked(token)) {
             log.warn("WebSocket CONNECT with invalid token");
             return message;
         }

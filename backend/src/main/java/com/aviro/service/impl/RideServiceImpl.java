@@ -47,6 +47,9 @@ public class RideServiceImpl implements RideService {
 
     private static final int MAX_SEARCH_RESULTS = 50;
 
+    @Value("${aviro.ride.max-price-per-seat:500}")
+    private double maxPricePerSeat;
+
     @Value("${aviro.vehicle.require-verification:false}")
     private boolean requireVehicleVerification;
 
@@ -81,7 +84,7 @@ public class RideServiceImpl implements RideService {
         if (driver.getGuidelinesAcceptedAt() == null) {
             throw new AviroException(
                     "Please accept the community guidelines first. Open the app and tick them to"
-                        + " continue.");
+                            + " continue.");
         }
 
         if (!Boolean.TRUE.equals(driver.getIsCollegeVerified())) {
@@ -144,8 +147,11 @@ public class RideServiceImpl implements RideService {
 
         if (request.getPricePerSeat() == null
                 || request.getPricePerSeat() < 1
-                || request.getPricePerSeat() > 5000) {
-            throw new AviroException("💰 Price per seat must be between ₹1 and ₹5000.");
+                || request.getPricePerSeat() > maxPricePerSeat) {
+            throw new AviroException(
+                    "💰 Each share must be between ₹1 and ₹"
+                            + Math.round(maxPricePerSeat)
+                            + ". AVIRO is for sharing fuel costs, not for profit.");
         }
 
         if (request.getFromLocation() != null

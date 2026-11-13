@@ -58,6 +58,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 return;
             }
 
+            if (!jwtTokenProvider.isAccessToken(jwt)) {
+                SecurityContextHolder.clearContext();
+                writeUnauthorized(response, "Invalid token. Please login again.");
+                return;
+            }
+
             if (tokenBlacklistService.isRevoked(jwt)) {
                 SecurityContextHolder.clearContext();
                 writeUnauthorized(response, "Session ended. Please login again.");
@@ -75,6 +81,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             if (SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails userDetails =
                         authUserCache.get(email, userDetailsService::loadUserByUsername);
+
+                if (!userDetails.isEnabled()) {
+                    SecurityContextHolder.clearContext();
+                    writeUnauthorized(response, "This account is no longer active.");
+                    return;
+                }
 
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
