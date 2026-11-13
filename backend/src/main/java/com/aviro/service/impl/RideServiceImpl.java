@@ -47,6 +47,9 @@ public class RideServiceImpl implements RideService {
 
     private static final int MAX_SEARCH_RESULTS = 50;
 
+    @Value("${aviro.ride.search-radius-km:0.5}")
+    private double searchRadiusKm;
+
     @Value("${aviro.ride.max-price-per-seat:500}")
     private double maxPricePerSeat;
 
@@ -237,10 +240,51 @@ public class RideServiceImpl implements RideService {
                         request.getMaxPrice(),
                         squash(request.getFromLocation()),
                         squash(request.getToLocation()),
+                        validLat(request.getFromLat(), request.getFromLng()),
+                        validLat(request.getFromLat(), request.getFromLng()) == null
+                                ? null
+                                : request.getFromLng(),
+                        validLat(request.getToLat(), request.getToLng()),
+                        validLat(request.getToLat(), request.getToLng()) == null
+                                ? null
+                                : request.getToLng(),
+                        searchRadiusKm,
                         MAX_SEARCH_RESULTS);
         List<RideResponse> result = toResponses(matched);
+        if (validLat(request.getFromLat(), request.getFromLng()) != null) {
+            for (RideResponse r : result) {
+                if (r.getFromLat() != null && r.getFromLng() != null) {
+                    r.setPickupDistanceMeters(
+                            (int)
+                                    Math.round(
+                                            metersBetween(
+                                                    request.getFromLat(),
+                                                    request.getFromLng(),
+                                                    r.getFromLat(),
+                                                    r.getFromLng())));
+                }
+            }
+        }
 
         return ApiResponse.success(result);
+    }
+
+    private static Double validLat(Double lat, Double lng) {
+        if (lat == null || lng == null) return null;
+        if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+        if (lat == 0 && lng == 0) return null;
+        return lat;
+    }
+
+    static double metersBetween(double lat1, double lng1, double lat2, double lng2) {
+        double dLat = Math.toRadians(lat2 - lat1);
+        double dLng = Math.toRadians(lng2 - lng1);
+        double h =
+                Math.pow(Math.sin(dLat / 2), 2)
+                        + Math.cos(Math.toRadians(lat1))
+                                * Math.cos(Math.toRadians(lat2))
+                                * Math.pow(Math.sin(dLng / 2), 2);
+        return 2 * 6_371_000 * Math.asin(Math.sqrt(h));
     }
 
     @Override
