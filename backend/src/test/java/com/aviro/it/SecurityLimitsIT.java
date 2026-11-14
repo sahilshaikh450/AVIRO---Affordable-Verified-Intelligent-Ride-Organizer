@@ -79,23 +79,28 @@ class SecurityLimitsIT extends IntegrationTest {
     @Test
     void ipRateLimitStillWorksWithoutRedis() throws Exception {
         String ip = "10.9.9." + IP.incrementAndGet();
-        int last = 0;
-        for (int i = 0; i < 11; i++)
-            last = login("nobody" + i + "@gmail.com", "x", ip).getResponse().getStatus();
-        assertThat(last).isEqualTo(429);
+        boolean limited = false;
+        for (int i = 0; i < 21 && !limited; i++)
+            limited = login("nobody" + i + "@gmail.com", "x", ip).getResponse().getStatus() == 429;
+        assertThat(limited)
+                .as("10 logins per minute per IP; 21 tries cover a minute boundary")
+                .isTrue();
     }
 
     @Test
     void spoofedForwardedForDoesNotDodgeTheIpLimit() throws Exception {
         String realIp = "10.8.8." + IP.incrementAndGet();
-        int last = 0;
-        for (int i = 0; i < 11; i++) {
-            last =
+        boolean limited = false;
+        for (int i = 0; i < 21 && !limited; i++) {
+            limited =
                     login("nobody" + i + "@gmail.com", "x", "1.2.3." + i + ", " + realIp)
-                            .getResponse()
-                            .getStatus();
+                                    .getResponse()
+                                    .getStatus()
+                            == 429;
         }
-        assertThat(last).isEqualTo(429);
+        assertThat(limited)
+                .as("a fake first X-Forwarded-For hop must not reset the count")
+                .isTrue();
     }
 
     @Test

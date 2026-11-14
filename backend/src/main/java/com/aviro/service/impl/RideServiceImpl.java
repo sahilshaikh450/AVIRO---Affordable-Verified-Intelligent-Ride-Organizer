@@ -46,6 +46,7 @@ public class RideServiceImpl implements RideService {
     private final RideRequestService rideRequestService;
 
     private static final int MAX_SEARCH_RESULTS = 50;
+    private static final double MAX_SEARCH_RADIUS_KM = 5.0;
 
     @Value("${aviro.ride.search-radius-km:0.5}")
     private double searchRadiusKm;
@@ -248,6 +249,7 @@ public class RideServiceImpl implements RideService {
                         validLat(request.getToLat(), request.getToLng()) == null
                                 ? null
                                 : request.getToLng(),
+                        pickupRadiusKm(request.getRadiusKm()),
                         searchRadiusKm,
                         MAX_SEARCH_RESULTS);
         List<RideResponse> result = toResponses(matched);
@@ -264,9 +266,23 @@ public class RideServiceImpl implements RideService {
                                                     r.getFromLng())));
                 }
             }
+            result.sort(
+                    java.util.Comparator.comparing(
+                                    RideResponse::getPickupDistanceMeters,
+                                    java.util.Comparator.nullsLast(
+                                            java.util.Comparator.naturalOrder()))
+                            .thenComparing(
+                                    RideResponse::getDepartureTime,
+                                    java.util.Comparator.nullsLast(
+                                            java.util.Comparator.naturalOrder())));
         }
 
         return ApiResponse.success(result);
+    }
+
+    private double pickupRadiusKm(Double requested) {
+        if (requested == null || requested.isNaN()) return searchRadiusKm;
+        return Math.max(0.2, Math.min(MAX_SEARCH_RADIUS_KM, requested));
     }
 
     private static Double validLat(Double lat, Double lng) {

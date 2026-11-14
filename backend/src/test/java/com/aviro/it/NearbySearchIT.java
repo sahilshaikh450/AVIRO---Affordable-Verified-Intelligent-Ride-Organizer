@@ -25,7 +25,12 @@ class NearbySearchIT extends IntegrationTest {
     }
 
     private Res search(String from, Double lat, Double lng) throws Exception {
+        return search(from, lat, lng, null);
+    }
+
+    private Res search(String from, Double lat, Double lng, Double radiusKm) throws Exception {
         Map<String, Object> body = new HashMap<>();
+        if (radiusKm != null) body.put("radiusKm", radiusKm);
         body.put("fromLocation", from);
         body.put("toLocation", "MIT World Peace University");
         body.put("seatsNeeded", 1);
@@ -67,5 +72,40 @@ class NearbySearchIT extends IntegrationTest {
         long rideId = post("/rides", d, ride).id();
         Res res = search(place, null, null);
         assertThat(find(rideId, res)).isNotNull();
+    }
+
+    private long postRideAt(User d, String name, double lat, double lng) throws Exception {
+        Map<String, Object> ride = new HashMap<>(rideBody(3, 60));
+        ride.put("fromLocation", name + " " + System.nanoTime());
+        ride.put("fromLat", lat);
+        ride.put("fromLng", lng);
+        return post("/rides", d, ride).id();
+    }
+
+    @Test
+    void widerRadiusFindsRidesFurtherAwayButIsCappedAt5Km() throws Exception {
+        User d = driver("Far Driver", VehicleType.CAR, 4);
+        long rideId = postRideAt(d, "Warje Bridge", PICKUP_LAT, PICKUP_LNG);
+
+        double rider = PICKUP_LAT + 0.0108;
+        assertThat(find(rideId, search("Somewhere Else", rider, PICKUP_LNG))).isNull();
+        assertThat(find(rideId, search("Somewhere Else", rider, PICKUP_LNG, 2.0))).isNotNull();
+
+        double tenKmAway = PICKUP_LAT + 0.09;
+        assertThat(find(rideId, search("Somewhere Else", tenKmAway, PICKUP_LNG, 50.0))).isNull();
+    }
+
+    @Test
+    void closestPickupComesFirst() throws Exception {
+        User d1 = driver("Closer Driver", VehicleType.CAR, 4);
+        User d2 = driver("Further Driver", VehicleType.CAR, 4);
+        long further = postRideAt(d2, "Further Gate", PICKUP_LAT + 0.0036, PICKUP_LNG);
+        long closer = postRideAt(d1, "Closer Gate", PICKUP_LAT + 0.0009, PICKUP_LNG);
+
+        Res res = search("Somewhere Else", PICKUP_LAT, PICKUP_LNG, 0.5);
+        java.util.List<Long> order = new java.util.ArrayList<>();
+        for (JsonNode r : res.data()) order.add(r.path("id").asLong());
+        assertThat(order).contains(closer, further);
+        assertThat(order.indexOf(closer)).isLessThan(order.indexOf(further));
     }
 }

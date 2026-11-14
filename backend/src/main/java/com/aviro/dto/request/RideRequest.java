@@ -84,6 +84,7 @@ public class RideRequest {
         private Boolean womenOnly = false;
         private Gender driverGender;
         private Double maxPrice;
+        private Double radiusKm;
     }
 
     @Data

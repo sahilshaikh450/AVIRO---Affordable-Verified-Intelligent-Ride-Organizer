@@ -40,12 +40,12 @@ AND (:fromQ = ''
      OR REGEXP_REPLACE(LOWER(r.from_location), '[^a-z0-9]', '') LIKE CONCAT('%', :fromQ, '%')
      OR :fromQ LIKE CONCAT('%', REGEXP_REPLACE(LOWER(r.from_location), '[^a-z0-9]', ''), '%')
      OR (:fromLat IS NOT NULL AND r.from_lat IS NOT NULL
-         AND (2 * 6371 * ASIN(SQRT(POWER(SIN(RADIANS(r.from_lat - :fromLat) / 2), 2) + COS(RADIANS(:fromLat)) * COS(RADIANS(r.from_lat)) * POWER(SIN(RADIANS(r.from_lng - :fromLng) / 2), 2)))) <= :radiusKm))
+         AND (2 * 6371 * ASIN(SQRT(POWER(SIN(RADIANS(r.from_lat - :fromLat) / 2), 2) + COS(RADIANS(:fromLat)) * COS(RADIANS(r.from_lat)) * POWER(SIN(RADIANS(r.from_lng - :fromLng) / 2), 2)))) <= :fromRadiusKm))
 AND (:toQ = ''
      OR REGEXP_REPLACE(LOWER(r.to_location), '[^a-z0-9]', '') LIKE CONCAT('%', :toQ, '%')
      OR :toQ LIKE CONCAT('%', REGEXP_REPLACE(LOWER(r.to_location), '[^a-z0-9]', ''), '%')
      OR (:toLat IS NOT NULL AND r.to_lat IS NOT NULL
-         AND (2 * 6371 * ASIN(SQRT(POWER(SIN(RADIANS(r.to_lat - :toLat) / 2), 2) + COS(RADIANS(:toLat)) * COS(RADIANS(r.to_lat)) * POWER(SIN(RADIANS(r.to_lng - :toLng) / 2), 2)))) <= :radiusKm))
+         AND (2 * 6371 * ASIN(SQRT(POWER(SIN(RADIANS(r.to_lat - :toLat) / 2), 2) + COS(RADIANS(:toLat)) * COS(RADIANS(r.to_lat)) * POWER(SIN(RADIANS(r.to_lng - :toLng) / 2), 2)))) <= :toRadiusKm))
 ORDER BY r.departure_time ASC
 LIMIT :limit
 """,
@@ -63,7 +63,8 @@ LIMIT :limit
             @Param("fromLng") Double fromLng,
             @Param("toLat") Double toLat,
             @Param("toLng") Double toLng,
-            @Param("radiusKm") double radiusKm,
+            @Param("fromRadiusKm") double fromRadiusKm,
+            @Param("toRadiusKm") double toRadiusKm,
             @Param("limit") int limit);
 
     @Query(
