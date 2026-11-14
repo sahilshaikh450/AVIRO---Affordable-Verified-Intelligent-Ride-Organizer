@@ -10,6 +10,9 @@ import { RideAlertOffer, MyRideAlerts } from '../components/common/RideAlerts';
 import Icon from '../components/common/Icon';
 import { geocodePlace } from '../utils/geo';
 
+const NEAR_RADIUS_KM = 0.5;
+const AREA_RADIUS_KM = 2;
+
 export default function SearchRidePage() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -25,6 +28,7 @@ export default function SearchRidePage() {
   });
   const [points, setPoints] = useState({ from: null, to: null });
   const [searched, setSearched] = useState(false);
+  const [searchNote, setSearchNote] = useState('');
   const [alertsVersion, setAlertsVersion] = useState(0);
   const [lastSearch, setLastSearch] = useState(null);
 
@@ -40,21 +44,32 @@ export default function SearchRidePage() {
       toLocation: form.toLocation,
       seatsNeeded: form.seatsNeeded,
     });
+    setSearchNote('');
+    const usedMyLocation = !!points.from;
     const [fromPoint, toPoint] = await Promise.all([
       points.from || geocodePlace(form.fromLocation),
       points.to || geocodePlace(form.toLocation),
     ]);
-    dispatch(
-      searchRides({
-        fromLocation: form.fromLocation,
-        toLocation: form.toLocation,
-        ...(fromPoint && { fromLat: fromPoint.lat, fromLng: fromPoint.lng }),
-        ...(toPoint && { toLat: toPoint.lat, toLng: toPoint.lng }),
-        seatsNeeded: form.seatsNeeded,
-        womenOnly: form.womenOnly,
-        driverGender: form.driverGender || null,
-      })
-    );
+    const query = {
+      fromLocation: form.fromLocation,
+      toLocation: form.toLocation,
+      ...(fromPoint && { fromLat: fromPoint.lat, fromLng: fromPoint.lng }),
+      ...(toPoint && { toLat: toPoint.lat, toLng: toPoint.lng }),
+      seatsNeeded: form.seatsNeeded,
+      womenOnly: form.womenOnly,
+      driverGender: form.driverGender || null,
+    };
+    if (!usedMyLocation) {
+      dispatch(searchRides({ ...query, radiusKm: AREA_RADIUS_KM }));
+      return;
+    }
+    const near = await dispatch(searchRides({ ...query, radiusKm: NEAR_RADIUS_KM }));
+    if (!near.error && Array.isArray(near.payload) && near.payload.length === 0) {
+      const wider = await dispatch(searchRides({ ...query, radiusKm: AREA_RADIUS_KM }));
+      if (!wider.error && wider.payload?.length) {
+        setSearchNote('No rides within 500 m of you, so we are showing rides within 2 km.');
+      }
+    }
   };
 
   const { bookRide: handleBook, bookingRideId } = useBookRide();
@@ -194,6 +209,11 @@ export default function SearchRidePage() {
               </span>
             )}
           </p>
+          {searchNote && !loading && (
+            <p className="text-xs text-aviro-muted bg-aviro-card2 border border-aviro-border rounded-xl px-3 py-2 mb-3">
+              {searchNote}
+            </p>
+          )}
 
           {loading ? (
             <div className="flex justify-center py-12">
