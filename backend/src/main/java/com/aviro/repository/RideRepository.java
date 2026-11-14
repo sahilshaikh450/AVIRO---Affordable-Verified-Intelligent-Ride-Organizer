@@ -38,10 +38,14 @@ AND (:gender IS NULL OR u.gender = :gender)
 AND (:maxPrice IS NULL OR r.price_per_seat <= :maxPrice)
 AND (:fromQ = ''
      OR REGEXP_REPLACE(LOWER(r.from_location), '[^a-z0-9]', '') LIKE CONCAT('%', :fromQ, '%')
-     OR :fromQ LIKE CONCAT('%', REGEXP_REPLACE(LOWER(r.from_location), '[^a-z0-9]', ''), '%'))
+     OR :fromQ LIKE CONCAT('%', REGEXP_REPLACE(LOWER(r.from_location), '[^a-z0-9]', ''), '%')
+     OR (:fromLat IS NOT NULL AND r.from_lat IS NOT NULL
+         AND (2 * 6371 * ASIN(SQRT(POWER(SIN(RADIANS(r.from_lat - :fromLat) / 2), 2) + COS(RADIANS(:fromLat)) * COS(RADIANS(r.from_lat)) * POWER(SIN(RADIANS(r.from_lng - :fromLng) / 2), 2)))) <= :radiusKm))
 AND (:toQ = ''
      OR REGEXP_REPLACE(LOWER(r.to_location), '[^a-z0-9]', '') LIKE CONCAT('%', :toQ, '%')
-     OR :toQ LIKE CONCAT('%', REGEXP_REPLACE(LOWER(r.to_location), '[^a-z0-9]', ''), '%'))
+     OR :toQ LIKE CONCAT('%', REGEXP_REPLACE(LOWER(r.to_location), '[^a-z0-9]', ''), '%')
+     OR (:toLat IS NOT NULL AND r.to_lat IS NOT NULL
+         AND (2 * 6371 * ASIN(SQRT(POWER(SIN(RADIANS(r.to_lat - :toLat) / 2), 2) + COS(RADIANS(:toLat)) * COS(RADIANS(r.to_lat)) * POWER(SIN(RADIANS(r.to_lng - :toLng) / 2), 2)))) <= :radiusKm))
 ORDER BY r.departure_time ASC
 LIMIT :limit
 """,
@@ -55,6 +59,11 @@ LIMIT :limit
             @Param("maxPrice") Double maxPrice,
             @Param("fromQ") String fromQ,
             @Param("toQ") String toQ,
+            @Param("fromLat") Double fromLat,
+            @Param("fromLng") Double fromLng,
+            @Param("toLat") Double toLat,
+            @Param("toLng") Double toLng,
+            @Param("radiusKm") double radiusKm,
             @Param("limit") int limit);
 
     @Query(
@@ -89,7 +98,7 @@ LIMIT :limit
     @Modifying(flushAutomatically = true)
     @Query(
             "UPDATE Ride r SET r.availableSeats = r.availableSeats - :seats WHERE r.id = :rideId"
-                + " AND r.availableSeats >= :seats")
+                    + " AND r.availableSeats >= :seats")
     int reserveSeats(@Param("rideId") Long rideId, @Param("seats") Integer seats);
 
     @Modifying(flushAutomatically = true)

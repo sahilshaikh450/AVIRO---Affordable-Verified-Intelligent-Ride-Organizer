@@ -8,6 +8,7 @@ import LocationInput from '../components/common/LocationInput';
 import toast from 'react-hot-toast';
 import { RideAlertOffer, MyRideAlerts } from '../components/common/RideAlerts';
 import Icon from '../components/common/Icon';
+import { geocodePlace } from '../utils/geo';
 
 export default function SearchRidePage() {
   const dispatch = useDispatch();
@@ -22,6 +23,7 @@ export default function SearchRidePage() {
     womenOnly: false,
     driverGender: '',
   });
+  const [points, setPoints] = useState({ from: null, to: null });
   const [searched, setSearched] = useState(false);
   const [alertsVersion, setAlertsVersion] = useState(0);
   const [lastSearch, setLastSearch] = useState(null);
@@ -38,10 +40,16 @@ export default function SearchRidePage() {
       toLocation: form.toLocation,
       seatsNeeded: form.seatsNeeded,
     });
+    const [fromPoint, toPoint] = await Promise.all([
+      points.from || geocodePlace(form.fromLocation),
+      points.to || geocodePlace(form.toLocation),
+    ]);
     dispatch(
       searchRides({
         fromLocation: form.fromLocation,
         toLocation: form.toLocation,
+        ...(fromPoint && { fromLat: fromPoint.lat, fromLng: fromPoint.lng }),
+        ...(toPoint && { toLat: toPoint.lat, toLng: toPoint.lng }),
         seatsNeeded: form.seatsNeeded,
         womenOnly: form.womenOnly,
         driverGender: form.driverGender || null,
@@ -67,7 +75,10 @@ export default function SearchRidePage() {
             icon="🟠"
             placeholder="Kothrud, Shivajinagar..."
             value={form.fromLocation}
-            onChange={(val) => setForm({ ...form, fromLocation: val })}
+            onChange={(val, point) => {
+              setForm({ ...form, fromLocation: val });
+              setPoints((p) => ({ ...p, from: point || null }));
+            }}
             allowCurrentLocation
             required
           />
@@ -76,7 +87,10 @@ export default function SearchRidePage() {
             icon="🟢"
             placeholder="COEP, MIT Pune, FC Road..."
             value={form.toLocation}
-            onChange={(val) => setForm({ ...form, toLocation: val })}
+            onChange={(val, point) => {
+              setForm({ ...form, toLocation: val });
+              setPoints((p) => ({ ...p, to: point || null }));
+            }}
             required
           />
         </div>
