@@ -67,6 +67,16 @@ export const RideCard = ({ ride, onBook, onClick, booking = false }) => {
       </div>
 
       <div className="flex flex-wrap gap-1.5 mt-3">
+        {Number.isFinite(ride.pickupDistanceMeters) && (
+          <Pill
+            icon="📍"
+            label={
+              ride.pickupDistanceMeters < 1000
+                ? `${Math.max(10, Math.round(ride.pickupDistanceMeters / 10) * 10)} m from you`
+                : `${(ride.pickupDistanceMeters / 1000).toFixed(1)} km from you`
+            }
+          />
+        )}
         <Pill icon="💺" label={seats === 1 ? '1 seat left' : `${seats} seats left`} />
         {driver?.vehicleType && (
           <Pill
