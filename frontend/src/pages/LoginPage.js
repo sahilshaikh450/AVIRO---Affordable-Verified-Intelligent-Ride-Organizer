@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { loginUser } from '../store/authSlice';
@@ -22,6 +22,15 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
   const [showNewPass, setShowNewPass] = useState(false);
+  const [resendIn, setResendIn] = useState(0);
+
+  useEffect(() => {
+    if (resendIn <= 0) {
+      return undefined;
+    }
+    const timer = setTimeout(() => setResendIn((s) => s - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendIn]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -68,8 +77,10 @@ export default function LoginPage() {
       setEmail(cleanEmail);
       const res = await api.post('/auth/forgot-password', { email: cleanEmail });
 
-      toast.success(res.data?.message || 'Code sent! Check your email 📧', { duration: 6000 });
+      toast.success(res.data?.message || 'Code sent! Check your email.', { duration: 6000 });
 
+      setOtp('');
+      setResendIn(60);
       setStep(4);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Could not send the code. Please try again.');
@@ -293,7 +304,8 @@ export default function LoginPage() {
                     <span className="text-aviro-orange font-semibold">{email}</span>
                   </p>
                   <p className="text-aviro-muted text-xs mt-1">
-                    Not in your inbox? Check the Spam folder.
+                    Not in your inbox? Check Spam or Junk, and make sure this is the email you
+                    signed up with. Only the latest code works.
                   </p>
                 </div>
               </div>
@@ -378,9 +390,10 @@ export default function LoginPage() {
               <div className="text-center mt-4">
                 <button
                   onClick={handleForgotSendOtp}
-                  className="text-aviro-orange text-sm font-semibold hover:underline mt-1"
+                  disabled={loading || resendIn > 0}
+                  className="text-aviro-orange text-sm font-semibold hover:underline mt-1 disabled:text-aviro-muted disabled:no-underline"
                 >
-                  Resend OTP
+                  {resendIn > 0 ? `Resend code in ${resendIn}s` : 'Resend code'}
                 </button>
               </div>
             </>

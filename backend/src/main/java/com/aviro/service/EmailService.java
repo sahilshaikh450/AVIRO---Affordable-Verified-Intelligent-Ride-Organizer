@@ -337,6 +337,14 @@ public class EmailService {
                 : sendViaSmtp(to, subject, htmlBody);
     }
 
+    private String brevoMessageId(String body) {
+        try {
+            return objectMapper.readTree(body).path("messageId").asText("unknown");
+        } catch (Exception e) {
+            return "unknown";
+        }
+    }
+
     private boolean sendViaBrevo(String to, String subject, String htmlBody) {
         try {
             String json =
@@ -361,7 +369,10 @@ public class EmailService {
             HttpResponse<String> response =
                     httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() / 100 == 2) {
-                log.info("Email sent to {} via Brevo", to);
+                log.info(
+                        "Email sent to {} via Brevo, messageId {}",
+                        to,
+                        brevoMessageId(response.body()));
                 return true;
             }
             log.error(

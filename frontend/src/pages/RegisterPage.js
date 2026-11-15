@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { registerUser } from '../store/authSlice';
 
-import { PUNE_COLLEGES } from '../utils/colleges';
 import Icon from '../components/common/Icon';
 import { GUIDELINES_VERSION } from '../content/guidelines';
 import GuidelinesChecklist, { allAccepted } from '../components/common/GuidelinesChecklist';
+import CollegePicker from '../components/common/CollegePicker';
+import { suggestEmailFix } from '../utils/emailTypos';
 
 const NAME_RULE = { value: /^[\p{L} .'-]+$/u, message: 'Use letters only' };
 const PHONE_RULE = {
@@ -22,9 +23,11 @@ const PASSWORD_RULE = {
 export default function RegisterPage() {
   const {
     register,
+    control,
     handleSubmit,
     watch,
     trigger,
+    setValue,
     formState: { errors },
   } = useForm({ defaultValues: { role: 'RIDER', gender: 'MALE' } });
   const dispatch = useDispatch();
@@ -34,6 +37,7 @@ export default function RegisterPage() {
   const [agreed, setAgreed] = useState({});
   const allAgreed = allAccepted(agreed);
   const role = watch('role');
+  const emailFix = suggestEmailFix(watch('email'));
 
   const STEP_FIELDS = {
     1: ['role', 'gender'],
@@ -55,6 +59,7 @@ export default function RegisterPage() {
       registerUser({
         ...data,
         email: data.email.trim().toLowerCase(),
+        collegeName: (data.collegeName || '').trim(),
         acceptedGuidelines: true,
         guidelinesVersion: GUIDELINES_VERSION,
       })
@@ -170,43 +175,66 @@ export default function RegisterPage() {
                   )}
                 </div>
                 <div>
-                  <label className="text-xs text-aviro-muted font-medium block mb-1.5">
-                    College Email
-                  </label>
+                  <label className="text-xs text-aviro-muted font-medium block mb-1.5">Email</label>
                   <input
                     {...register('email', {
                       required: 'Email required',
-                      pattern: { value: /\S+@\S+\.\S+/, message: 'Invalid' },
+                      pattern: {
+                        value: /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/,
+                        message: 'Enter a valid email',
+                      },
                     })}
                     type="email"
                     placeholder="rahul@college.edu.in"
+                    autoCapitalize="none"
                     className="input-field"
                   />
                   {errors.email && (
                     <p className="text-red-600 text-xs mt-1">{errors.email.message}</p>
                   )}
+                  {!errors.email && emailFix && (
+                    <p className="text-xs mt-1 text-aviro-muted">
+                      Did you mean{' '}
+                      <button
+                        type="button"
+                        onClick={() => setValue('email', emailFix, { shouldValidate: true })}
+                        className="font-semibold text-aviro-fg underline"
+                      >
+                        {emailFix}
+                      </button>
+                      ?
+                    </p>
+                  )}
+                  <p className="text-xs mt-1 text-aviro-muted">
+                    Your login codes are sent here, so use an inbox you can open.
+                  </p>
                 </div>
                 <div>
                   <label className="text-xs text-aviro-muted font-medium block mb-1.5">
                     College
                   </label>
-                  <input
-                    {...register('collegeName', {
-                      required: 'College required',
-                      setValueAs: (v) => (v || '').trim(),
-                      minLength: { value: 3, message: 'Enter your college name' },
-                      maxLength: { value: 150, message: 'College name is too long' },
-                    })}
-                    list="pune-colleges"
-                    placeholder="Start typing, e.g. MIT-WPU, PICT, COEP"
-                    autoComplete="off"
-                    className="input-field"
+                  <Controller
+                    name="collegeName"
+                    control={control}
+                    rules={{
+                      validate: (v) => {
+                        const name = (v || '').trim();
+                        if (!name) return 'College required';
+                        if (name.length < 3) return 'Enter your college name';
+                        if (name.length > 150) return 'College name is too long';
+                        return true;
+                      },
+                    }}
+                    render={({ field }) => (
+                      <CollegePicker
+                        value={field.value}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        invalid={!!errors.collegeName}
+                        placeholder="Tap to choose your college"
+                      />
+                    )}
                   />
-                  <datalist id="pune-colleges">
-                    {PUNE_COLLEGES.map((c) => (
-                      <option key={c} value={c} />
-                    ))}
-                  </datalist>
                   {errors.collegeName && (
                     <p className="text-red-600 text-xs mt-1">{errors.collegeName.message}</p>
                   )}
