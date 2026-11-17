@@ -3,7 +3,10 @@ package com.aviro.repository;
 import com.aviro.entity.User;
 import com.aviro.enums.Gender;
 
+import jakarta.persistence.LockModeType;
+
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -15,6 +18,10 @@ import java.util.Optional;
 public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByEmail(String email);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT u FROM User u WHERE u.id = :id")
+    Optional<User> findByIdForUpdate(@Param("id") Long id);
 
     Boolean existsByEmail(String email);
 
@@ -29,7 +36,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query(
             "SELECT u FROM User u WHERE u.collegeIdPicUrl IS NOT NULL AND u.collegeIdPicUrl <> ''"
-                + " AND u.isCollegeVerified = false")
+                    + " AND u.isCollegeVerified = false")
     List<User> findPendingCollegeVerifications();
 
     long countByIsCollegeVerifiedTrue();

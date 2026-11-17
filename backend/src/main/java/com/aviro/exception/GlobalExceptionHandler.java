@@ -7,6 +7,7 @@ import io.sentry.Sentry;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -118,6 +119,16 @@ public class GlobalExceptionHandler {
                         ? "Email already registered. Please login."
                         : "Could not save data. Please check your details and try again.";
         return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponse.error(message));
+    }
+
+    @ExceptionHandler(PessimisticLockingFailureException.class)
+    public ResponseEntity<ApiResponse<Object>> handleLockConflict(
+            PessimisticLockingFailureException ex) {
+        log.warn("Database lock conflict: {}", ex.getMostSpecificCause().getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(
+                        ApiResponse.error(
+                                "Someone else updated this at the same moment. Please try again."));
     }
 
     @ExceptionHandler(Exception.class)

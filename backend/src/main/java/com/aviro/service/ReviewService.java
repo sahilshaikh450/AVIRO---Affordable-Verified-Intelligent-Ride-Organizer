@@ -14,6 +14,7 @@ import com.aviro.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -26,8 +27,12 @@ public class ReviewService {
     private final UserRepository userRepository;
     private final BookingRepository bookingRepository;
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public ApiResponse<String> submitReview(String reviewerEmail, ReviewRequest request) {
+        Booking booking =
+                bookingRepository
+                        .findByIdForUpdate(request.getBookingId())
+                        .orElseThrow(() -> new AviroException("Booking not found"));
         User reviewer =
                 userRepository
                         .findByEmail(reviewerEmail)
@@ -36,10 +41,6 @@ public class ReviewService {
                 userRepository
                         .findById(request.getRevieweeId())
                         .orElseThrow(() -> new AviroException("Reviewee not found"));
-        Booking booking =
-                bookingRepository
-                        .findById(request.getBookingId())
-                        .orElseThrow(() -> new AviroException("Booking not found"));
 
         Long riderId = booking.getRider().getId();
         Long driverId = booking.getRide().getDriver().getId();

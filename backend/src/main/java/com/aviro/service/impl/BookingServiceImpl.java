@@ -28,6 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
@@ -55,6 +56,13 @@ public class BookingServiceImpl implements BookingService {
     private static final Set<BookingStatus> ACTIVE_STATUSES =
             EnumSet.of(BookingStatus.REQUESTED, BookingStatus.CONFIRMED);
 
+    private void claimStatusChange(Booking booking, Set<BookingStatus> from, BookingStatus to) {
+        if (bookingRepository.moveStatus(booking.getId(), from, to) == 0) {
+            throw new AviroException(
+                    "This booking was just updated by someone else. Please refresh.");
+        }
+    }
+
     private static BookingStatus parseStatus(String status) {
         try {
             return BookingStatus.valueOf(status.trim().toUpperCase());
@@ -64,14 +72,14 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public ApiResponse<BookingResponse> createBooking(String email, BookingRequest.Create request) {
         User rider = getUser(email);
 
         if (rider.getGuidelinesAcceptedAt() == null) {
             throw new AviroException(
                     "Please accept the community guidelines first. Open the app and tick them to"
-                        + " continue.");
+                            + " continue.");
         }
 
         if (!Boolean.TRUE.equals(rider.getIsCollegeVerified())) {
@@ -82,7 +90,7 @@ public class BookingServiceImpl implements BookingService {
 
         Ride ride =
                 rideRepository
-                        .findById(request.getRideId())
+                        .findByIdForUpdate(request.getRideId())
                         .orElseThrow(() -> new AviroException("Ride not found"));
 
         if (ride.getDriver().getId().equals(rider.getId())) {
@@ -219,6 +227,8 @@ public class BookingServiceImpl implements BookingService {
                 throw new AviroException("Start the trip with the rider's OTP before ending it");
             }
 
+            claimStatusChange(
+                    booking, EnumSet.of(BookingStatus.CONFIRMED), BookingStatus.COMPLETED);
             booking.setStatus(BookingStatus.COMPLETED);
             booking.setTripStage(null);
             bookingRepository.save(booking);
@@ -265,6 +275,7 @@ public class BookingServiceImpl implements BookingService {
             throw new AviroException("This request was already answered");
         }
 
+        claimStatusChange(booking, EnumSet.of(BookingStatus.REQUESTED), newStatus);
         booking.setStatus(newStatus);
         bookingRepository.save(booking);
 
@@ -482,6 +493,7 @@ public class BookingServiceImpl implements BookingService {
             throw new AviroException("The trip has already started");
         }
 
+        claimStatusChange(booking, ACTIVE_STATUSES, BookingStatus.CANCELLED);
         booking.setStatus(BookingStatus.CANCELLED);
         booking.setTripStage(null);
         bookingRepository.save(booking);

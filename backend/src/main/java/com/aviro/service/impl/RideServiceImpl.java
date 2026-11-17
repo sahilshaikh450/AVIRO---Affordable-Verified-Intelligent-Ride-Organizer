@@ -8,7 +8,6 @@ import com.aviro.entity.Ride;
 import com.aviro.entity.User;
 import com.aviro.entity.Vehicle;
 import com.aviro.enums.BookingStatus;
-import com.aviro.enums.Gender;
 import com.aviro.enums.RideStatus;
 import com.aviro.exception.AviroException;
 import com.aviro.repository.BookingRepository;
@@ -24,10 +23,12 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -81,7 +82,7 @@ public class RideServiceImpl implements RideService {
                     RideStatus.IN_PROGRESS, Set.of(RideStatus.COMPLETED));
 
     @Override
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public ApiResponse<RideResponse> createRide(String email, RideRequest.Create request) {
         User driver = getUser(email);
 
@@ -166,9 +167,13 @@ public class RideServiceImpl implements RideService {
             throw new AviroException("📍 Pickup and drop locations cannot be the same.");
         }
 
+        userRepository.findByIdForUpdate(driver.getId());
         LocalDateTime now = LocalDateTime.now();
         List<Ride> existingRides =
-                rideRepository.findByDriverAndStatus(driver.getId(), RideStatus.PENDING);
+                new ArrayList<>(
+                        rideRepository.findByDriverAndStatus(driver.getId(), RideStatus.PENDING));
+        existingRides.addAll(
+                rideRepository.findByDriverAndStatus(driver.getId(), RideStatus.ACTIVE));
         boolean duplicate =
                 existingRides.stream()
                         .anyMatch(
