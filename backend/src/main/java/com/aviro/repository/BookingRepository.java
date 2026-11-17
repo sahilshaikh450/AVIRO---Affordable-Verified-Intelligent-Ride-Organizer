@@ -3,7 +3,11 @@ package com.aviro.repository;
 import com.aviro.entity.Booking;
 import com.aviro.enums.BookingStatus;
 
+import jakarta.persistence.LockModeType;
+
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -16,6 +20,17 @@ import java.util.Optional;
 public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     List<Booking> findByRiderId(Long riderId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT b FROM Booking b WHERE b.id = :id")
+    Optional<Booking> findByIdForUpdate(@Param("id") Long id);
+
+    @Modifying(flushAutomatically = true)
+    @Query("UPDATE Booking b SET b.status = :to WHERE b.id = :id AND b.status IN :from")
+    int moveStatus(
+            @Param("id") Long id,
+            @Param("from") Collection<BookingStatus> from,
+            @Param("to") BookingStatus to);
 
     List<Booking> findTop100ByRiderIdOrderByCreatedAtDesc(Long riderId);
 
@@ -41,7 +56,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     @Query(
             "SELECT SUM(b.totalAmount) FROM Booking b WHERE b.rider.id = :riderId AND"
-                + " b.paymentStatus = 'COMPLETED'")
+                    + " b.paymentStatus = 'COMPLETED'")
     Double totalSpentByRider(@Param("riderId") Long riderId);
 
     @Query(
@@ -74,7 +89,7 @@ AND ((b.rider.id = :userA AND b.ride.driver.id = :userB) OR (b.rider.id = :userB
 
     @Query(
             "SELECT b FROM Booking b WHERE b.ride.id = :rideId AND b.status IN ('REQUESTED',"
-                + " 'CONFIRMED')")
+                    + " 'CONFIRMED')")
     List<Booking> findActiveBookingsForRide(@Param("rideId") Long rideId);
 
     @Query(
